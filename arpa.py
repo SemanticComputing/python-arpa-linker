@@ -85,7 +85,7 @@ def main():
     argparser.add_argument("arpa", help="ARPA service URL")
     argparser.add_argument("--fi", help="Input file format (rdflib parser). Will be guessed if omitted.")
     argparser.add_argument("--fo", help="Output file format (rdflib serializer). Default is turtle.", default="turtle")
-    argparser.add_argument("--rdfclass", help="Process only instances of the given class")
+    argparser.add_argument("--rdfclass", help="Process only subjects of the given type (goes through all subjects by default).")
     argparser.add_argument("--prop", help="Property that's value is to be used in matching. Default is skos:prefLabel.")
 
     args = argparser.parse_args()

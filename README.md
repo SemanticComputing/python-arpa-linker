@@ -19,7 +19,8 @@ optional arguments:
                        omitted.
   --fo FO              Output file format (rdflib serializer). Default is
                        turtle.
-  --rdfclass RDFCLASS  Process only instances of the given class
+  --rdfclass RDFCLASS  Process only subjects of the given type (goes through
+                       all subjects by default).
   --prop PROP          Property that's value is to be used in matching.
                        Default is skos:prefLabel.
 ```
