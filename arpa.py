@@ -9,8 +9,31 @@ from rdflib.util import guess_format
 class Arpa:
     """Class representing the ARPA service"""
 
-    def __init__(self, url):
+    def __init__(self, url, ignore=None):
+        """
+        :param url: the ARPA service url
+        :param ignore: a list of matches that should be removed from the results (case insensitive)
+        """
+
         self.url = url
+        self.ignore = [s.lower() for s in ignore or []]
+
+    def _filter_ignored(self, response):
+        """
+        Filter matches based on the ignore list.
+
+        :param response: the parsed ARPA service response
+        :returns: the response with the ignored matches removed
+        """
+
+        # If the response is empty or there is nothing to ignore, do nothing
+        if not (self.ignore or response['results']):
+            return response
+
+        # Filter ignored results
+        res = [x for x in response['results'] if x['label'].lower() not in self.ignore]
+        response['results'] = res
+        return response
 
     def query(self, text):
         """
@@ -26,7 +49,8 @@ class Arpa:
         req = request.Request(self.url, data)
         try:
             with request.urlopen(req) as response:
-                return json.loads(response.read().decode('utf-8'))
+                read = json.loads(response.read().decode('utf-8'))
+                return self._filter_ignored(read)
         except HTTPError as e:
             e.msg = 'Error ({}) when querying the ARPA service with data "{}".'.format(e.msg, data)
             raise
@@ -39,8 +63,7 @@ class Arpa:
         :returns: a list of uris for resources that match the text
         """
 
-        res = self.query(text)
-        return [x['id'] for x in res['results']]
+        return [x['id'] for x in self.query(text)['results']]
 
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     """
@@ -51,6 +74,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     :param arpa: the Arpa class instance
     :param source_prop: the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used)
     :param rdf_class: if given, only go through instances of this type.
+    :returns: a dict with match count (matches) and errors encountered (errors).
     """
 
     if source_prop is None:
@@ -65,28 +89,39 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     else:
         subgraph += graph.triples((None, source_prop, None))
 
+    match_count = 0
+    errors = []
+
     for s, o in subgraph.subject_objects():
         try:
             match_uris = arpa.get_uri_matches(o)
         except HTTPError as e:
-            print(e)
+            errors.append(e)
         else:
+            match_count += len(match_uris)
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
 
+    return { 'matches': match_count, 'errors': errors }
+
 def main():
-    argparser = argparse.ArgumentParser(description="""
-    Link resources with ARPA. 
-    """)
+    argparser = argparse.ArgumentParser(description="Link resources with ARPA.",
+            fromfile_prefix_chars="@")
     argparser.add_argument("input", help="Input rdf file")
     argparser.add_argument("output", help="Output file")
     argparser.add_argument("tprop", help="Target property for the matches")
     argparser.add_argument("arpa", help="ARPA service URL")
-    argparser.add_argument("--fi", help="Input file format (rdflib parser). Will be guessed if omitted.")
-    argparser.add_argument("--fo", help="Output file format (rdflib serializer). Default is turtle.", default="turtle")
-    argparser.add_argument("--rdfclass", help="Process only subjects of the given type (goes through all subjects by default).")
-    argparser.add_argument("--prop", help="Property that's value is to be used in matching. Default is skos:prefLabel.")
+    argparser.add_argument("--fi",
+        help="Input file format (rdflib parser). Will be guessed if omitted.")
+    argparser.add_argument("--fo",
+        help="Output file format (rdflib serializer). Default is turtle.", default="turtle")
+    argparser.add_argument("--rdfclass",
+        help="Process only subjects of the given type (goes through all subjects by default).")
+    argparser.add_argument("--prop",
+        help="Property that's value is to be used in matching. Default is skos:prefLabel.")
+    argparser.add_argument("--ignore", nargs="*",
+        help="Terms that should be ignored even if matched")
 
     args = argparser.parse_args()
 
@@ -109,10 +144,17 @@ def main():
     g = Graph()
     g.parse(args.input, format=input_format)
 
-    arpa = Arpa(args.arpa)
+    arpa = Arpa(args.arpa, args.ignore)
 
     # Add the ARPA matches
-    arpafy(g, target_prop, arpa, source_prop, rdf_class)
+    res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
+
+    if res['errors']:
+        print("Some errors occurred while querying:")
+        for err in res['errors']:
+            print(err)
+
+    print("Found {} matches".format(res['matches']))
 
     # Serialize the graph to disk
     g.serialize(destination=args.output, format=args.fo)

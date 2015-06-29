@@ -1,0 +1,10 @@
+input.ttl
+output.ttl
+http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at
+http://demo.seco.tkk.fi/arpa/karelia-places
+--rdfclass
+http://www.cidoc-crm.org/cidoc-crm/E5_Event
+--ignore
+sillanpää
+saari
+p
