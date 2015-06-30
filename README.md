@@ -3,7 +3,7 @@ Tool for linking resources with ARPA
 
 ```
 usage: arpa.py [-h] [--fi FI] [--fo FO] [--rdfclass RDFCLASS] [--prop PROP]
-               [--ignore [IGNORE [IGNORE ...]]]
+               [--ignore [IGNORE [IGNORE ...]]] [--minngram N]
                input output tprop arpa
 
 Link resources with ARPA.
@@ -26,6 +26,9 @@ optional arguments:
                         Default is skos:prefLabel.
   --ignore [IGNORE [IGNORE ...]]
                         Terms that should be ignored even if matched
+  --minngram N          The minimum ngram length that is considered a match.
+                        Default is 1.
+
 ```
 
 The arguments can also be read from a file using "@" (example arg file "arpa.args"):
