@@ -9,29 +9,36 @@ from rdflib.util import guess_format
 class Arpa:
     """Class representing the ARPA service"""
 
-    def __init__(self, url, ignore=None):
+    def __init__(self, url, min_ngram_length=1, ignore=None):
         """
         :param url: the ARPA service url
+        :param min_ngram_length: the minimum ngram match length that will be included when
+                                returning the query results
         :param ignore: a list of matches that should be removed from the results (case insensitive)
         """
 
         self.url = url
         self.ignore = [s.lower() for s in ignore or []]
+        self.min_ngram_length = min_ngram_length
 
-    def _filter_ignored(self, response):
+    def _filter(self, response):
         """
-        Filter matches based on the ignore list.
+        Filter matches based on the ignore list and remove matches that are
+        for ngrams with length less than self.min_ngram_length.
 
         :param response: the parsed ARPA service response
         :returns: the response with the ignored matches removed
         """
 
         # If the response is empty or there is nothing to ignore, do nothing
-        if not (self.ignore or response['results']):
+        if not (self.ignore or response['results']) and self.min_ngram_length == 1:
             return response
 
         # Filter ignored results
         res = [x for x in response['results'] if x['label'].lower() not in self.ignore]
+        if self.min_ngram_length > 1:
+            res = [x for x in res if len(x['properties']['ngram'][0].split()) >= self.min_ngram_length]
+
         response['results'] = res
         return response
 
@@ -43,14 +50,15 @@ class Arpa:
         :returns: the ARPA service response as JSON
         """
 
-        # Remove quotation marks - ARPA returns an error if they're present
-        data = parse.urlencode({ 'text': text.replace('"', '') }).encode('utf-8')
+        # Remove quotation marks and brackets - ARPA can return an error if they're present
+        text = text.replace('"', '').replace("(", "").replace(")", "")
+        data = parse.urlencode({ 'text': text }).encode('utf-8')
         # Query the ARPA service with the text
         req = request.Request(self.url, data)
         try:
             with request.urlopen(req) as response:
                 read = json.loads(response.read().decode('utf-8'))
-                return self._filter_ignored(read)
+                return self._filter(read)
         except HTTPError as e:
             e.msg = 'Error ({}) when querying the ARPA service with data "{}".'.format(e.msg, data)
             raise
@@ -65,6 +73,7 @@ class Arpa:
 
         return [x['id'] for x in self.query(text)['results']]
 
+
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
@@ -74,7 +83,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     :param arpa: the Arpa class instance
     :param source_prop: the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used)
     :param rdf_class: if given, only go through instances of this type.
-    :returns: a dict with match count (matches) and errors encountered (errors).
+    :returns: a dict with the amount of processed triples (processed), 
+            match count (matches) and errors encountered (errors).
     """
 
     if source_prop is None:
@@ -103,7 +113,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
 
-    return { 'matches': match_count, 'errors': errors }
+    return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
 
 def main():
     argparser = argparse.ArgumentParser(description="Link resources with ARPA.",
@@ -122,6 +132,8 @@ def main():
         help="Property that's value is to be used in matching. Default is skos:prefLabel.")
     argparser.add_argument("--ignore", nargs="*",
         help="Terms that should be ignored even if matched")
+    argparser.add_argument("--minngram", default=1, metavar="N", type=int,
+        help="The minimum ngram length that is considered a match. Default is 1.")
 
     args = argparser.parse_args()
 
@@ -144,7 +156,7 @@ def main():
     g = Graph()
     g.parse(args.input, format=input_format)
 
-    arpa = Arpa(args.arpa, args.ignore)
+    arpa = Arpa(args.arpa, args.minngram, args.ignore)
 
     # Add the ARPA matches
     res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
@@ -154,7 +166,7 @@ def main():
         for err in res['errors']:
             print(err)
 
-    print("Found {} matches".format(res['matches']))
+    print("Processed {} triples, found {} matches".format(res['processed'], res['matches']))
 
     # Serialize the graph to disk
     g.serialize(destination=args.output, format=args.fo)
