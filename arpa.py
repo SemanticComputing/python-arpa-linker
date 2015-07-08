@@ -45,7 +45,9 @@ class Arpa:
         if self.no_duplicates:
             labels = set()
             add = labels.add
-            res = [x for x in res if not (x['label'] in labels or add(x['label']))]
+            res = [x for x in res if not (x['label'] in labels 
+                # If the label is not in the labels set, add it to the set.
+                or add(x['label']))]
 
         response['results'] = res
         return response
@@ -124,26 +126,27 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
 
 def main():
-    argparser = argparse.ArgumentParser(description="Link resources with ARPA.",
+    argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
             fromfile_prefix_chars="@")
     argparser.add_argument("input", help="Input rdf file")
     argparser.add_argument("output", help="Output file")
-    argparser.add_argument("tprop", help="Target property for the matches")
+    argparser.add_argument("tprop", metavar="target_property", help="Target property for the matches")
     argparser.add_argument("arpa", help="ARPA service URL")
-    argparser.add_argument("--fi",
+    argparser.add_argument("--fi", metavar="INPUT_FORMAT",
         help="Input file format (rdflib parser). Will be guessed if omitted.")
-    argparser.add_argument("--fo",
+    argparser.add_argument("--fo", metavar="OUTPUT_FORMAT",
         help="Output file format (rdflib serializer). Default is turtle.", default="turtle")
-    argparser.add_argument("--rdfclass",
+    argparser.add_argument("--rdf_class", metavar="CLASS",
         help="Process only subjects of the given type (goes through all subjects by default).")
-    argparser.add_argument("--prop",
+    argparser.add_argument("--prop", metavar="PROPERTY",
         help="Property that's value is to be used in matching. Default is skos:prefLabel.")
-    argparser.add_argument("--ignore", nargs="*",
+    argparser.add_argument("--ignore", nargs="*", metavar="TERM",
         help="Terms that should be ignored even if matched")
-    argparser.add_argument("--minngram", default=1, metavar="N", type=int,
+    argparser.add_argument("--min_ngram", default=1, metavar="N", type=int,
         help="The minimum ngram length that is considered a match. Default is 1.")
-    argparser.add_argument("--noduplicates", action="store_true", default=False,
+    argparser.add_argument("--no_duplicates", action="store_true", default=False,
         help="""Remove duplicate matches based on the 'label' returned by the ARPA service.
+        Here 'duplicate' means an individual with the same label.
         Note that the response from the service has to include a 'label' variable
         for this to work.""")
 
@@ -159,8 +162,8 @@ def main():
         source_prop = URIRef(args.prop)
 
     rdf_class = None
-    if args.rdfclass:
-        rdf_class = URIRef(args.rdfclass)
+    if args.rdf_class:
+        rdf_class = URIRef(args.rdf_class)
 
     target_prop = URIRef(args.tprop)
 
@@ -168,9 +171,9 @@ def main():
     g = Graph()
     g.parse(args.input, format=input_format)
 
-    arpa = Arpa(args.arpa, args.noduplicates, args.minngram, args.ignore)
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
 
-    # Add the ARPA matches
+    # Query the ARPA service and add the matches
     res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
 
     if res['errors']:
