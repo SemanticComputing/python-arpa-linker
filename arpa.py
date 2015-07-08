@@ -9,7 +9,7 @@ from rdflib.util import guess_format
 class Arpa:
     """Class representing the ARPA service"""
 
-    def __init__(self, url, min_ngram_length=1, ignore=None):
+    def __init__(self, url, no_duplicates=False, min_ngram_length=1, ignore=None):
         """
         :param url: the ARPA service url
         :param min_ngram_length: the minimum ngram match length that will be included when
@@ -20,6 +20,7 @@ class Arpa:
         self.url = url
         self.ignore = [s.lower() for s in ignore or []]
         self.min_ngram_length = min_ngram_length
+        self.no_duplicates = no_duplicates
 
     def _filter(self, response):
         """
@@ -30,14 +31,21 @@ class Arpa:
         :returns: the response with the ignored matches removed
         """
 
-        # If the response is empty or there is nothing to ignore, do nothing
-        if not (self.ignore or response['results']) and self.min_ngram_length == 1:
-            return response
+        res = response['results']
 
         # Filter ignored results
-        res = [x for x in response['results'] if x['label'].lower() not in self.ignore]
+        if self.ignore:
+            res = [x for x in res if x['label'].lower() not in self.ignore]
+
+        # Filter by minimum ngram length
         if self.min_ngram_length > 1:
             res = [x for x in res if len(x['properties']['ngram'][0].split()) >= self.min_ngram_length]
+
+        # Remove duplicates if requested
+        if self.no_duplicates:
+            labels = set()
+            add = labels.add
+            res = [x for x in res if not (x['label'] in labels or add(x['label']))]
 
         response['results'] = res
         return response
@@ -134,6 +142,10 @@ def main():
         help="Terms that should be ignored even if matched")
     argparser.add_argument("--minngram", default=1, metavar="N", type=int,
         help="The minimum ngram length that is considered a match. Default is 1.")
+    argparser.add_argument("--noduplicates", action="store_true", default=False,
+        help="""Remove duplicate matches based on the 'label' returned by the ARPA service.
+        Note that the response from the service has to include a 'label' variable
+        for this to work.""")
 
     args = argparser.parse_args()
 
@@ -156,7 +168,7 @@ def main():
     g = Graph()
     g.parse(args.input, format=input_format)
 
-    arpa = Arpa(args.arpa, args.minngram, args.ignore)
+    arpa = Arpa(args.arpa, args.noduplicates, args.minngram, args.ignore)
 
     # Add the ARPA matches
     res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
