@@ -4,7 +4,8 @@ Tool for linking resources to an RDF graph with an [ARPA](https://github.com/jie
 ```
 usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
                [--rdf_class CLASS] [--prop PROPERTY]
-               [--ignore [TERM [TERM ...]]] [--min_ngram N] [--no_duplicates]
+               [--ignore [TERM [TERM ...]]] [--min_ngram N]
+               [--no_duplicates [TYPE [TYPE ...]]]
                input output target_property arpa
 
 Link resources to an RDF graph with ARPA.
@@ -29,10 +30,14 @@ optional arguments:
                         Terms that should be ignored even if matched
   --min_ngram N         The minimum ngram length that is considered a match.
                         Default is 1.
-  --no_duplicates       Remove duplicate matches based on the 'label' returned
+  --no_duplicates [TYPE [TYPE ...]]
+                        Remove duplicate matches based on the 'label' returned
                         by the ARPA service. Here 'duplicate' means an
-                        individual with the same label. Note that the response
-                        from the service has to include a 'label' variable for
+                        individual with the same label. A list of types can be
+                        given with this argument. If given, prioritize matches
+                        based on it - the first given type will get the
+                        highest priority and so on. Note that the response
+                        from the service has to include a 'type' variable for
                         this to work.
 ```
 

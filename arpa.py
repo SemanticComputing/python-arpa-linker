@@ -207,12 +207,12 @@ def main():
         help="Terms that should be ignored even if matched")
     argparser.add_argument("--min_ngram", default=1, metavar="N", type=int,
         help="The minimum ngram length that is considered a match. Default is 1.")
-    argparser.add_argument("--no_duplicates", nargs="*", default=False,
+    argparser.add_argument("--no_duplicates", nargs="*", default=False, metavar="TYPE",
         help="""Remove duplicate matches based on the 'label' returned by the ARPA service.
         Here 'duplicate' means an individual with the same label.
         A list of types can be given with this argument. If given, prioritize matches
         based on it - the first given type will get the highest priority and so on.
-        Note that the response from the service has to include a 'label' variable
+        Note that the response from the service has to include a 'type' variable
         for this to work.""")
 
     args = argparser.parse_args()
