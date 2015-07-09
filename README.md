@@ -32,13 +32,13 @@ optional arguments:
                         Default is 1.
   --no_duplicates [TYPE [TYPE ...]]
                         Remove duplicate matches based on the 'label' returned
-                        by the ARPA service. Here 'duplicate' means an
-                        individual with the same label. A list of types can be
-                        given with this argument. If given, prioritize matches
-                        based on it - the first given type will get the
-                        highest priority and so on. Note that the response
-                        from the service has to include a 'type' variable for
-                        this to work.
+                        by the ARPA service. Here 'duplicate' means an subject
+                        with the same label as another subject in the same
+                        result set. A list of types can be given with this
+                        argument. If given, prioritize matches based on it -
+                        the first given type will get the highest priority and
+                        so on. Note that the response from the service has to
+                        include a 'type' variable for this to work.
 ```
 
 The arguments can also be read from a file using "@" (example arg file "arpa.args"):
