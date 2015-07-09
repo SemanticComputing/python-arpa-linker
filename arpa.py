@@ -62,29 +62,30 @@ class Arpa:
             # self.remove_duplicates is a tuple - prioritize types defined in it
             items = {}
             for x in res:
+                x_label = x[LABEL_PROP].lower()
                 # Get the types of the latest most preferrable entry that 
                 # had the same label as this one
-                prev_match_types = items.get(x[LABEL_PROP], {}).get('properties', {}).get(TYPE_PROP, [])
+                prev_match_types = items.get(x_label, {}).get('properties', {}).get(TYPE_PROP, [])
                 # Get matches from the preferred types for the previously selected entry
                 prev_pref = set(prev_match_types).intersection(set(self.remove_duplicates))
                 try:
                     # Find the priority of the previously selected entry
                     prev_idx = min([self.remove_duplicates.index(t) for t in prev_pref])
                 except ValueError:
-                    # This is the first entry of its type
-                    items[x[LABEL_PROP]] = x
-                    continue
+                    # No previous entry or previous entry doesn't have a preferred type
+                    prev_idx = float('inf')
                 # Get matches in the preferred types for this entry
                 pref = set(x['properties'][TYPE_PROP]).intersection(self.remove_duplicates)
                 try:
                     idx = min([self.remove_duplicates.index(t) for t in pref])
                 except ValueError:
                     # This one is not of a preferred type
-                    continue
-                if idx < prev_idx:
-                    # The current match has a higher priority preferred type -
-                    # replace the entry selected earlier
-                    items[x[LABEL_PROP]] = x
+                    idx = float('inf')
+
+                if (not prev_match_types) or idx < prev_idx:
+                    # There is no previous entry with this label or
+                    # the current match has a higher priority preferred type
+                    items[x_label] = x
 
             res = [x for x in res if x in items.values()]
 
