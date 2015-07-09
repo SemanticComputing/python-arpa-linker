@@ -209,7 +209,7 @@ def main():
         help="The minimum ngram length that is considered a match. Default is 1.")
     argparser.add_argument("--no_duplicates", nargs="*", default=False, metavar="TYPE",
         help="""Remove duplicate matches based on the 'label' returned by the ARPA service.
-        Here 'duplicate' means an subject with the same label as another subject in
+        Here 'duplicate' means a subject with the same label as another subject in
         the same result set.
         A list of types can be given with this argument. If given, prioritize matches
         based on it - the first given type will get the highest priority and so on.

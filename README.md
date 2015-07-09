@@ -32,7 +32,7 @@ optional arguments:
                         Default is 1.
   --no_duplicates [TYPE [TYPE ...]]
                         Remove duplicate matches based on the 'label' returned
-                        by the ARPA service. Here 'duplicate' means an subject
+                        by the ARPA service. Here 'duplicate' means a subject
                         with the same label as another subject in the same
                         result set. A list of types can be given with this
                         argument. If given, prioritize matches based on it -
