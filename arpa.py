@@ -1,7 +1,6 @@
 import argparse
-import json
-from urllib import parse, request
-from urllib.error import HTTPError
+import requests
+from requests.exceptions import HTTPError
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
@@ -116,6 +115,10 @@ class Arpa:
         response['results'] = res
         return response
 
+    def _sanitize(self, text):
+        # Remove quotation marks and brackets - ARPA can return an error if they're present
+        return text.replace('"', '').replace("(", "").replace(")", "")
+
     def query(self, text):
         """
         Query the ARPA service.
@@ -124,31 +127,34 @@ class Arpa:
         :returns: The ARPA service response as JSON.
         """
 
-        # Remove quotation marks and brackets - ARPA can return an error if they're present
-        text = text.replace('"', '').replace("(", "").replace(")", "")
-        data = parse.urlencode({ 'text': text }).encode('utf-8')
+        text = self._sanitize(text)
         # Query the ARPA service with the text
-        req = request.Request(self.url, data)
+        data = 'text="{}"'.format(text)
+        res = requests.post(self.url, data={'text': text})
         try:
-            with request.urlopen(req) as response:
-                read = json.loads(response.read().decode('utf-8'))
-                return self._filter(read)
+            res.raise_for_status()
         except HTTPError as e:
-            e.msg = 'Error ({}) when querying the ARPA service with data "{}".'.format(e.msg, data)
-            raise
+            raise HTTPError('Error ({}) when querying the ARPA service with data "{}".'.format(e.response.status_code, data))
 
-    def get_uri_matches(self, text):
+        return self._filter(res.json())
+
+    def get_uri_matches(self, text, validator=None):
         """
         Query ARPA and return matching uris.
 
         :param text: The text to use in the query.
+        :param validator: Validator function.
         :returns: A list of uris for resources that match the text.
         """
+        results = self.query(text)['results']
 
-        return [x['id'] for x in self.query(text)['results']]
+        if validator:
+            results = validator(results)
+
+        return [x['id'] for x in results]
 
 
-def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
+def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -157,6 +163,9 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     :param arpa: The Arpa class instance.
     :param source_prop: The property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
     :param rdf_class: If given, only go through instances of this type.
+    :param validator: A function that takes a graph and a subject as parameter and returns a function
+                        that takes ARPA results as parameter and returns a subset of those results
+                        (that have been validated based on the subject, graph and results). Optional.
     :returns: A dict with the amount of processed triples (processed), 
             match count (matches) and errors encountered (errors).
     """
@@ -177,9 +186,10 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None):
     errors = []
 
     for s, o in subgraph.subject_objects():
+        args = (o, validator(graph, s)) if validator else (o,)
         try:
-            match_uris = arpa.get_uri_matches(o)
-        except HTTPError as e:
+            match_uris = arpa.get_uri_matches(*args)
+        except (HTTPError, ValueError) as e:
             errors.append(e)
         else:
             match_count += len(match_uris)
@@ -251,8 +261,8 @@ def main():
         print("Some errors occurred while querying:")
         for err in res['errors']:
             print(err)
-
-    print("Processed {} triples, found {} matches".format(res['processed'], res['matches']))
+    print("Processed {} triples, found {} matches ({} errors)"
+            .format(res['processed'], res['matches'], len(res['errors'])))
 
     # Serialize the graph to disk
     g.serialize(destination=args.output, format=args.fo)
