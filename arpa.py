@@ -117,7 +117,7 @@ class Arpa:
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
-        return text.replace('"', '').replace("(", "").replace(")", "")
+        return text.replace('"', '').replace("(", "").replace(")", "").replace("/", "\/")
 
     def query(self, text):
         """
@@ -143,9 +143,11 @@ class Arpa:
         Query ARPA and return matching uris.
 
         :param text: The text to use in the query.
-        :param validator: Validator function.
+        :param validator: A function that takes the ARPA results as parameter and returns
+                            validated results.
         :returns: A list of uris for resources that match the text.
         """
+
         results = self.query(text)['results']
 
         if validator:
@@ -164,8 +166,9 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     :param source_prop: The property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
     :param rdf_class: If given, only go through instances of this type.
     :param validator: A function that takes a graph and a subject as parameter and returns a function
-                        that takes ARPA results as parameter and returns a subset of those results
+                        that takes the original graph and the ARPA results as parameter and returns a subset of those results
                         (that have been validated based on the subject, graph and results). Optional.
+                        This is a function and not an object because of reasons.
     :returns: A dict with the amount of processed triples (processed), 
             match count (matches) and errors encountered (errors).
     """
