@@ -5,51 +5,61 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-# The name of the property containing the label of the match in the ARPA results.
 LABEL_PROP = 'label'
-# The name of the property containing the type of the match in the ARPA results->properties
-# Only needed for prioritized duplicate removal.
+"""The name of the property containing the label of the match in the ARPA results."""
+
 TYPE_PROP = 'type'
+"""
+The name of the property containing the type of the match in the ARPA results->properties.
+Only needed for prioritized duplicate removal.
+"""
 
 class Arpa:
     """Class representing the ARPA service"""
 
     def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None):
         """
-        :param url: The ARPA service url.
-        :param remove_duplicates: If True, choose only one subject out of all the
-                                matched subjects that have the same label (randomly).
-                                If the value is a list or tuple, assume that it represents
-                                a list of class names and prefer those classes when choosing
-                                the subject. The ARPA results must include a property (TYPE_PROP)
-                                that has the class of the match as the value.
-        :param min_ngram_length: The minimum ngram match length that will be included when
-                                returning the query results.
-        :param ignore: A list of matches that should be removed from the results (case insensitive).
+        Initialize the Arpa service object.
+
+        `url` is the ARPA service url.
+
+        If `remove_duplicates` is `True`, choose only one subject out of all the
+        matched subjects that have the same label (arbitrarily).
+        If, instead, the value is a list or a tuple, assume that it represents
+        a list of class names and prefer those classes when choosing
+        the subject. The ARPA results must include a property (`TYPE_PROP`)
+        that has the class of the match as the value.
+
+        `min_ngram_length` is the minimum ngram match length that will be included when
+        returning the query results.
+
+        `ignore` is a list of matches that should be removed from the results (case insensitive).
         """
 
-        self.url = url
-        self.ignore = [s.lower() for s in ignore or []]
-        self.min_ngram_length = min_ngram_length
+        self._url = url
+        self._ignore = [s.lower() for s in ignore or []]
+        self._min_ngram_length = min_ngram_length
+
         if type(remove_duplicates) == bool:
-            self.remove_duplicates = remove_duplicates
+            self._no_duplicates = remove_duplicates
         else:
-            self.remove_duplicates = tuple("<{}>".format(x) for x in remove_duplicates)
+            self._no_duplicates = tuple("<{}>".format(x) for x in remove_duplicates)
 
     def _remove_duplicates(self, entries):
         """
         Remove duplicates from the entries.
-        A 'duplicate' is an entry with the same LABEL_PROP property value.
-        If self.remove_duplicates == True, choose the subject to keep any which way.
-        If self.remove_duplicates is a tuple (or a list), choose the kept subject
+
+        A 'duplicate' is an entry with the same `LABEL_PROP` property value.
+        If `self._no_duplicates == True`, choose the subject to keep any which way.
+        If `self._no_duplicates` is a tuple (or a list), choose the kept subject
         by comparing its type to the types contained in the tuple. The lower the
         index of the type in the tuple, the higher the priority.
 
-        :param entries: The ARPA service results as a JSON object.
+        `entries` is the ARPA service results as a JSON object.
         """
 
         res = entries
-        if self.remove_duplicates == True:
+        if self._no_duplicates == True:
             labels = set()
             add = labels.add
             res = [x for x in res if not (x[LABEL_PROP] in labels 
@@ -57,8 +67,8 @@ class Arpa:
                 # This works because set.add() returns None.
                 or add(x[LABEL_PROP]))]
 
-        elif self.remove_duplicates:
-            # self.remove_duplicates is a tuple - prioritize types defined in it
+        elif self._no_duplicates:
+            # self._no_duplicates is a tuple - prioritize types defined in it
             items = {}
             for x in res:
                 x_label = x[LABEL_PROP].lower()
@@ -66,17 +76,17 @@ class Arpa:
                 # had the same label as this one
                 prev_match_types = items.get(x_label, {}).get('properties', {}).get(TYPE_PROP, [])
                 # Get matches from the preferred types for the previously selected entry
-                prev_pref = set(prev_match_types).intersection(set(self.remove_duplicates))
+                prev_pref = set(prev_match_types).intersection(set(self._no_duplicates))
                 try:
                     # Find the priority of the previously selected entry
-                    prev_idx = min([self.remove_duplicates.index(t) for t in prev_pref])
+                    prev_idx = min([self._no_duplicates.index(t) for t in prev_pref])
                 except ValueError:
                     # No previous entry or previous entry doesn't have a preferred type
                     prev_idx = float('inf')
                 # Get matches in the preferred types for this entry
-                pref = set(x['properties'][TYPE_PROP]).intersection(self.remove_duplicates)
+                pref = set(x['properties'][TYPE_PROP]).intersection(self._no_duplicates)
                 try:
-                    idx = min([self.remove_duplicates.index(t) for t in pref])
+                    idx = min([self._no_duplicates.index(t) for t in pref])
                 except ValueError:
                     # This one is not of a preferred type
                     idx = float('inf')
@@ -92,22 +102,23 @@ class Arpa:
 
     def _filter(self, response):
         """
-        Filter matches based on the ignore list and remove matches that are
-        for ngrams with length less than self.min_ngram_length.
+        Filter matches based on `self._ignore` and remove matches that are
+        for ngrams with length less than `self.min_ngram_length`.
 
-        :param response: The parsed ARPA service response.
-        :returns: The response with the ignored matches removed.
+        Return the response with the ignored matches removed.
+
+        `response` is the parsed ARPA service response.
         """
 
         res = response['results']
 
         # Filter ignored results
-        if self.ignore:
+        if self._ignore:
             res = [x for x in res if x[LABEL_PROP].lower() not in self.ignore]
 
         # Filter by minimum ngram length
-        if self.min_ngram_length > 1:
-            res = [x for x in res if len(x['properties']['ngram'][0].split()) >= self.min_ngram_length]
+        if self._min_ngram_length > 1:
+            res = [x for x in res if len(x['properties']['ngram'][0].split()) >= self._min_ngram_length]
 
         # Remove duplicates if requested
         res = self._remove_duplicates(res)
@@ -121,16 +132,15 @@ class Arpa:
 
     def query(self, text):
         """
-        Query the ARPA service.
+        Query the ARPA service and return the response as JSON
 
-        :param text: The text used in the query.
-        :returns: The ARPA service response as JSON.
+        `text` is the text used in the query.
         """
 
         text = self._sanitize(text)
         # Query the ARPA service with the text
         data = 'text="{}"'.format(text)
-        res = requests.post(self.url, data={'text': text})
+        res = requests.post(self._url, data={'text': text})
         try:
             res.raise_for_status()
         except HTTPError as e:
@@ -140,12 +150,12 @@ class Arpa:
 
     def get_uri_matches(self, text, validator=None):
         """
-        Query ARPA and return matching uris.
+        Query ARPA and return a list of uris for resources that match the text.
 
-        :param text: The text to use in the query.
-        :param validator: A function that takes the ARPA results as parameter and returns
-                            validated results.
-        :returns: A list of uris for resources that match the text.
+        `text` is the text to use in the query.
+
+        `validator` is a function that takes the ARPA results as parameter and returns
+        validated results.
         """
 
         results = self.query(text)['results']
@@ -160,17 +170,23 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
-    :param graph: The graph to link (will be modified).
-    :param target_prop: The property name that is used for saving the link.
-    :param arpa: The Arpa class instance.
-    :param source_prop: The property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
-    :param rdf_class: If given, only go through instances of this type.
-    :param validator: A function that takes a graph and a subject as parameter and returns a function
-                        that takes the original graph and the ARPA results as parameter and returns a subset of those results
-                        (that have been validated based on the subject, graph and results). Optional.
-                        This is a function and not an object because of reasons.
-    :returns: A dict with the amount of processed triples (processed), 
-            match count (matches) and errors encountered (errors).
+    Return a dict with the amount of processed triples (processed), 
+    match count (matches) and errors encountered (errors).
+
+    `graph` is the graph to link (will be modified).
+
+    `target_prop` is the property name that is used for saving the link.
+
+    `arpa` is the Arpa class instance.
+
+    `source_prop` is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
+
+    If `rdf_class` is given, only go through instances of this type.
+
+    `validator` is a function that takes a graph and a subject as parameter and returns a function
+    that takes the original graph and the ARPA results as parameter and returns a subset of those results
+    (that have been validated based on the subject, graph and results). Optional.
+    This is a function and not an object because of reasons.
     """
 
     if source_prop is None:
@@ -203,6 +219,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
 
 def main():
+    """Main function for running via the command line."""
+
     argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
             fromfile_prefix_chars="@")
     argparser.add_argument("input", help="Input rdf file")

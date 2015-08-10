@@ -1,6 +1,15 @@
 # ARPA linker
 Tool for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service
 
+## Requirements
+[RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)
+
+## Usage
+
+ARPA linker can be used via the command line or via the [API](http://semanticcomputing.github.io/python-arpa-linker/).
+
+### Command line
+
 ```
 usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
                [--rdf_class CLASS] [--prop PROPERTY]
@@ -44,3 +53,7 @@ optional arguments:
 The arguments can also be read from a file using "@" (example arg file "arpa.args"):
 
 `arpa.py @arpa.args`
+
+### Usage via the API
+
+See the [API](http://semanticcomputing.github.io/python-arpa-linker/), and [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) for an example.
