@@ -1,5 +1,7 @@
-from arpa import arpafy, Arpa
+import time
+from datetime import timedelta
 from datetime import datetime
+from arpa import arpafy, Arpa
 from rdflib import Graph
 from rdflib.namespace import DCTERMS
 
@@ -10,14 +12,17 @@ def validator(graph, s):
             return results
         pic_date = graph.value(s, DCTERMS['created'])
         if pic_date:
-            pic_date = datetime.strptime(pic_date, "%Y-%m-%d").date()
+            try:
+                pic_date = datetime.strptime(pic_date, "%Y-%m-%d").date()
+            except ValueError:
+                return results
             filtered = []
             for person in results:
                 try:
                     death_date = datetime.strptime(
                             person['properties']['kuolinaika'][0].split('^')[0],
                             '"%Y-%m-%d"').date()
-                except KeyError:
+                except (KeyError, ValueError):
                     pass
                 else:
                     if pic_date > death_date:
@@ -35,16 +40,21 @@ def validator(graph, s):
 graph = Graph()
 graph.parse('input.ttl', format='turtle')
 
+start_time = time.monotonic()
+
 # Query the ARPA service and add the matches
 res = arpafy(graph, DCTERMS['subject'],
         Arpa('http://demo.seco.tkk.fi/arpa/sotasurmat'), None, None, validator)
+
+end_time = time.monotonic()
 
 if res['errors']:
     print("Some errors occurred while querying:")
     for err in res['errors']:
         print(err)
-print("Processed {} triples, found {} matches ({} errors)"
-        .format(res['processed'], res['matches'], len(res['errors'])))
+print("Processed {} triples, found {} matches ({} errors). Run time {}"
+        .format(res['processed'], res['matches'], len(res['errors']), 
+            timedelta(seconds=end_time-start_time)))
 
 # Serialize the graph to disk
 graph.serialize(destination='output.ttl', format='turtle')

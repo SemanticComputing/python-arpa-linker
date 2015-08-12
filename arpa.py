@@ -59,6 +59,8 @@ for an example arg file.
 
 import argparse
 import requests
+import time
+from datetime import timedelta
 from requests.exceptions import HTTPError
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
@@ -187,7 +189,7 @@ class Arpa:
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
-        return text.replace('"', '').replace("(", "").replace(")", "").replace("/", "\/")
+        return text.replace('"', '').replace("(", "").replace(")", "")
 
     def query(self, text):
         """
@@ -334,15 +336,20 @@ def main():
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
+    start_time = time.monotonic()
+
     # Query the ARPA service and add the matches
     res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
+
+    end_time = time.monotonic()
 
     if res['errors']:
         print("Some errors occurred while querying:")
         for err in res['errors']:
             print(err)
-    print("Processed {} triples, found {} matches ({} errors)"
-            .format(res['processed'], res['matches'], len(res['errors'])))
+    print("Processed {} triples, found {} matches ({} errors). Run time {}"
+            .format(res['processed'], res['matches'], len(res['errors']), 
+                timedelta(seconds=end_time-start_time)))
 
     # Serialize the graph to disk
     g.serialize(destination=args.output, format=args.fo)
