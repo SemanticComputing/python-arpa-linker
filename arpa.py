@@ -175,7 +175,7 @@ class Arpa:
 
         # Filter ignored results
         if self._ignore:
-            res = [x for x in res if x[LABEL_PROP].lower() not in self.ignore]
+            res = [x for x in res if x[LABEL_PROP].lower() not in self._ignore]
 
         # Filter by minimum ngram length
         if self._min_ngram_length > 1:
