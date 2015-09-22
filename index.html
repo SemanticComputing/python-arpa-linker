@@ -1018,6 +1018,7 @@ table {
   <p>A module for linking resources to an RDF graph with an <a href="https://github.com/jiemakel/arpa">ARPA</a> service</p>
 <h2>Requirements</h2>
 <p>Python 3, <a href="http://rdflib.readthedocs.org/en/latest/">RDFLib</a> and <a href="http://docs.python-requests.org/en/latest/">Requests</a></p>
+<p>If you want to see a progress bar, you'll need <a href="https://github.com/rasbt/pyprind">PyPrind</a>.</p>
 <h2>Usage</h2>
 <p>The module can be invoked as a script from the command line or by calling <a href="#arpa.arpafy"><code>arpafy</code></a> in your Python code.</p>
 <pre><code>usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
@@ -1072,6 +1073,8 @@ A module for linking resources to an RDF graph with an [ARPA](https://github.com
 
 ## Requirements
 Python 3, [RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)
+
+If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasbt/pyprind).
 
 ## Usage
 
@@ -1128,10 +1131,14 @@ for an example arg file.
 
 import argparse
 import requests
+import time
+from datetime import timedelta
 from requests.exceptions import HTTPError
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
+
+__all__ = ['Arpa', 'arpafy', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -1242,7 +1249,7 @@ class Arpa:
 
         # Filter ignored results
         if self._ignore:
-            res = [x for x in res if x[LABEL_PROP].lower() not in self.ignore]
+            res = [x for x in res if x[LABEL_PROP].lower() not in self._ignore]
 
         # Filter by minimum ngram length
         if self._min_ngram_length > 1:
@@ -1256,7 +1263,7 @@ class Arpa:
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
-        return text.replace('"', '').replace("(", "").replace(")", "").replace("/", "\/")
+        return text.replace('"', '').replace("(", "").replace(")", "")
 
     def query(self, text):
         """
@@ -1293,8 +1300,34 @@ class Arpa:
 
         return [x['id'] for x in results]
 
+class Bar:
+    """
+    Mock progress bar implementation
+    """
+    def __init__(self, n):
+        self.n = n
+    def update(self):
+        pass
 
-def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None):
+def get_bar(n, use_pyprind):
+    """
+    Get a progress bar.
+    `n` is the number of iterations for the progress bar.
+    If `use_pyprind` is true, try to return a pyprind.ProgBar instance. Otherwise,
+    return a mock progress bar.
+    """
+
+    if use_pyprind:
+        try:
+            import pyprind
+            return pyprind.ProgBar(n)
+        except ImportError:
+            pass
+
+    return Bar(n)
+
+
+def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -1315,6 +1348,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     that takes the original graph and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
+
+    If `progress` is True, show a progress bar. Requires pyprind.
     """
 
     if source_prop is None:
@@ -1331,6 +1366,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
 
     match_count = 0
     errors = []
+    
+    bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
         args = (o, validator(graph, s)) if validator else (o,)
@@ -1343,6 +1380,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
+        bar.update()
 
     return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
 
@@ -1403,15 +1441,20 @@ def main():
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
+    start_time = time.monotonic()
+
     # Query the ARPA service and add the matches
-    res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
+    res = arpafy(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+
+    end_time = time.monotonic()
 
     if res['errors']:
         print("Some errors occurred while querying:")
         for err in res['errors']:
             print(err)
-    print("Processed {} triples, found {} matches ({} errors)"
-            .format(res['processed'], res['matches'], len(res['errors'])))
+    print("Processed {} triples, found {} matches ({} errors). Run time {}"
+            .format(res['processed'], res['matches'], len(res['errors']), 
+                timedelta(seconds=end_time-start_time)))
 
     # Serialize the graph to disk
     g.serialize(destination=args.output, format=args.fo)
@@ -1449,7 +1492,7 @@ Only needed for prioritized duplicate removal.</p></div>
       
   <div class="item">
     <div class="name def" id="arpa.arpafy">
-    <p>def <span class="ident">arpafy</span>(</p><p>graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None)</p>
+    <p>def <span class="ident">arpafy</span>(</p><p>graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None)</p>
     </div>
     
 
@@ -1466,11 +1509,12 @@ match count (matches) and errors encountered (errors).</p>
 <p><code>validator</code> is a function that takes a graph and a subject as parameter and returns a function
 that takes the original graph and the ARPA results as parameter and returns a subset of those results
 (that have been validated based on the subject, graph and results). Optional.
-This is a function and not an object because of reasons.</p></div>
+This is a function and not an object because of reasons.</p>
+<p>If <code>progress</code> is True, show a progress bar. Requires pyprind.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.arpafy', this);">Show source &equiv;</a></p>
   <div id="source-arpa.arpafy" class="source">
-    <pre><code>def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None):
+    <pre><code>def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -1491,6 +1535,8 @@ This is a function and not an object because of reasons.</p></div>
     that takes the original graph and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
+
+    If `progress` is True, show a progress bar. Requires pyprind.
     """
 
     if source_prop is None:
@@ -1507,6 +1553,8 @@ This is a function and not an object because of reasons.</p></div>
 
     match_count = 0
     errors = []
+    
+    bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
         args = (o, validator(graph, s)) if validator else (o,)
@@ -1519,6 +1567,7 @@ This is a function and not an object because of reasons.</p></div>
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
+        bar.update()
 
     return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
 </code></pre>
@@ -1597,15 +1646,20 @@ This is a function and not an object because of reasons.</p></div>
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
+    start_time = time.monotonic()
+
     # Query the ARPA service and add the matches
-    res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
+    res = arpafy(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+
+    end_time = time.monotonic()
 
     if res['errors']:
         print("Some errors occurred while querying:")
         for err in res['errors']:
             print(err)
-    print("Processed {} triples, found {} matches ({} errors)"
-            .format(res['processed'], res['matches'], len(res['errors'])))
+    print("Processed {} triples, found {} matches ({} errors). Run time {}"
+            .format(res['processed'], res['matches'], len(res['errors']), 
+                timedelta(seconds=end_time-start_time)))
 
     # Serialize the graph to disk
     g.serialize(destination=args.output, format=args.fo)
@@ -1726,7 +1780,7 @@ This is a function and not an object because of reasons.</p></div>
 
         # Filter ignored results
         if self._ignore:
-            res = [x for x in res if x[LABEL_PROP].lower() not in self.ignore]
+            res = [x for x in res if x[LABEL_PROP].lower() not in self._ignore]
 
         # Filter by minimum ngram length
         if self._min_ngram_length > 1:
@@ -1740,7 +1794,7 @@ This is a function and not an object because of reasons.</p></div>
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
-        return text.replace('"', '').replace("(", "").replace(")", "").replace("/", "\/")
+        return text.replace('"', '').replace("(", "").replace(")", "")
 
     def query(self, text):
         """

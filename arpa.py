@@ -4,6 +4,8 @@ A module for linking resources to an RDF graph with an [ARPA](https://github.com
 ## Requirements
 Python 3, [RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)
 
+If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasbt/pyprind).
+
 ## Usage
 
 The module can be invoked as a script from the command line or by calling `arpa.arpafy` in your Python code.
@@ -65,6 +67,8 @@ from requests.exceptions import HTTPError
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
+
+__all__ = ['Arpa', 'arpafy', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -226,8 +230,34 @@ class Arpa:
 
         return [x['id'] for x in results]
 
+class Bar:
+    """
+    Mock progress bar implementation
+    """
+    def __init__(self, n):
+        self.n = n
+    def update(self):
+        pass
 
-def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None):
+def get_bar(n, use_pyprind):
+    """
+    Get a progress bar.
+    `n` is the number of iterations for the progress bar.
+    If `use_pyprind` is true, try to return a pyprind.ProgBar instance. Otherwise,
+    return a mock progress bar.
+    """
+
+    if use_pyprind:
+        try:
+            import pyprind
+            return pyprind.ProgBar(n)
+        except ImportError:
+            pass
+
+    return Bar(n)
+
+
+def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -248,6 +278,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     that takes the original graph and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
+
+    If `progress` is True, show a progress bar. Requires pyprind.
     """
 
     if source_prop is None:
@@ -264,6 +296,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
 
     match_count = 0
     errors = []
+    
+    bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
         args = (o, validator(graph, s)) if validator else (o,)
@@ -276,6 +310,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
+        bar.update()
 
     return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
 
@@ -339,7 +374,7 @@ def main():
     start_time = time.monotonic()
 
     # Query the ARPA service and add the matches
-    res = arpafy(g, target_prop, arpa, source_prop, rdf_class)
+    res = arpafy(g, target_prop, arpa, source_prop, rdf_class, progress=True)
 
     end_time = time.monotonic()
 
