@@ -1,7 +1,5 @@
-import time
-from datetime import timedelta
 from datetime import datetime
-from arpa import arpafy, Arpa
+from arpa import Arpa, process
 from rdflib import Graph
 from rdflib.namespace import DCTERMS
 
@@ -40,21 +38,9 @@ def validator(graph, s):
 graph = Graph()
 graph.parse('input.ttl', format='turtle')
 
-start_time = time.monotonic()
-
 # Query the ARPA service and add the matches
-res = arpafy(graph, DCTERMS['subject'],
-        Arpa('http://demo.seco.tkk.fi/arpa/sotasurmat'), None, None, validator)
-
-end_time = time.monotonic()
-
-if res['errors']:
-    print("Some errors occurred while querying:")
-    for err in res['errors']:
-        print(err)
-print("Processed {} triples, found {} matches ({} errors). Run time {}"
-        .format(res['processed'], res['matches'], len(res['errors']), 
-            timedelta(seconds=end_time-start_time)))
+process(graph, DCTERMS['subject'],
+        Arpa('http://demo.seco.tkk.fi/arpa/sotasurmat'), validator=validator)
 
 # Serialize the graph to disk
 graph.serialize(destination='output.ttl', format='turtle')

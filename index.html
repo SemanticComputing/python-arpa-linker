@@ -983,6 +983,7 @@ table {
   <ul>
     <li class="mono"><a href="#arpa.arpafy">arpafy</a></li>
     <li class="mono"><a href="#arpa.main">main</a></li>
+    <li class="mono"><a href="#arpa.process">process</a></li>
   </ul>
 
     </li>
@@ -1015,12 +1016,12 @@ table {
 
   <header id="section-intro">
   <h1 class="title"><span class="name">arpa</span> module</h1>
-  <p>A module for linking resources to an RDF graph with an <a href="https://github.com/jiemakel/arpa">ARPA</a> service</p>
+  <p>A module for linking resources to an RDF graph with an <a href="https://github.com/jiemakel/arpa">ARPA</a> service.</p>
 <h2>Requirements</h2>
 <p>Python 3, <a href="http://rdflib.readthedocs.org/en/latest/">RDFLib</a> and <a href="http://docs.python-requests.org/en/latest/">Requests</a></p>
 <p>If you want to see a progress bar, you'll need <a href="https://github.com/rasbt/pyprind">PyPrind</a>.</p>
 <h2>Usage</h2>
-<p>The module can be invoked as a script from the command line or by calling <a href="#arpa.arpafy"><code>arpafy</code></a> in your Python code.</p>
+<p>The module can be invoked as a script from the command line or by calling <a href="#arpa.arpafy"><code>arpafy</code></a> (or <a href="#arpa.process"><code>process</code></a>) in your Python code.</p>
 <pre><code>usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
             [--rdf_class CLASS] [--prop PROPERTY]
             [--ignore [TERM [TERM ...]]] [--min_ngram N]
@@ -1062,14 +1063,14 @@ optional arguments:
 <p>The arguments can also be read from a file using "@" (example arg file <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a>):</p>
 <p><code>$ python3 arpa.py @arpa.args</code></p>
 <h2>Examples</h2>
-<p>See <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py">menehtyneet.py</a>
-for a code example and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a>
-for an example arg file.</p>
+<p>See <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py">menehtyneet.py</a> and
+<a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py">places.py</a> for code examples
+and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a> for an example arg file.</p>
   
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa', this);">Show source &equiv;</a></p>
   <div id="source-arpa" class="source">
     <pre><code>"""
-A module for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service
+A module for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service.
 
 ## Requirements
 Python 3, [RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)
@@ -1078,7 +1079,7 @@ If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasb
 
 ## Usage
 
-The module can be invoked as a script from the command line or by calling `arpa.arpafy` in your Python code.
+The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
     usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
                 [--rdf_class CLASS] [--prop PROPERTY]
@@ -1124,9 +1125,9 @@ The arguments can also be read from a file using "@" (example arg file [arpa.arg
 
 ## Examples
 
-See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py)
-for a code example and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)
-for an example arg file.
+See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) and
+[places.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py) for code examples
+and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args) for an example arg file.
 """
 
 import argparse
@@ -1138,7 +1139,7 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'arpafy', 'process', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -1327,7 +1328,8 @@ def get_bar(n, use_pyprind):
     return Bar(n)
 
 
-def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None):
+def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
+            preprocessor=None, validator=None, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -1344,12 +1346,14 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
 
     If `rdf_class` is given, only go through instances of this type.
 
+    `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
+
     `validator` is a function that takes a graph and a subject as parameter and returns a function
     that takes the original graph and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
 
-    If `progress` is True, show a progress bar. Requires pyprind.
+    If `progress` is `True`, show a progress bar. Requires pyprind.
     """
 
     if source_prop is None:
@@ -1370,6 +1374,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
+        o = preprocessor(o) if preprocessor else o
         args = (o, validator(graph, s)) if validator else (o,)
         try:
             match_uris = arpa.get_uri_matches(*args)
@@ -1441,10 +1446,21 @@ def main():
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
+    # Query the ARPA service and add the matches
+    process(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+
+    # Serialize the graph to disk
+    g.serialize(destination=args.output, format=args.fo)
+
+def process(*args, **kwargs):
+    """
+    Run `arpa.arpafy` and display information about the process and results, 
+    and return the results. Passes the given arguments to `arpa.arpafy`.
+    """
+
     start_time = time.monotonic()
 
-    # Query the ARPA service and add the matches
-    res = arpafy(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+    res = arpafy(*args, **kwargs)
 
     end_time = time.monotonic()
 
@@ -1456,8 +1472,8 @@ def main():
             .format(res['processed'], res['matches'], len(res['errors']), 
                 timedelta(seconds=end_time-start_time)))
 
-    # Serialize the graph to disk
-    g.serialize(destination=args.output, format=args.fo)
+    return res
+
 
 if __name__ == '__main__':
     main()
@@ -1492,7 +1508,7 @@ Only needed for prioritized duplicate removal.</p></div>
       
   <div class="item">
     <div class="name def" id="arpa.arpafy">
-    <p>def <span class="ident">arpafy</span>(</p><p>graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None)</p>
+    <p>def <span class="ident">arpafy</span>(</p><p>graph, target_prop, arpa, source_prop=None, rdf_class=None, preprocessor=None, validator=None, progress=None)</p>
     </div>
     
 
@@ -1506,15 +1522,17 @@ match count (matches) and errors encountered (errors).</p>
 <p><code>arpa</code> is the Arpa class instance.</p>
 <p><code>source_prop</code> is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).</p>
 <p>If <code>rdf_class</code> is given, only go through instances of this type.</p>
+<p><code>preprocessor</code> is an optional function that processes the query text before it is used in the ARPA query.</p>
 <p><code>validator</code> is a function that takes a graph and a subject as parameter and returns a function
 that takes the original graph and the ARPA results as parameter and returns a subset of those results
 (that have been validated based on the subject, graph and results). Optional.
 This is a function and not an object because of reasons.</p>
-<p>If <code>progress</code> is True, show a progress bar. Requires pyprind.</p></div>
+<p>If <code>progress</code> is <code>True</code>, show a progress bar. Requires pyprind.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.arpafy', this);">Show source &equiv;</a></p>
   <div id="source-arpa.arpafy" class="source">
-    <pre><code>def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None):
+    <pre><code>def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
+            preprocessor=None, validator=None, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -1531,12 +1549,14 @@ This is a function and not an object because of reasons.</p>
 
     If `rdf_class` is given, only go through instances of this type.
 
+    `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
+
     `validator` is a function that takes a graph and a subject as parameter and returns a function
     that takes the original graph and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
 
-    If `progress` is True, show a progress bar. Requires pyprind.
+    If `progress` is `True`, show a progress bar. Requires pyprind.
     """
 
     if source_prop is None:
@@ -1557,6 +1577,7 @@ This is a function and not an object because of reasons.</p>
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
+        o = preprocessor(o) if preprocessor else o
         args = (o, validator(graph, s)) if validator else (o,)
         try:
             match_uris = arpa.get_uri_matches(*args)
@@ -1646,10 +1667,40 @@ This is a function and not an object because of reasons.</p>
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
+    # Query the ARPA service and add the matches
+    process(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+
+    # Serialize the graph to disk
+    g.serialize(destination=args.output, format=args.fo)
+</code></pre>
+  </div>
+</div>
+
+  </div>
+  
+      
+  <div class="item">
+    <div class="name def" id="arpa.process">
+    <p>def <span class="ident">process</span>(</p><p>*args, **kwargs)</p>
+    </div>
+    
+
+    
+  
+    <div class="desc"><p>Run <a href="#arpa.arpafy"><code>arpafy</code></a> and display information about the process and results, 
+and return the results. Passes the given arguments to <a href="#arpa.arpafy"><code>arpafy</code></a>.</p></div>
+  <div class="source_cont">
+  <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.process', this);">Show source &equiv;</a></p>
+  <div id="source-arpa.process" class="source">
+    <pre><code>def process(*args, **kwargs):
+    """
+    Run `arpa.arpafy` and display information about the process and results, 
+    and return the results. Passes the given arguments to `arpa.arpafy`.
+    """
+
     start_time = time.monotonic()
 
-    # Query the ARPA service and add the matches
-    res = arpafy(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+    res = arpafy(*args, **kwargs)
 
     end_time = time.monotonic()
 
@@ -1661,8 +1712,7 @@ This is a function and not an object because of reasons.</p>
             .format(res['processed'], res['matches'], len(res['errors']), 
                 timedelta(seconds=end_time-start_time)))
 
-    # Serialize the graph to disk
-    g.serialize(destination=args.output, format=args.fo)
+    return res
 </code></pre>
   </div>
 </div>

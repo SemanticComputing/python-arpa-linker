@@ -1,5 +1,5 @@
 """
-A module for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service
+A module for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service.
 
 ## Requirements
 Python 3, [RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)
@@ -8,7 +8,7 @@ If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasb
 
 ## Usage
 
-The module can be invoked as a script from the command line or by calling `arpa.arpafy` in your Python code.
+The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
     usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
                 [--rdf_class CLASS] [--prop PROPERTY]
@@ -54,9 +54,9 @@ The arguments can also be read from a file using "@" (example arg file [arpa.arg
 
 ## Examples
 
-See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py)
-for a code example and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)
-for an example arg file.
+See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) and
+[places.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py) for code examples
+and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args) for an example arg file.
 """
 
 import argparse
@@ -68,7 +68,7 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'arpafy', 'process', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -257,7 +257,8 @@ def get_bar(n, use_pyprind):
     return Bar(n)
 
 
-def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator=None, progress=None):
+def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
+            preprocessor=None, validator=None, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -274,12 +275,14 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
 
     If `rdf_class` is given, only go through instances of this type.
 
+    `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
+
     `validator` is a function that takes a graph and a subject as parameter and returns a function
     that takes the original graph and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
 
-    If `progress` is True, show a progress bar. Requires pyprind.
+    If `progress` is `True`, show a progress bar. Requires pyprind.
     """
 
     if source_prop is None:
@@ -300,6 +303,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None, validator
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
+        o = preprocessor(o) if preprocessor else o
         args = (o, validator(graph, s)) if validator else (o,)
         try:
             match_uris = arpa.get_uri_matches(*args)
@@ -371,10 +375,21 @@ def main():
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
+    # Query the ARPA service and add the matches
+    process(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+
+    # Serialize the graph to disk
+    g.serialize(destination=args.output, format=args.fo)
+
+def process(*args, **kwargs):
+    """
+    Run `arpa.arpafy` and display information about the process and results, 
+    and return the results. Passes the given arguments to `arpa.arpafy`.
+    """
+
     start_time = time.monotonic()
 
-    # Query the ARPA service and add the matches
-    res = arpafy(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+    res = arpafy(*args, **kwargs)
 
     end_time = time.monotonic()
 
@@ -386,8 +401,8 @@ def main():
             .format(res['processed'], res['matches'], len(res['errors']), 
                 timedelta(seconds=end_time-start_time)))
 
-    # Serialize the graph to disk
-    g.serialize(destination=args.output, format=args.fo)
+    return res
+
 
 if __name__ == '__main__':
     main()
