@@ -94,6 +94,7 @@ if __name__ == '__main__':
             'suokanta',
             'holsti',
             'mäkinen',
+            'rahola',
             'maaselkä', # the proper one does not exist yet
             #'pajari' # only for events, remove for photos
             #'karsikko'?
