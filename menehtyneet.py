@@ -1,5 +1,5 @@
 from datetime import datetime
-from arpa import Arpa, process
+from arpa_linker.arpa import Arpa, process
 from rdflib import Graph
 from rdflib.namespace import DCTERMS
 

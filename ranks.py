@@ -1,4 +1,4 @@
-from arpa import Arpa, process
+from arpa_linker.arpa import Arpa, process
 from rdflib import Graph, URIRef
 
 def preprocessor(text):
