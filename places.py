@@ -110,9 +110,14 @@ if __name__ == '__main__':
             'http://ldf.fi/pnr-schema#place_type_560',
             ]
 
-    logging.basicConfig(filename='arpa_linker.log', level=logging.DEBUG)
+    logger = logging.getLogger('arpa_linker.arpa')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.FileHandler('arpa_linker.log'))
+
     graph = Graph()
+    logger.info('Parsing input.ttl')
     graph.parse('input.ttl', format='turtle')
+    logger.info('Parsing complete')
 
     arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-event-place',
             remove_duplicates=no_duplicates, ignore=ignore)

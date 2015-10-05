@@ -84,7 +84,6 @@ The name of the property containing the type of the match in the ARPA results->p
 Only needed for prioritized duplicate removal.
 """
 
-logging.basicConfig(filename='arpa_linker.log', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Arpa:
@@ -384,6 +383,7 @@ def main():
     args = argparser.parse_args()
 
     logger.setLevel(getattr(logging, args.log_level))
+    logger.addHandler(logging.FileHandler('arpa_linker.log'))
 
     if args.fi:
         input_format = args.fi
