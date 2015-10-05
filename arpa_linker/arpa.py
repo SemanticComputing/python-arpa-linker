@@ -40,14 +40,14 @@ The module can be invoked as a script from the command line or by calling `arpa.
     --min_ngram N         The minimum ngram length that is considered a match.
                             Default is 1.
     --no_duplicates [TYPE [TYPE ...]]
-                            Remove duplicate matches based on the 'label' returned
-                            by the ARPA service. Here 'duplicate' means a subject
-                            with the same label as another subject in the same
-                            result set. A list of types can be given with this
-                            argument. If given, prioritize matches based on it -
-                            the first given type will get the highest priority and
-                            so on. Note that the response from the service has to
-                            include a 'type' variable for this to work.
+                        Remove duplicate matches based on the 'label' returned
+                        by the ARPA service. Here 'duplicate' means a subject
+                        with the same label as another subject in the same
+                        result set. A list of types can be given with this
+                        argument. If given, prioritize matches based on it -
+                        the first given type will get the highest priority and
+                        so on. Note that the response from the service has to
+                        include a 'type' variable for this to work.
     --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
                             Logging level, default is WARNING. The log file is
                             arpa_linker.log.
