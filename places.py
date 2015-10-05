@@ -1,8 +1,9 @@
 import re
+import logging
 from arpa_linker.arpa import Arpa, process
 from rdflib import Graph, URIRef
 
-def preprocessor(text):
+def preprocessor(text, *args):
     text = text.replace('Yli-Tornio', 'Ylitornio')
     text = re.sub('Oin[ao]la', 'Oinaala', text)
     # Remove unit numbers that would otherwise be interpreted as Ii.
@@ -109,6 +110,7 @@ if __name__ == '__main__':
             'http://ldf.fi/pnr-schema#place_type_560',
             ]
 
+    logging.basicConfig(filename='arpa_linker.log', level=logging.DEBUG)
     graph = Graph()
     graph.parse('input.ttl', format='turtle')
 

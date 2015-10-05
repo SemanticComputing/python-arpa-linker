@@ -62,6 +62,7 @@ and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/mas
 import argparse
 import requests
 import time
+import logging
 from datetime import timedelta
 from requests.exceptions import HTTPError
 from rdflib import Graph, URIRef
@@ -78,6 +79,9 @@ TYPE_PROP = 'type'
 The name of the property containing the type of the match in the ARPA results->properties.
 Only needed for prioritized duplicate removal.
 """
+
+logging.basicConfig(filename='arpa_linker.log')
+logger = logging.getLogger(__name__)
 
 class Arpa:
     """Class representing the ARPA service"""
@@ -101,6 +105,8 @@ class Arpa:
         `ignore` is a list of matches that should be removed from the results (case insensitive).
         """
 
+        logger.debug('Initialize Arpa instance')
+
         self._url = url
         self._ignore = [s.lower() for s in ignore or []]
         self._min_ngram_length = min_ngram_length
@@ -109,6 +115,11 @@ class Arpa:
             self._no_duplicates = remove_duplicates
         else:
             self._no_duplicates = tuple("<{}>".format(x) for x in remove_duplicates)
+
+        logger.debug('ARPA ignore set to {}'.format(self._ignore))
+        logger.debug('ARPA url set to {}'.format(self._url))
+        logger.debug('ARPA min_ngram_length set to {}'.format(self._min_ngram_length))
+        logger.debug('ARPA no_duplicates set to {}'.format(self._no_duplicates))
 
     def _remove_duplicates(self, entries):
         """
@@ -206,6 +217,7 @@ class Arpa:
         # Query the ARPA service with the text
         data = 'text="{}"'.format(text)
         res = requests.post(self._url, data={'text': text})
+        logger.debug('Querying ARPA at {} with text: {}'.format(self._url, text))
         try:
             res.raise_for_status()
         except HTTPError as e:
@@ -226,7 +238,12 @@ class Arpa:
         results = self.query(text)['results']
 
         if validator:
-            results = validator(results)
+            results = validator(text, results)
+
+        if results:
+            logger.debug('Found matches for {}: {}'.format(text, results))
+        else:
+            logger.debug('No matches for {}'.format(text))
 
         return [x['id'] for x in results]
 
@@ -250,10 +267,13 @@ def get_bar(n, use_pyprind):
     if use_pyprind:
         try:
             import pyprind
+            logger.debug('Using pyprind progress bar')
             return pyprind.ProgBar(n)
         except ImportError:
+            logger.warning('Tried to use pyprind progress bar but pyprind is not available')
             pass
 
+    logger.debug('Using mock progress bar')
     return Bar(n)
 
 
@@ -276,9 +296,10 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     If `rdf_class` is given, only go through instances of this type.
 
     `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
+    It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.
 
     `validator` is a function that takes a graph and a subject as parameter and returns a function
-    that takes the original graph and the ARPA results as parameter and returns a subset of those results
+    that takes the query text and the ARPA results as parameter and returns a subset of those results
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
 
@@ -297,26 +318,31 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     else:
         subgraph += graph.triples((None, source_prop, None))
 
-    match_count = 0
+    triple_match_count = 0
+    subject_match_count = 0
     errors = []
     
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
-        o = preprocessor(o) if preprocessor else o
+        o = preprocessor(o, s, graph) if preprocessor else o
         args = (o, validator(graph, s)) if validator else (o,)
         try:
             match_uris = arpa.get_uri_matches(*args)
         except (HTTPError, ValueError) as e:
+            logger.exception('Error getting matches from ARPA')
             errors.append(e)
         else:
-            match_count += len(match_uris)
+            triple_match_count += len(match_uris)
+            if match_uris:
+                subject_match_count += 1
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
-        bar.update()
+        bar.update(item_id=str(s))
 
-    return { 'processed': len(subgraph), 'matches': match_count, 'errors': errors }
+    return { 'processed': len(subgraph), 'matches': triple_match_count,
+            'subjects_matched': subject_match_count, 'errors': errors }
 
 def main():
     """Main function for running via the command line."""
@@ -347,8 +373,13 @@ def main():
         based on it - the first given type will get the highest priority and so on.
         Note that the response from the service has to include a 'type' variable
         for this to work.""")
+    argparser.add_argument("--log_level", default='WARNING',
+            choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+            help="Logging level. The log file is arpa_linker.log.")
 
     args = argparser.parse_args()
+
+    logger.setLevel(getattr(logging, args.log_level))
 
     if args.fi:
         input_format = args.fi
@@ -371,7 +402,9 @@ def main():
 
     # Parse the input rdf file
     g = Graph()
+    logger.info('Parsing file {}'.format(args.input))
     g.parse(args.input, format=input_format)
+    logger.info('Parsing complete')
 
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
@@ -379,7 +412,9 @@ def main():
     process(g, target_prop, arpa, source_prop, rdf_class, progress=True)
 
     # Serialize the graph to disk
+    logger.info('Serializing graph as {}'.format(args.fo))
     g.serialize(destination=args.output, format=args.fo)
+    logger.info('Serialization complete')
 
 def process(*args, **kwargs):
     """
@@ -393,11 +428,7 @@ def process(*args, **kwargs):
 
     end_time = time.monotonic()
 
-    if res['errors']:
-        print("Some errors occurred while querying:")
-        for err in res['errors']:
-            print(err)
-    print("Processed {} triples, found {} matches ({} errors). Run time {}"
+    logger.info("Processed {} triples, found {} matches ({} errors). Run time {}"
             .format(res['processed'], res['matches'], len(res['errors']), 
                 timedelta(seconds=end_time-start_time)))
 

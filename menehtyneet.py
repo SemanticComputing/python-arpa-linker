@@ -5,7 +5,7 @@ from rdflib.namespace import DCTERMS
 
 def validator(graph, s):
     # Filter out the results where the person had died before the picture was taken.
-    def validate(results):
+    def validate(text, results):
         if not results:
             return results
         pic_date = graph.value(s, DCTERMS['created'])
