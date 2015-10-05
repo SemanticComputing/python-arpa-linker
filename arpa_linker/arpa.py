@@ -426,6 +426,7 @@ def process(*args, **kwargs):
     and return the results. Passes the given arguments to `arpa.arpafy`.
     """
 
+    logger.info('Begin processing')
     start_time = time.monotonic()
 
     res = arpafy(*args, **kwargs)
