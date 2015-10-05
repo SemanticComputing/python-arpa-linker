@@ -377,9 +377,9 @@ def main():
         based on it - the first given type will get the highest priority and so on.
         Note that the response from the service has to include a 'type' variable
         for this to work.""")
-    argparser.add_argument("--log_level", default='WARNING',
+    argparser.add_argument("--log_level", default='INFO',
             choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-            help="Logging level, default is WARNING. The log file is arpa_linker.log.")
+            help="Logging level, default is INFO. The log file is arpa_linker.log.")
 
     args = argparser.parse_args()
 
