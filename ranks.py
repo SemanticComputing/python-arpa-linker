@@ -1,5 +1,5 @@
-from arpa_linker.arpa import Arpa, process
-from rdflib import Graph, URIRef
+from arpa_linker.arpa import Arpa, process, log_to_file
+from rdflib import URIRef
 
 def preprocessor(text):
     l = text.split('/')
@@ -11,17 +11,13 @@ def preprocessor(text):
 
 if __name__ == '__main__':
 
-    graph = Graph()
-    graph.parse('surma.ttl', format='turtle')
+    log_to_file('ranks.log', 'INFO')
 
     arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa_actor_units')
+    rdf_format = 'turtle'
 
-    # Query the ARPA service and add the matches
-    process(graph, URIRef('http://ldf.fi/schema/narc-menehtyneet1939-45/unit'),
+    # Query the ARPA service, add the matches, and serialize the graph to disk.
+    process('surma.ttl', rdf_format, 'output.ttl', rdf_format,
+            URIRef('http://ldf.fi/schema/narc-menehtyneet1939-45/unit'),
             arpa, URIRef('http://ldf.fi/schema/narc-menehtyneet1939-45/joukko_osasto'),
             preprocessor=preprocessor, progress=True)
-
-    # Serialize the graph to disk
-    graph.serialize(destination='output.ttl', format='turtle')
-
-

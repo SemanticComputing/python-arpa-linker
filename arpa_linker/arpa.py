@@ -344,8 +344,27 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
                 graph.add((s, target_prop, URIRef(uri)))
         bar.update(item_id=str(s))
 
-    return { 'processed': len(subgraph), 'matches': triple_match_count,
+    res = { 'processed': len(subgraph), 'matches': triple_match_count,
             'subjects_matched': subject_match_count, 'errors': errors }
+
+    logger.info("Processed {} triples, found {} matches ({} errors)"
+            .format(res['processed'], res['matches'], len(res['errors'])))
+
+    return res
+
+def log_to_file(file_name, level):
+    """
+    Set up logging to file.
+
+    `file_name` is the log file name.
+
+    `level` is the log level name (string).
+    """
+
+    logger.setLevel(getattr(logging, level.upper()))
+    handler = logging.FileHandler(file_name)
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
 
 def main():
     """Main function for running via the command line."""
@@ -382,8 +401,7 @@ def main():
 
     args = argparser.parse_args()
 
-    logger.setLevel(getattr(logging, args.log_level))
-    logger.addHandler(logging.FileHandler('arpa_linker.log'))
+    log_to_file('arpa_linker.log', args.log_level)
 
     if args.fi:
         input_format = args.fi
@@ -404,38 +422,51 @@ def main():
     else:
         no_duplicates = args.no_duplicates
 
-    # Parse the input rdf file
-    g = Graph()
-    logger.info('Parsing file {}'.format(args.input))
-    g.parse(args.input, format=input_format)
-    logger.info('Parsing complete')
-
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
-    # Query the ARPA service and add the matches
-    process(g, target_prop, arpa, source_prop, rdf_class, progress=True)
+    # Query the ARPA service, add the matches and serialize graph to disk
+    process(args.input, input_format, target_prop, arpa, source_prop, rdf_class, progress=True)
 
-    # Serialize the graph to disk
-    logger.info('Serializing graph as {}'.format(args.fo))
-    g.serialize(destination=args.output, format=args.fo)
-    logger.info('Serialization complete')
+    logging.shutdown()
 
-def process(*args, **kwargs):
+def process(input_file, input_format, output_file, output_format, *args, **kwargs):
     """
-    Run `arpa.arpafy` and display information about the process and results, 
-    and return the results. Passes the given arguments to `arpa.arpafy`.
+    Parse the given input file, run `arpa.arpafy`, and serialize the resulting
+    graph on disk.
+
+    `input_file` is the name of the rdf file to be parsed.
+
+    `output_file` is the output file name.
+
+    `output_format` is the output file format.
+
+    All other arguments are passed to `arpa.arpafy`.
+
+    Return the results dict as returned by `arpa.arpafy` with the graph added
+    with key 'graph'.
     """
+
+    g = Graph()
+    logger.info('Parsing file {}'.format(input_file))
+    g.parse(input_file, format=input_format)
+    logger.info('Parsing complete')
 
     logger.info('Begin processing')
     start_time = time.monotonic()
 
-    res = arpafy(*args, **kwargs)
+    res = arpafy(g, *args, **kwargs)
 
     end_time = time.monotonic()
 
-    logger.info("Processed {} triples, found {} matches ({} errors). Run time {}"
-            .format(res['processed'], res['matches'], len(res['errors']), 
-                timedelta(seconds=end_time-start_time)))
+    logger.info("Processing complete, runtime {}".
+            format(timedelta(seconds=end_time-start_time)))
+
+    logger.info('Serializing graph as {}'.format(output_file))
+    g.serialize(destination=output_file, format=output_format)
+    logger.info('Serialization complete')
+
+    # Add the graph to the results
+    res['graph'] = g
 
     return res
 

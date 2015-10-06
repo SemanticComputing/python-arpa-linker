@@ -1,6 +1,5 @@
 from datetime import datetime
-from arpa_linker.arpa import Arpa, process
-from rdflib import Graph
+from arpa_linker.arpa import Arpa, process, log_to_file
 from rdflib.namespace import DCTERMS
 
 def validator(graph, s):
@@ -34,13 +33,8 @@ def validator(graph, s):
 
     return validate
 
+log_to_file('menehtyneet.log', 'INFO')
 
-graph = Graph()
-graph.parse('input.ttl', format='turtle')
-
-# Query the ARPA service and add the matches
-process(graph, DCTERMS['subject'],
+# Query the ARPA service, add the matches and serialize the graph to disk.
+process('input.ttl', 'turtle', 'output.ttl', 'turtle', DCTERMS['subject'],
         Arpa('http://demo.seco.tkk.fi/arpa/sotasurmat'), validator=validator)
-
-# Serialize the graph to disk
-graph.serialize(destination='output.ttl', format='turtle')

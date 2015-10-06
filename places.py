@@ -1,7 +1,6 @@
 import re
-import logging
-from arpa_linker.arpa import Arpa, process
-from rdflib import Graph, URIRef
+from arpa_linker.arpa import Arpa, process, log_to_file
+from rdflib import URIRef
 
 def preprocessor(text, *args):
     text = text.replace('Yli-Tornio', 'Ylitornio')
@@ -110,24 +109,15 @@ if __name__ == '__main__':
             'http://ldf.fi/pnr-schema#place_type_560',
             ]
 
-    logger = logging.getLogger('arpa_linker.arpa')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.FileHandler('arpa_linker.log'))
-
-    graph = Graph()
-    logger.info('Parsing input.ttl')
-    graph.parse('input.ttl', format='turtle')
-    logger.info('Parsing complete')
+    log_to_file('places.log', 'INFO')
 
     arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-event-place',
             remove_duplicates=no_duplicates, ignore=ignore)
 
-    # Query the ARPA service and add the matches
-    process(graph, URIRef('http://purl.org/dc/terms/spatial'),#'http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
+    rdf_format = 'turtle'
+
+    # Query the ARPA service, add the matches, and serialize the graph to disk.
+    process('input.ttl', rdf_format, 'output.ttl', rdf_format,
+            URIRef('http://purl.org/dc/terms/spatial'),#'http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
             arpa, URIRef('http://ldf.fi/warsa/photographs/place_string'),
             preprocessor=preprocessor, progress=True)
-
-    # Serialize the graph to disk
-    graph.serialize(destination='output.ttl', format='turtle')
-
-
