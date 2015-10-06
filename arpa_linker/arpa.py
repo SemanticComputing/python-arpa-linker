@@ -73,7 +73,7 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'process', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'arpafy', 'process', 'log_to_file', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -354,7 +354,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
 def log_to_file(file_name, level):
     """
-    Set up logging to file.
+    Convenience function for setting up logging to file.
 
     `file_name` is the log file name.
 
