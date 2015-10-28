@@ -324,7 +324,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     triple_match_count = 0
     subject_match_count = 0
     errors = []
-    
+
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
@@ -342,7 +342,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
-        bar.update(item_id=str(s))
+        bar.update()
 
     res = { 'processed': len(subgraph), 'matches': triple_match_count,
             'subjects_matched': subject_match_count, 'errors': errors }
@@ -425,7 +425,7 @@ def main():
     arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
 
     # Query the ARPA service, add the matches and serialize graph to disk
-    process(args.input, input_format, target_prop, arpa, source_prop, rdf_class, progress=True)
+    process(args.input, input_format, args.output, args.fo, target_prop, arpa, source_prop, rdf_class, progress=True)
 
     logging.shutdown()
 
