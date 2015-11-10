@@ -2,6 +2,7 @@ from datetime import datetime
 from arpa_linker.arpa import Arpa, process, log_to_file
 from rdflib.namespace import DCTERMS
 
+
 def validator(graph, s):
     # Filter out the results where the person had died before the picture was taken.
     def validate(text, results):
@@ -17,8 +18,8 @@ def validator(graph, s):
             for person in results:
                 try:
                     death_date = datetime.strptime(
-                            person['properties']['kuolinaika'][0].split('^')[0],
-                            '"%Y-%m-%d"').date()
+                        person['properties']['kuolinaika'][0].split('^')[0],
+                        '"%Y-%m-%d"').date()
                 except (KeyError, ValueError):
                     pass
                 else:
