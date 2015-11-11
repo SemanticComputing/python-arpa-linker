@@ -108,7 +108,11 @@ def preprocessor(text, *args):
     text = text.replace("F. E. Sillanpää", "Frans Emil Sillanpää")
     text = text.replace("Ylipäällikkö", "Carl Gustaf Mannerheim")
     text = text.replace("Paavo Nurmi", "XXXXX")
+    text = text.replace("Väinö Tanner", "XXXXX")
+    text = text.replace("T. M. Kivimäki", "XXXXX")
     text = text.replace("Verner Viiklan", "Verner Viikla")
+    text = text.replace("Heinrichsin", "Heinrichs")
+    text = text.replace("Linderin", "Linder")
 
     return text
 
