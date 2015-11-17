@@ -46,15 +46,15 @@ def validator(graph, s):
     def validate(text, results):
         if not results:
             return results
-        date_uri = graph.value(s, DCTERMS['created'])
+        date_val = graph.value(s, DCTERMS['created'])
         l = graph.value(s, SKOS.prefLabel)
-        if date_uri:
+        if date_val:
             longest_matches = {}
             try:
-                d = str(date_uri).split('time_')[1].split('-')
+                d = str(date_val).split('-')
                 start = datetime.strptime('-'.join(d[0:3]), "%Y-%m-%d").date()
-            except ValueError:
-                logger.warning("Invalid time-span URI: {}".format(date_uri))
+            except (ValueError, IndexError):
+                logger.warning("Invalid date: {}".format(date_val))
                 return results
             filtered = []
             for person in results:
