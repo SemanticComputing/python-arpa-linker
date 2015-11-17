@@ -85,6 +85,7 @@ Only needed for prioritized duplicate removal.
 """
 
 logger = logging.getLogger(__name__)
+print(__name__)
 
 # Hide requests INFO logging spam
 requests_logger = logging.getLogger('requests')
@@ -255,10 +256,12 @@ class Arpa:
 
         if results:
             logger.debug('Found matches for {}: {}'.format(text, results))
+            res = [x['id'] for x in results]
         else:
             logger.debug('No matches for {}'.format(text))
+            res = []
 
-        return [x['id'] for x in results]
+        return res
 
 
 class Bar:
