@@ -8,36 +8,47 @@ log_to_file('persons.log', 'INFO')
 logger = logging.getLogger('arpa_linker.arpa')
 
 LOW_RANKS = [
-    'korpraali',
-    'sotamies',
-    'ylimatruusi',
-    'lentosotamies',
-    'panssarimies',
-    'suojeluskuntasotamies',
-    'aliupseerioppilas',
-    'alokas',
-    'matruusi',
-    'tykkimies',
-    'autosotamies',
-    'ratsumies',
-    'erikoisjääkäri',
-    'ilmasuojelusotamies',
-    'panssarijääkäri',
-    'erikoisrajajääkäri',
-    'viestimies',
-    'rajajääkäri',
-    'sotilaspoika',
-    'rannikkojääkäri',
-    'kaartinjääkäri',
-    'suojelumies',
-    'jääkäri',
-    'luotsi',
-    'merivartija',
-    'suojeluskuntakorpraali',
-    'ilmasuojelumies',
-    'rakuuna',
-    'pioneeri',
-    'suojeluskunta-alokas'
+    '"korpraali"',
+    '"sotamies"',
+    '"ylimatruusi"',
+    '"lentosotamies"',
+    '"panssarimies"',
+    '"suojeluskuntasotamies"',
+    '"aliupseerioppilas"',
+    '"alokas"',
+    '"matruusi"',
+    '"tykkimies"',
+    '"autosotamies"',
+    '"ratsumies"',
+    '"erikoisjääkäri"',
+    '"ilmasuojelusotamies"',
+    '"panssarijääkäri"',
+    '"erikoisrajajääkäri"',
+    '"viestimies"',
+    '"rajajääkäri"',
+    '"sotilaspoika"',
+    '"rannikkojääkäri"',
+    '"kaartinjääkäri"',
+    '"suojelumies"',
+    '"jääkäri"',
+    '"luotsi"',
+    '"merivartija"',
+    '"suojeluskuntakorpraali"',
+    '"ilmasuojelumies"',
+    '"rakuuna"',
+    '"pioneeri"',
+    '"suojeluskunta-alokas"'
+    '"sotilasmestari"',
+    '"kersantti"',
+    '"alikersantti"',
+    '"ylipursimies"',
+    '"ylivääpeli"',
+    '"vääpeli"',
+    '"ylikersantti"',
+    '"upseerioppilas"',
+    '"pursimies"',
+    '"upseerikokelas"',
+    '"lentomestari"',
 ]
 
 
@@ -78,8 +89,8 @@ def validator(graph, s):
                 count = 0
                 match = True
                 ranks = person.get('properties', {}).get('rank_label')
-                if all(rank in LOW_RANKS for rank in ranks):
-                    if not any(rank in match for rank in matches):
+                if all(rank.lower() in LOW_RANKS for rank in ranks):
+                    if not any(rank.lower() in match for rank in matches):
                         logger.info("Filtered out low rank with no rank match: {} {} ({}) with {} in {}".format(
                             ranks,
                             person.get('label'),
