@@ -984,6 +984,7 @@ table {
     <li class="mono"><a href="#arpa.arpafy">arpafy</a></li>
     <li class="mono"><a href="#arpa.log_to_file">log_to_file</a></li>
     <li class="mono"><a href="#arpa.main">main</a></li>
+    <li class="mono"><a href="#arpa.parse_args">parse_args</a></li>
     <li class="mono"><a href="#arpa.process">process</a></li>
   </ul>
 
@@ -1149,7 +1150,7 @@ from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'process', 'log_to_file', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'arpafy', 'process', 'log_to_file', 'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -1161,6 +1162,11 @@ Only needed for prioritized duplicate removal.
 """
 
 logger = logging.getLogger(__name__)
+
+# Hide requests INFO logging spam
+requests_logger = logging.getLogger('requests')
+requests_logger.setLevel(logging.WARNING)
+
 
 class Arpa:
     """Class representing the ARPA service"""
@@ -1214,10 +1220,10 @@ class Arpa:
         """
 
         res = entries
-        if self._no_duplicates == True:
+        if self._no_duplicates is True:
             labels = set()
             add = labels.add
-            res = [x for x in res if not (x[LABEL_PROP] in labels 
+            res = [x for x in res if not (x[LABEL_PROP] in labels
                 # If the label is not in the labels set, add it to the set.
                 # This works because set.add() returns None.
                 or add(x[LABEL_PROP]))]
@@ -1227,7 +1233,7 @@ class Arpa:
             items = {}
             for x in res:
                 x_label = x[LABEL_PROP].lower()
-                # Get the types of the latest most preferrable entry that 
+                # Get the types of the latest most preferrable entry that
                 # had the same label as this one
                 prev_match_types = items.get(x_label, {}).get('properties', {}).get(TYPE_PROP, [])
                 # Get matches from the preferred types for the previously selected entry
@@ -1293,6 +1299,9 @@ class Arpa:
         """
 
         text = self._sanitize(text)
+        if not text:
+            raise ValueError("Empty ARPA query text")
+
         # Query the ARPA service with the text
         data = 'text="{}"'.format(text)
         res = requests.post(self._url, data={'text': text})
@@ -1314,7 +1323,7 @@ class Arpa:
         validated results.
         """
 
-        results = self.query(text)['results']
+        results = self.query(text).get('results', None)
 
         if validator:
             results = validator(text, results)
@@ -1326,14 +1335,17 @@ class Arpa:
 
         return [x['id'] for x in results]
 
+
 class Bar:
     """
     Mock progress bar implementation
     """
     def __init__(self, n):
         self.n = n
+
     def update(self):
         pass
+
 
 def get_bar(n, use_pyprind):
     """
@@ -1361,7 +1373,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
-    Return a dict with the amount of processed triples (processed), 
+    Return a dict with the amount of processed triples (processed),
     match count (matches) and errors encountered (errors).
 
     `graph` is the graph to link (will be modified).
@@ -1400,7 +1412,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     triple_match_count = 0
     subject_match_count = 0
     errors = []
-    
+
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
@@ -1418,15 +1430,16 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
-        bar.update(item_id=str(s))
+        bar.update()
 
-    res = { 'processed': len(subgraph), 'matches': triple_match_count,
-            'subjects_matched': subject_match_count, 'errors': errors }
+    res = {'processed': len(subgraph), 'matches': triple_match_count,
+           'subjects_matched': subject_match_count, 'errors': errors}
 
     logger.info("Processed {} triples, found {} matches ({} errors)"
-            .format(res['processed'], res['matches'], len(res['errors'])))
+                .format(res['processed'], res['matches'], len(res['errors'])))
 
     return res
+
 
 def log_to_file(file_name, level):
     """
@@ -1442,8 +1455,9 @@ def log_to_file(file_name, level):
     handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(handler)
 
-def main():
-    """Main function for running via the command line."""
+
+def parse_args():
+    """ Parse command line arguments. """
 
     argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
             fromfile_prefix_chars="@")
@@ -1472,38 +1486,43 @@ def main():
         Note that the response from the service has to include a 'type' variable
         for this to work.""")
     argparser.add_argument("--log_level", default='INFO',
-            choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-            help="Logging level, default is INFO. The log file is arpa_linker.log.")
+        choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help="Logging level, default is INFO. The log file is arpa_linker.log.")
 
     args = argparser.parse_args()
 
+    if not args.fi:
+        args.fi = guess_format(args.input)
+
+    if args.prop:
+        args.prop = URIRef(args.prop)
+
+    if args.rdf_class:
+        args.rdf_class = URIRef(args.rdf_class)
+
+    args.tprop = URIRef(args.tprop)
+
+    if args.no_duplicates == []:
+        args.no_duplicates = True
+
+    return args
+
+
+def main():
+    """Main function for running via the command line."""
+
+    args = parse_args()
+
     log_to_file('arpa_linker.log', args.log_level)
 
-    if args.fi:
-        input_format = args.fi
-    else:
-        input_format = guess_format(args.input)
-
-    source_prop = None
-    if args.prop:
-        source_prop = URIRef(args.prop)
-
-    rdf_class = None
-    if args.rdf_class:
-        rdf_class = URIRef(args.rdf_class)
-
-    target_prop = URIRef(args.tprop)
-    if args.no_duplicates == []:
-        no_duplicates = True
-    else:
-        no_duplicates = args.no_duplicates
-
-    arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
 
     # Query the ARPA service, add the matches and serialize graph to disk
-    process(args.input, input_format, target_prop, arpa, source_prop, rdf_class, progress=True)
+    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+            args.prop, args.rdf_class, progress=True)
 
     logging.shutdown()
+
 
 def process(input_file, input_format, output_file, output_format, *args, **kwargs):
     """
@@ -1535,7 +1554,7 @@ def process(input_file, input_format, output_file, output_format, *args, **kwarg
     end_time = time.monotonic()
 
     logger.info("Processing complete, runtime {}".
-            format(timedelta(seconds=end_time-start_time)))
+            format(timedelta(seconds=(end_time - start_time))))
 
     logger.info('Serializing graph as {}'.format(output_file))
     g.serialize(destination=output_file, format=output_format)
@@ -1587,7 +1606,7 @@ Only needed for prioritized duplicate removal.</p></div>
     
   
     <div class="desc"><p>Link a property to resources using ARPA. Modify the graph in place.</p>
-<p>Return a dict with the amount of processed triples (processed), 
+<p>Return a dict with the amount of processed triples (processed),
 match count (matches) and errors encountered (errors).</p>
 <p><code>graph</code> is the graph to link (will be modified).</p>
 <p><code>target_prop</code> is the property name that is used for saving the link.</p>
@@ -1609,7 +1628,7 @@ This is a function and not an object because of reasons.</p>
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
-    Return a dict with the amount of processed triples (processed), 
+    Return a dict with the amount of processed triples (processed),
     match count (matches) and errors encountered (errors).
 
     `graph` is the graph to link (will be modified).
@@ -1648,7 +1667,7 @@ This is a function and not an object because of reasons.</p>
     triple_match_count = 0
     subject_match_count = 0
     errors = []
-    
+
     bar = get_bar(len(subgraph), progress)
 
     for s, o in subgraph.subject_objects():
@@ -1666,13 +1685,13 @@ This is a function and not an object because of reasons.</p>
             # Add each uri found as a value of the target property
             for uri in match_uris:
                 graph.add((s, target_prop, URIRef(uri)))
-        bar.update(item_id=str(s))
+        bar.update()
 
-    res = { 'processed': len(subgraph), 'matches': triple_match_count,
-            'subjects_matched': subject_match_count, 'errors': errors }
+    res = {'processed': len(subgraph), 'matches': triple_match_count,
+           'subjects_matched': subject_match_count, 'errors': errors}
 
     logger.info("Processed {} triples, found {} matches ({} errors)"
-            .format(res['processed'], res['matches'], len(res['errors'])))
+                .format(res['processed'], res['matches'], len(res['errors'])))
 
     return res
 </code></pre>
@@ -1731,6 +1750,39 @@ This is a function and not an object because of reasons.</p>
     <pre><code>def main():
     """Main function for running via the command line."""
 
+    args = parse_args()
+
+    log_to_file('arpa_linker.log', args.log_level)
+
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
+
+    # Query the ARPA service, add the matches and serialize graph to disk
+    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+            args.prop, args.rdf_class, progress=True)
+
+    logging.shutdown()
+</code></pre>
+  </div>
+</div>
+
+  </div>
+  
+      
+  <div class="item">
+    <div class="name def" id="arpa.parse_args">
+    <p>def <span class="ident">parse_args</span>(</p><p>)</p>
+    </div>
+    
+
+    
+  
+    <div class="desc"><p>Parse command line arguments.</p></div>
+  <div class="source_cont">
+  <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.parse_args', this);">Show source &equiv;</a></p>
+  <div id="source-arpa.parse_args" class="source">
+    <pre><code>def parse_args():
+    """ Parse command line arguments. """
+
     argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
             fromfile_prefix_chars="@")
     argparser.add_argument("input", help="Input rdf file")
@@ -1758,38 +1810,26 @@ This is a function and not an object because of reasons.</p>
         Note that the response from the service has to include a 'type' variable
         for this to work.""")
     argparser.add_argument("--log_level", default='INFO',
-            choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-            help="Logging level, default is INFO. The log file is arpa_linker.log.")
+        choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help="Logging level, default is INFO. The log file is arpa_linker.log.")
 
     args = argparser.parse_args()
 
-    log_to_file('arpa_linker.log', args.log_level)
+    if not args.fi:
+        args.fi = guess_format(args.input)
 
-    if args.fi:
-        input_format = args.fi
-    else:
-        input_format = guess_format(args.input)
-
-    source_prop = None
     if args.prop:
-        source_prop = URIRef(args.prop)
+        args.prop = URIRef(args.prop)
 
-    rdf_class = None
     if args.rdf_class:
-        rdf_class = URIRef(args.rdf_class)
+        args.rdf_class = URIRef(args.rdf_class)
 
-    target_prop = URIRef(args.tprop)
+    args.tprop = URIRef(args.tprop)
+
     if args.no_duplicates == []:
-        no_duplicates = True
-    else:
-        no_duplicates = args.no_duplicates
+        args.no_duplicates = True
 
-    arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
-
-    # Query the ARPA service, add the matches and serialize graph to disk
-    process(args.input, input_format, target_prop, arpa, source_prop, rdf_class, progress=True)
-
-    logging.shutdown()
+    return args
 </code></pre>
   </div>
 </div>
@@ -1846,7 +1886,7 @@ with key 'graph'.</p></div>
     end_time = time.monotonic()
 
     logger.info("Processing complete, runtime {}".
-            format(timedelta(seconds=end_time-start_time)))
+            format(timedelta(seconds=(end_time - start_time))))
 
     logger.info('Serializing graph as {}'.format(output_file))
     g.serialize(destination=output_file, format=output_format)
@@ -1925,10 +1965,10 @@ with key 'graph'.</p></div>
         """
 
         res = entries
-        if self._no_duplicates == True:
+        if self._no_duplicates is True:
             labels = set()
             add = labels.add
-            res = [x for x in res if not (x[LABEL_PROP] in labels 
+            res = [x for x in res if not (x[LABEL_PROP] in labels
                 # If the label is not in the labels set, add it to the set.
                 # This works because set.add() returns None.
                 or add(x[LABEL_PROP]))]
@@ -1938,7 +1978,7 @@ with key 'graph'.</p></div>
             items = {}
             for x in res:
                 x_label = x[LABEL_PROP].lower()
-                # Get the types of the latest most preferrable entry that 
+                # Get the types of the latest most preferrable entry that
                 # had the same label as this one
                 prev_match_types = items.get(x_label, {}).get('properties', {}).get(TYPE_PROP, [])
                 # Get matches from the preferred types for the previously selected entry
@@ -2004,6 +2044,9 @@ with key 'graph'.</p></div>
         """
 
         text = self._sanitize(text)
+        if not text:
+            raise ValueError("Empty ARPA query text")
+
         # Query the ARPA service with the text
         data = 'text="{}"'.format(text)
         res = requests.post(self._url, data={'text': text})
@@ -2025,7 +2068,7 @@ with key 'graph'.</p></div>
         validated results.
         """
 
-        results = self.query(text)['results']
+        results = self.query(text).get('results', None)
 
         if validator:
             results = validator(text, results)
@@ -2125,7 +2168,7 @@ validated results.</p></div>
     `validator` is a function that takes the ARPA results as parameter and returns
     validated results.
     """
-    results = self.query(text)['results']
+    results = self.query(text).get('results', None)
     if validator:
         results = validator(text, results)
     if results:
@@ -2159,6 +2202,8 @@ validated results.</p></div>
     `text` is the text used in the query.
     """
     text = self._sanitize(text)
+    if not text:
+        raise ValueError("Empty ARPA query text")
     # Query the ARPA service with the text
     data = 'text="{}"'.format(text)
     res = requests.post(self._url, data={'text': text})
