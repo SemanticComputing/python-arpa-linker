@@ -139,16 +139,17 @@ def validator(graph, s):
 
 def preprocessor(text, *args):
     text = text.replace("F. E. Sillanpää", "Frans Emil Sillanpää")
-    text = re.sub(r"\b[Yy]lipäällikk?ö(n|lle)?", "Carl Gustaf Mannerheim")
+    text = re.sub(r"\b[Yy]lipäällikk?ö(n|lle)?", "Carl Gustaf Mannerheim", text)
     text = re.sub(r'Marski(n|ll[ea])?', "Carl Gustaf Mannerheim", text)
-    text = re.sub(r'(Suomen )?[Mm]arsalkk?a(n|ll[ea])?(?! Timoshenko)( Mannerheim)?', "Carl Gustaf Mannerheim", text)
+    text = re.sub(r'(Suomen )?[Mm]arsalkk?a(n|ll[ea])?(?! Timoshenko)( Mannerheim)?',
+            "Carl Gustaf Mannerheim", text)
     text = text.replace("Paavo Nurmi", "XXXXX")
     text = text.replace("Oech", "Oesch")
     text = text.replace("Väinö Tanner", "XXXXX")
     # text = text.replace("T. M. Kivimäki", "XXXXX")
     text = text.replace("Verner Viiklan", "Verner Viikla")
     text = text.replace("Heinrichsi(n|lle|lta)", "Heinrichs")
-    text = re.sub(r"\b[Kk]enraali Heinrichs", "jalkaväenkenraali Heinrichs")
+    text = re.sub(r"\b[Kk]enraali Heinrichs", "jalkaväenkenraali Heinrichs", text)
     text = text.replace("Linderin", "Linder")
     text = text.replace("Jautilainen", "Juutilainen")
 
