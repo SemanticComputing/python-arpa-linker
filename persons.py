@@ -1,16 +1,14 @@
 from datetime import datetime
-from arpa_linker.arpa import Arpa, process, log_to_file
+from arpa_linker.arpa import Arpa, process, log_to_file, parse_args
 from rdflib import URIRef
 from rdflib.namespace import SKOS
 import logging
-import re
 
 log_to_file('persons.log', 'INFO')
 logger = logging.getLogger('arpa_linker.arpa')
 
 
 def validator(graph, s):
-    # Filter out the results where the person had died before the picture was taken.
     def validate(text, results):
         if not results:
             return results
@@ -117,10 +115,14 @@ def preprocessor(text, *args):
     return text
 
 
-# Query the ARPA service, add the matches and serialize the graph to disk.
-process('input.ttl', 'turtle', 'output.ttl', 'turtle',
-        URIRef("http://www.cidoc-crm.org/cidoc-crm/P11_had_participant"),
-        Arpa('http://demo.seco.tkk.fi/arpa/warsa_actor_persons'),
-        preprocessor=preprocessor, validator=validator, progress=True)
+if __name__ == '__main__':
+    args = parse_args()
+
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
+
+    # Query the ARPA service, add the matches and serialize the graph to disk.
+    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa, args.prop,
+            preprocessor=preprocessor, validator=validator, progress=True)
+
 #process('input.ttl', 'turtle', 'output.ttl', 'turtle', DCTERMS['subject'],
 #        Arpa('http://demo.seco.tkk.fi/arpa/sotasurmat'), validator=validator)

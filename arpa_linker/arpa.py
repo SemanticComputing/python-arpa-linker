@@ -90,6 +90,7 @@ logger = logging.getLogger(__name__)
 requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
 
+
 class Arpa:
     """Class representing the ARPA service"""
 
@@ -142,10 +143,10 @@ class Arpa:
         """
 
         res = entries
-        if self._no_duplicates == True:
+        if self._no_duplicates is True:
             labels = set()
             add = labels.add
-            res = [x for x in res if not (x[LABEL_PROP] in labels 
+            res = [x for x in res if not (x[LABEL_PROP] in labels
                 # If the label is not in the labels set, add it to the set.
                 # This works because set.add() returns None.
                 or add(x[LABEL_PROP]))]
@@ -155,7 +156,7 @@ class Arpa:
             items = {}
             for x in res:
                 x_label = x[LABEL_PROP].lower()
-                # Get the types of the latest most preferrable entry that 
+                # Get the types of the latest most preferrable entry that
                 # had the same label as this one
                 prev_match_types = items.get(x_label, {}).get('properties', {}).get(TYPE_PROP, [])
                 # Get matches from the preferred types for the previously selected entry
@@ -221,6 +222,9 @@ class Arpa:
         """
 
         text = self._sanitize(text)
+        if not text:
+            raise ValueError("Empty ARPA query text")
+
         # Query the ARPA service with the text
         data = 'text="{}"'.format(text)
         res = requests.post(self._url, data={'text': text})
@@ -242,7 +246,7 @@ class Arpa:
         validated results.
         """
 
-        results = self.query(text)['results']
+        results = self.query(text).get('results', None)
 
         if validator:
             results = validator(text, results)
@@ -254,14 +258,17 @@ class Arpa:
 
         return [x['id'] for x in results]
 
+
 class Bar:
     """
     Mock progress bar implementation
     """
     def __init__(self, n):
         self.n = n
+
     def update(self):
         pass
+
 
 def get_bar(n, use_pyprind):
     """
@@ -289,7 +296,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
-    Return a dict with the amount of processed triples (processed), 
+    Return a dict with the amount of processed triples (processed),
     match count (matches) and errors encountered (errors).
 
     `graph` is the graph to link (will be modified).
@@ -348,13 +355,14 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
                 graph.add((s, target_prop, URIRef(uri)))
         bar.update()
 
-    res = { 'processed': len(subgraph), 'matches': triple_match_count,
-            'subjects_matched': subject_match_count, 'errors': errors }
+    res = {'processed': len(subgraph), 'matches': triple_match_count,
+           'subjects_matched': subject_match_count, 'errors': errors}
 
     logger.info("Processed {} triples, found {} matches ({} errors)"
-            .format(res['processed'], res['matches'], len(res['errors'])))
+                .format(res['processed'], res['matches'], len(res['errors'])))
 
     return res
+
 
 def log_to_file(file_name, level):
     """
@@ -370,8 +378,9 @@ def log_to_file(file_name, level):
     handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(handler)
 
-def main():
-    """Main function for running via the command line."""
+
+def parse_args():
+    """ Parse command line arguments. """
 
     argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
             fromfile_prefix_chars="@")
@@ -400,38 +409,43 @@ def main():
         Note that the response from the service has to include a 'type' variable
         for this to work.""")
     argparser.add_argument("--log_level", default='INFO',
-            choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-            help="Logging level, default is INFO. The log file is arpa_linker.log.")
+        choices=['NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help="Logging level, default is INFO. The log file is arpa_linker.log.")
 
     args = argparser.parse_args()
 
+    if not args.fi:
+        args.fi = guess_format(args.input)
+
+    if args.prop:
+        args.prop = URIRef(args.prop)
+
+    if args.rdf_class:
+        args.rdf_class = URIRef(args.rdf_class)
+
+    args.tprop = URIRef(args.tprop)
+
+    if args.no_duplicates == []:
+        args.no_duplicates = True
+
+    return args
+
+
+def main():
+    """Main function for running via the command line."""
+
+    args = parse_args()
+
     log_to_file('arpa_linker.log', args.log_level)
 
-    if args.fi:
-        input_format = args.fi
-    else:
-        input_format = guess_format(args.input)
-
-    source_prop = None
-    if args.prop:
-        source_prop = URIRef(args.prop)
-
-    rdf_class = None
-    if args.rdf_class:
-        rdf_class = URIRef(args.rdf_class)
-
-    target_prop = URIRef(args.tprop)
-    if args.no_duplicates == []:
-        no_duplicates = True
-    else:
-        no_duplicates = args.no_duplicates
-
-    arpa = Arpa(args.arpa, no_duplicates, args.min_ngram, args.ignore)
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
 
     # Query the ARPA service, add the matches and serialize graph to disk
-    process(args.input, input_format, args.output, args.fo, target_prop, arpa, source_prop, rdf_class, progress=True)
+    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+            args.prop, args.rdf_class, progress=True)
 
     logging.shutdown()
+
 
 def process(input_file, input_format, output_file, output_format, *args, **kwargs):
     """
@@ -463,7 +477,7 @@ def process(input_file, input_format, output_file, output_format, *args, **kwarg
     end_time = time.monotonic()
 
     logger.info("Processing complete, runtime {}".
-            format(timedelta(seconds=end_time-start_time)))
+            format(timedelta(seconds=(end_time - start_time))))
 
     logger.info('Serializing graph as {}'.format(output_file))
     g.serialize(destination=output_file, format=output_format)
