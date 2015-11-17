@@ -166,6 +166,8 @@ def preprocessor(text, *args):
     text = re.sub(r'\b[Ss]tm\.', 'sotamies', text)
     text = re.sub(r'\b[Kk]orpr\.', 'korpraali', text)
 
+    return text
+
 
 if __name__ == '__main__':
     args = parse_args()
