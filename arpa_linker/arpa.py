@@ -212,6 +212,8 @@ class Arpa:
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
+        if not text:
+            return text
         return text.replace('"', '').replace("(", "").replace(")", "")
 
     def query(self, text):
