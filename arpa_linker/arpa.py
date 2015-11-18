@@ -85,7 +85,6 @@ Only needed for prioritized duplicate removal.
 """
 
 logger = logging.getLogger(__name__)
-print(__name__)
 
 # Hide requests INFO logging spam
 requests_logger = logging.getLogger('requests')

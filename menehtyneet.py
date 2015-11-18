@@ -88,9 +88,9 @@ def validator(graph, s):
                 match_len = len(matches)
                 count = 0
                 match = True
-                ranks = person.get('properties', {}).get('rank_label')
+                ranks = person.get('properties', {}).get('rank_label', [])
                 if all(rank.lower() in LOW_RANKS for rank in ranks):
-                    if not any(rank.lower() in match for rank in matches):
+                    if not any(rank.lower().replace('"', '') in ' '.join(matches).lower() for rank in ranks):
                         logger.info("Filtered out low rank with no rank match: {} {} ({}) with {} in {}".format(
                             ranks,
                             person.get('label'),
