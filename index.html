@@ -1181,7 +1181,7 @@ class Arpa:
         matched subjects that have the same label (arbitrarily).
         If, instead, the value is a list or a tuple, assume that it represents
         a list of class names and prefer those classes when choosing
-        the subject. The ARPA results must include a property (`TYPE_PROP`)
+        the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)
         that has the class of the match as the value.
 
         `min_ngram_length` is the minimum ngram match length that will be included when
@@ -1289,6 +1289,8 @@ class Arpa:
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
+        if not text:
+            return text
         return text.replace('"', '').replace("(", "").replace(")", "")
 
     def query(self, text):
@@ -1330,10 +1332,12 @@ class Arpa:
 
         if results:
             logger.debug('Found matches for {}: {}'.format(text, results))
+            res = [x['id'] for x in results]
         else:
             logger.debug('No matches for {}'.format(text))
+            res = []
 
-        return [x['id'] for x in results]
+        return res
 
 
 class Bar:
@@ -1380,7 +1384,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     `target_prop` is the property name that is used for saving the link.
 
-    `arpa` is the Arpa class instance.
+    `arpa` is the `arpa.Arpa` class instance.
 
     `source_prop` is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
 
@@ -1610,7 +1614,7 @@ Only needed for prioritized duplicate removal.</p></div>
 match count (matches) and errors encountered (errors).</p>
 <p><code>graph</code> is the graph to link (will be modified).</p>
 <p><code>target_prop</code> is the property name that is used for saving the link.</p>
-<p><code>arpa</code> is the Arpa class instance.</p>
+<p><code>arpa</code> is the <a href="#arpa.Arpa"><code>Arpa</code></a> class instance.</p>
 <p><code>source_prop</code> is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).</p>
 <p>If <code>rdf_class</code> is given, only go through instances of this type.</p>
 <p><code>preprocessor</code> is an optional function that processes the query text before it is used in the ARPA query.
@@ -1635,7 +1639,7 @@ This is a function and not an object because of reasons.</p>
 
     `target_prop` is the property name that is used for saving the link.
 
-    `arpa` is the Arpa class instance.
+    `arpa` is the `arpa.Arpa` class instance.
 
     `source_prop` is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
 
@@ -1926,7 +1930,7 @@ with key 'graph'.</p></div>
         matched subjects that have the same label (arbitrarily).
         If, instead, the value is a list or a tuple, assume that it represents
         a list of class names and prefer those classes when choosing
-        the subject. The ARPA results must include a property (`TYPE_PROP`)
+        the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)
         that has the class of the match as the value.
 
         `min_ngram_length` is the minimum ngram match length that will be included when
@@ -2034,6 +2038,8 @@ with key 'graph'.</p></div>
 
     def _sanitize(self, text):
         # Remove quotation marks and brackets - ARPA can return an error if they're present
+        if not text:
+            return text
         return text.replace('"', '').replace("(", "").replace(")", "")
 
     def query(self, text):
@@ -2075,10 +2081,12 @@ with key 'graph'.</p></div>
 
         if results:
             logger.debug('Found matches for {}: {}'.format(text, results))
+            res = [x['id'] for x in results]
         else:
             logger.debug('No matches for {}'.format(text))
+            res = []
 
-        return [x['id'] for x in results]
+        return res
 </code></pre>
   </div>
 </div>
@@ -2088,8 +2096,9 @@ with key 'graph'.</p></div>
           <h3>Ancestors (in MRO)</h3>
           <ul class="class_list">
           <li><a href="#arpa.Arpa">Arpa</a></li>
+          <li>builtins.object</li>
           </ul>
-          <h3>Methods</h3>
+          <h3>Static methods</h3>
             
   <div class="item">
     <div class="name def" id="arpa.Arpa.__init__">
@@ -2105,7 +2114,7 @@ with key 'graph'.</p></div>
 matched subjects that have the same label (arbitrarily).
 If, instead, the value is a list or a tuple, assume that it represents
 a list of class names and prefer those classes when choosing
-the subject. The ARPA results must include a property (<code>TYPE_PROP</code>)
+the subject. The ARPA results must include a property (<a href="#arpa.TYPE_PROP"><code>TYPE_PROP</code></a>)
 that has the class of the match as the value.</p>
 <p><code>min_ngram_length</code> is the minimum ngram match length that will be included when
 returning the query results.</p>
@@ -2121,7 +2130,7 @@ returning the query results.</p>
     matched subjects that have the same label (arbitrarily).
     If, instead, the value is a list or a tuple, assume that it represents
     a list of class names and prefer those classes when choosing
-    the subject. The ARPA results must include a property (`TYPE_PROP`)
+    the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)
     that has the class of the match as the value.
     `min_ngram_length` is the minimum ngram match length that will be included when
     returning the query results.
@@ -2173,9 +2182,11 @@ validated results.</p></div>
         results = validator(text, results)
     if results:
         logger.debug('Found matches for {}: {}'.format(text, results))
+        res = [x['id'] for x in results]
     else:
         logger.debug('No matches for {}'.format(text))
-    return [x['id'] for x in results]
+        res = []
+    return res
 </code></pre>
   </div>
 </div>

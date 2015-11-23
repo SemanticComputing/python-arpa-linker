@@ -104,7 +104,7 @@ class Arpa:
         matched subjects that have the same label (arbitrarily).
         If, instead, the value is a list or a tuple, assume that it represents
         a list of class names and prefer those classes when choosing
-        the subject. The ARPA results must include a property (`TYPE_PROP`)
+        the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)
         that has the class of the match as the value.
 
         `min_ngram_length` is the minimum ngram match length that will be included when
@@ -307,7 +307,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     `target_prop` is the property name that is used for saving the link.
 
-    `arpa` is the Arpa class instance.
+    `arpa` is the `arpa.Arpa` class instance.
 
     `source_prop` is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
 
