@@ -2,6 +2,37 @@ import re
 from arpa_linker.arpa import Arpa, process, log_to_file
 from rdflib import URIRef
 
+
+def validator(graph, s):
+    def validate(text, results):
+        if not results:
+            return results
+        for i, place in enumerate(results):
+            label = place.get('label')
+            if label == "Rautalahti":
+                results[i]['id'] = 'http://ldf.fi/warsa/places/karelian_places/k_place_33031'
+            elif label == "Murtovaara":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10558843'
+            elif label == "Saarijärvi":
+                results[i]['id'] = 'http://ldf.fi/warsa/places/karelian_places/k_place_37458'
+            elif label == "Myllykoski":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10130817'
+            elif label == "Kuosmala":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10392668'
+            elif label == "Tyrävaara":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10213175'
+            elif label == "Kivivaara":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10543550'
+            elif "Lieks" in text and label == "Nurmijärvi":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10588451'
+            elif label == "Kotka":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10878654'
+            elif label == "Malmi":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10012991'
+
+        return results
+
+
 def preprocessor(text, *args):
     text = text.replace('Yli-Tornio', 'Ylitornio')
     text = re.sub('Oin[ao]la', 'Oinaala', text)
@@ -23,91 +54,123 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<!\b(Yl[äi]|Al[ia]|Iso))-([A-ZÄÅÖ])', r' \2', text)
     text = text.replace('Pitkä#', 'Pitkä-')
 
+    text = text.replace('Inkilän kartano', 'XXX')
+    text = text.replace('Norjan kirkkoniem', 'XXX')
+    text = text.replace('Pietari Autti', 'XXX')
+
     return text
 
 if __name__ == '__main__':
 
     ignore = [
-            'sillanpää',
-            'saari',
-            'p',
-            'm',
-            's',
-            'pohjoinen',
-            'tienhaara',
-            'suomalainen',
-            'venäläinen',
-            'asema',
-            'ns',
-            'rajavartiosto',
-            'esikunta',
-            'kauppa',
-            'ryhmä',
-            'ilma',
-            'olla',
-            'ruotsi',
-            'pakkanen',
-            'rannikko',
-            'koulu',
-            'kirkonkylä',
-            'saksa',
-            'työväentalo',
-            'kirkko',
-            'alku',
-            'lentokenttä',
-            'luoto',
-            'risti',
-            'posti',
-            'lehti',
-            'susi',
-            'tykki',
-            'prikaati',
-            'niemi',
-            'ranta',
-            'eteläinen',
-            'lappi',
-            'järvi',
-            'kallio',
-            'salainen',
-            'kannas',
-            'taavetti',
-            'berliini',
-            'hannula',
-            'hannuksela'
-            'itä',
-            'karhu',
-            'tausta',
-            'korkea',
-            'niska',
-            'saha',
-            'komi',
-            'aho',
-            'kantti',
-            'martola',
-            'rättö',
-            'oiva',
-            'harald',
-            'honkanen',
-            'koskimaa',
-            'järvinen',
-            'autti',
-            'suokanta',
-            'holsti',
-            'mäkinen',
-            'rahola',
-            'maaselkä', # the proper one does not exist yet
-            #'pajari' # only for events, remove for photos
-            #'karsikko'?
-            ]
+        'sillanpää',
+        'saari',
+        'p',
+        'm',
+        's',
+        'pohjoinen',
+        'tienhaara',
+        'suomalainen',
+        'venäläinen',
+        'asema',
+        'ns',
+        'rajavartiosto',
+        'esikunta',
+        'kauppa',
+        'ryhmä',
+        'ilma',
+        'olla',
+        'ruotsi',
+        'pakkanen',
+        'rannikko',
+        'koulu',
+        'kirkonkylä',
+        'saksa',
+        'työväentalo',
+        'kirkko',
+        'alku',
+        'lentokenttä',
+        'luoto',
+        'risti',
+        'posti',
+        'lehti',
+        'susi',
+        'tykki',
+        'prikaati',
+        'niemi',
+        'ranta',
+        'eteläinen',
+        'lappi',
+        'järvi',
+        'kallio',
+        'salainen',
+        'kannas',
+        'taavetti',
+        'berliini',
+        'hannula',
+        'hannuksela'
+        'itä',
+        'karhu',
+        'tausta',
+        'korkea',
+        'niska',
+        'saha',
+        'komi',
+        'aho',
+        'kantti',
+        'martola',
+        'rättö',
+        'oiva',
+        'harald',
+        'honkanen',
+        'koskimaa',
+        'järvinen',
+        'autti',
+        'suokanta',
+        'holsti',
+        'mäkinen',
+        'rahola',
+        'viro',
+        'hakkila',
+        'frans',
+        'haukiperä',
+        'lauri',
+        'kolla',
+        'kekkonen',
+        'kello',
+        'kari',
+        'nurmi',
+        'tiainen',
+        'läntinen',
+        'pajala',
+        'pajakka',
+        'malm',
+        'kolla',
+        'hiidenmaa',
+        'kyösti',
+        'pohjola',
+        'mauno',
+        'pekkala',
+        'kylä',
+        'kirkonkylä, kaupunki',
+        'vesimuodostuma',
+        'maastokohde',
+        'kunta',
+        'maaselkä',  # the proper one does not exist yet
+        'kalajoki',  # the proper one does not exist yet
+        'pajari'  # only for events, remove for photos
+        #'karsikko'?
+    ]
 
     no_duplicates = [
-            'http://www.yso.fi/onto/suo/kunta',
-            'http://ldf.fi/warsa/places/place_types/Kirkonkyla_kaupunki',
-            'http://ldf.fi/warsa/places/place_types/Kyla',
-            'http://ldf.fi/warsa/places/place_types/Vesimuodostuma',
-            'http://ldf.fi/warsa/places/place_types/Maastokohde',
-            'http://ldf.fi/pnr-schema#place_type_560',
-            ]
+        'http://www.yso.fi/onto/suo/kunta',
+        'http://ldf.fi/warsa/places/place_types/Kirkonkyla_kaupunki',
+        'http://ldf.fi/warsa/places/place_types/Kyla',
+        'http://ldf.fi/warsa/places/place_types/Vesimuodostuma',
+        'http://ldf.fi/warsa/places/place_types/Maastokohde',
+        'http://ldf.fi/pnr-schema#place_type_540',
+        'http://ldf.fi/pnr-schema#place_type_560',
+    ]
 
     log_to_file('places.log', 'INFO')
 
@@ -118,6 +181,8 @@ if __name__ == '__main__':
 
     # Query the ARPA service, add the matches, and serialize the graph to disk.
     process('input.ttl', rdf_format, 'output.ttl', rdf_format,
-            URIRef('http://purl.org/dc/terms/spatial'),#'http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
-            arpa, URIRef('http://ldf.fi/warsa/photographs/place_string'),
-            preprocessor=preprocessor, progress=True)
+            #URIRef('http://purl.org/dc/terms/spatial'),
+            URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
+            arpa,
+            #URIRef('http://ldf.fi/warsa/photographs/place_string'),
+            preprocessor=preprocessor, validator=validator, progress=True)

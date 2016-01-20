@@ -3,12 +3,17 @@ from arpa_linker.arpa import Arpa, process, log_to_file, parse_args
 from rdflib import URIRef
 from rdflib.namespace import SKOS
 import logging
+import re
 
 log_to_file('persons.log', 'INFO')
 logger = logging.getLogger('arpa_linker.arpa')
 
 
 def validator(graph, s):
+    def get_ranks(person):
+        props = person.get('properties', {})
+        return props.get('rank_label', []) + props.get('promotion_rank', [])
+
     def validate(text, results):
         if not results:
             return results
@@ -24,6 +29,10 @@ def validator(graph, s):
                 return results
             filtered = []
             for person in results:
+                if person['label'] == 'Eric Väinö Tanner' \
+                        or person['label'] == 'Erik Gustav Martin Heinrichs':
+                    logger.info("Filtering out person {}".format(person.get('id')))
+                    continue
                 try:
                     death_date = datetime.strptime(
                         person['properties']['death_date'][0].split('^')[0],
@@ -62,7 +71,7 @@ def validator(graph, s):
                     filtered.append(person)
                 else:
                     logger.info("{} {} ({}) failed validation after matching {} in {} (in preliminary step)".format(
-                        person.get('properties', {}).get('rank_label', '(NO RANK)'),
+                        get_ranks(person),
                         person.get('label'),
                         person.get('id'),
                         person.get('matches'),
@@ -71,8 +80,8 @@ def validator(graph, s):
             res = []
             for p in filtered:
                 match_len = len(p.get('matches'))
-                ranks = p.get('properties', {}).get('rank_label', '(NO RANK)')
-                if len(filtered) > 1 and ('"Sotamies"' in ranks):
+                ranks = get_ranks(p)
+                if ('"Sotamies"' in ranks) and not re.findall("[Ss]otamie", text):
                     logger.info("Filterin out private {} {} ({}), matched {} in {}".format(
                         ranks,
                         p.get('label'),
@@ -81,7 +90,7 @@ def validator(graph, s):
                         l))
                 elif match_len >= longest_matches[p.get('matches')[0]]:
                     logger.info("{} {} ({}) passed validation, matching {} in {}".format(
-                        p.get('properties', {}).get('rank_label', '(NO RANK)'),
+                        ranks,
                         p.get('label'),
                         p.get('id'),
                         p.get('matches'),
@@ -89,7 +98,7 @@ def validator(graph, s):
                     res.append(p)
                 else:
                     logger.info("{} {} ({}) failed validation after matching {} in {}".format(
-                        p.get('properties', {}).get('rank_label', '(NO RANK)'),
+                        ranks,
                         p.get('label'),
                         p.get('id'),
                         p.get('matches'),
@@ -103,14 +112,34 @@ def validator(graph, s):
 
 
 def preprocessor(text, *args):
-    text = text.replace("F. E. Sillanpää", "Frans Emil Sillanpää")
+    if text.strip() == "Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.":
+        return ""
+    text = text.replace("F. E. Sillanpää", "XXXXX")
+    text = re.sub(r'Mannerheim(?!-)', 'XXX Carl Gustaf Mannerheim', text)
     text = text.replace("Ylipäällikkö", "Carl Gustaf Mannerheim")
     text = text.replace("Paavo Nurmi", "XXXXX")
-    text = text.replace("Väinö Tanner", "XXXXX")
-    text = text.replace("T. M. Kivimäki", "XXXXX")
+    text = text.replace("T. M. Kivimäki", "Toivo Mikael Kivimäki")
     text = text.replace("Verner Viiklan", "Verner Viikla")
     text = text.replace("Heinrichsin", "Heinrichs")
     text = text.replace("Linderin", "Linder")
+    text = text.replace("Karl Takkula", "K. Takkula")
+    text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
+    text = text.replace("Laiva Josif Stalin", "XXXXX")
+    text = re.sub(r'(Aleksandra\W)?Kollontai(\b|lle|n|hin)', 'Alexandra Kollontay', text)
+    text = re.sub(r'Blick(\b|ille|in)', 'Aarne Leopold Blick', text)
+    text = text.replace("A.-E. Martola", "Ilmari Armas-Eino Martola")
+    text = re.sub(r'(?<!alikersantti\W)Neno(nen|selle|sen)?\b', 'Vilho Petteri Nenonen', text)
+    text = re.sub(r'[Mm]ajuri(\W+K\.\W*)? Kari(n|lle)?\b', 'everstiluutnantti Kari', text)
+    # Needs tweaking for photos
+    text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', 'XXX Kyösti Kallio', text)
+    text = text.replace("Ryti", "XXX Risto Ryti")
+    text = text.replace("Tanner", "XXX Väinö Tanner")
+    text = text.replace("Niukkanen", "XXX Juho Niukkanen")
+    text = text.replace("Söderhjelm", "XXX Johan Otto Söderhjelm")
+    text = text.replace("Paasikivi", "XXX Juho Kusti Paasikivi")
+    text = text.replace("Walden", "XXX Karl Rudolf Walden")
+    text = text.replace("Cajander", "XXX Aimo Kaarlo Cajander")
+    text = re.sub("[vV]ääpeli( Oiva)? Tuomi(nen|selle|sen)", "XXX Oiva Emil Kalervo Tuominen", text)
 
     return text
 
