@@ -29,8 +29,11 @@ def validator(graph, s):
                 results[i]['id'] = 'http://ldf.fi/pnr/P_10878654'
             elif label == "Malmi":
                 results[i]['id'] = 'http://ldf.fi/pnr/P_10012991'
+            elif label == "Kylänmäki":
+                results[i]['id'] = 'http://ldf.fi/pnr/P_10530797'
 
         return results
+    return validate
 
 
 def preprocessor(text, *args):
@@ -54,9 +57,9 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<!\b(Yl[äi]|Al[ia]|Iso))-([A-ZÄÅÖ])', r' \2', text)
     text = text.replace('Pitkä#', 'Pitkä-')
 
-    text = text.replace('Inkilän kartano', 'XXX')
-    text = text.replace('Norjan kirkkoniem', 'XXX')
-    text = text.replace('Pietari Autti', 'XXX')
+    text = text.replace('Inkilän kartano', '##')
+    text = text.replace('Norjan Kirkkoniem', '##')
+    text = text.replace('Pietari Autti', '##')
 
     return text
 
@@ -156,8 +159,11 @@ if __name__ == '__main__':
         'vesimuodostuma',
         'maastokohde',
         'kunta',
+        'kallela',
+        'palojärvi',
         'maaselkä',  # the proper one does not exist yet
         'kalajoki',  # the proper one does not exist yet
+        'turtola', # only for events!
         'pajari'  # only for events, remove for photos
         #'karsikko'?
     ]

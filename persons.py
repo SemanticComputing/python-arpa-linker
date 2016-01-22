@@ -114,6 +114,11 @@ def validator(graph, s):
 def preprocessor(text, *args):
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
+    generals = re.findall('[Kk]enraalit\W+' + '(?:(\w+)(?:,\W+))?' * 10 + '(\w+)?\W+ja\W+(\w+)', text)
+    if generals:
+        generals = filter(bool, generals[0])
+        for g in generals:
+            text = text.replace(g, 'kenraali ' + g)
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
     text = re.sub(r'\b[Kk]enr\.\b', 'kenraali#', text)
     text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti#', text)
@@ -142,7 +147,13 @@ def preprocessor(text, *args):
     text = text.replace('majuri V.Tuompo', '##')
     text = text.replace('Tuompo, Viljo Einar', 'kenraaliluutnantti Tuompo')
     text = text.replace('Erfurth & Tuompo', 'Waldemar Erfurth ja kenraaliluutnantti Tuompo')
+    text = text.replace('[Kk]enraali(majuri|luutnantti) Siilasvuo', 'Hjalmar Fridolf Siilasvuo')
+    text = text.replace('Wuolijoki', '## Hella Wuolijoki')
     # Needs tweaking for photos
+    text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
+    text = text.replace('Ribbentrop', '## Joachim von_Ribbentrop')
+    text = text.replace('Kuusisen hallituksen', '## O. W. Kuusinen')
+    text = text.replace('Molotov', '## V. Molotov')  # not for photos
     text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '## Kyösti Kallio', text)
     text = text.replace('E. Mäkinen', '## kenraalimajuri Mäkinen')
     text = text.replace('Ryti', '## Risto Ryti')
