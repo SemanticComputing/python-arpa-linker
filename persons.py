@@ -8,8 +8,6 @@ import re
 log_to_file('persons.log', 'INFO')
 logger = logging.getLogger('arpa_linker.arpa')
 
-dataset = None
-
 
 def validator(graph, s):
 
@@ -55,7 +53,8 @@ def validator(graph, s):
         filtered = []
         for person in results:
             if person['label'] == 'Eric Väinö Tanner' \
-                    or person['label'] == 'Erik Gustav Martin Heinrichs':
+                    or person['label'] == 'Erik Gustav Martin Heinrichs' \
+                    or person['id'] == 'http://ldf.fi/warsa/actors/person_p10276':
                 logger.info("Filtering out person {}".format(person.get('id')))
                 continue
             try:
@@ -135,30 +134,88 @@ def validator(graph, s):
 
     return validate
 
-list_regex = '(?:(\w+)(?:,\W+))?' * 10 + '(\w+)?\W+ja\W+(\w+)'
+list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
-_g_re = '[Kk]enraalit\W+' + list_regex
+_g_re = '[Kk]enraali(majurit)?(?:t)?(?:)?\W+' + list_regex
 g_regex = re.compile(_g_re)
 
-_m_re = '[Mm]inisterit(:)?\W+' + list_regex
+_el_re = '[Ee]verstiluutnantit(?:)?\W+' + list_regex
+el_regex = re.compile(_el_re)
+
+_ma_re = '[Mm]ajurit(?:)?\W+' + list_regex
+ma_regex = re.compile(_ma_re)
+
+_m_re = '[Mm]inisterit(?:)?\W+' + list_regex
 m_regex = re.compile(_m_re)
+
+
+def add_titles(regex, title, text):
+    groups = []
+    people = regex.findall(text)
+    if people:
+        for i, p in enumerate(people[0], 1):
+            if p:
+                groups.append('{} \\{}'.format(title, str(i)))
+        if groups:
+            repl = ' # ' + ' # '.join(groups) + ' # '
+            return regex.sub(repl, text)
+    return text
+
+
+def replace_general_list(text):
+    return add_titles(g_regex, 'kenraali', text)
+
+
+def replace_el_list(text):
+    return add_titles(el_regex, 'everstiluutnantti', text)
+
+
+def replace_minister_list(text):
+    return add_titles(m_regex, 'ministeri', text)
+
+
+def replace_major_list(text):
+    return add_titles(ma_regex, 'majuri', text)
+
+
+snellman_list = (
+    "Eversti Snellman 17.Divisioonan komentaja.",
+    "Piirros Aarne Nopsanen: \"Eversti Snellman\".",
+    "Hangon ryhmän komentaja ev. Snellman",
+    "17. Divisioonan hiihtokilpailuiden palkintojenjakotilaisuudesta:Komentaja, eversti Snellman puhuu ennen palkintojen jakoa. Pöydällä pokaaleita.",
+    "Divisioonan hiihtokilpailut Syvärin rannalla: Komentaja eversti Snellman toimitsijoiden seurassa.",
+    "Divisioonan hiihtokilpailut Syvärin rannalla: Vänrikki E. Sevon haastattelee eversti Snellmania kilpailuiden johdosta."
+)
+
+
+to_be_lowercased = (
+    "Eversti",
+    "Luutnantti",
+    "Majuri",
+    "Kenraali"
+)
+
 
 def preprocessor(text, *args):
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
-    groups = []
-    generals = g_regex.findall(text)
-    if generals:
-        generals = filter(bool, generals[0])
-        for g, i in enumerate(generals, 1):
-            groups.append('kenraali \\' + str(i))
-        text = g_regex.sub(' '.join(groups))
-    ministers = m_regex.findall(text)
-    if ministers:
-        ministers = filter(bool, ministers[0])
-        for g, i in enumerate(ministers, 1):
-            groups.append('ministeri \\' + str(i))
-        text = g_regex.sub(' '.join(groups))
+    if text == "Lentomestari \"Oippa\" Tuominen.":
+        return "lentomestari Tuominen"
+    if text in snellman_list:
+        return 'kenraalimajuri Snellman'
+    if text == 'Eversti Snellman ja Eversti Vaala.':
+        return 'kenraalimajuri Snellman # kenraalimajuri Vaala'
+    text = re.sub(r'(?<![Mm]arsalkka )Mannerheim(?!-)(in|ille|ia)?\b', '## Carl Gustaf Mannerheim ##', text)
+    text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', ' ## Carl Gustaf Mannerheim ##', text)
+    text = re.sub(r'Marski(n|a|lle)\b', ' ## Carl Gustaf Mannerheim ##', text)
+    re.sub(r'([A-Z]){2}', callback, s)
+    for r in to_be_lowercased:
+        text = text.replace(r, r.lower())
+    text = replace_general_list(text)
+    text = replace_minister_list(text)
+    text = replace_el_list(text)
+    text = replace_major_list(text)
+    text = text.replace('hal.neuv.', 'ministeri')
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
     text = re.sub(r'\b[Kk]enr\.\b', 'kenraali#', text)
     text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti#', text)
@@ -169,15 +226,12 @@ def preprocessor(text, *args):
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
     text = text.replace('F. E. Sillanpää', '##')
-    text = re.sub(r'Mannerheim(?!-)', '## Carl Gustaf Mannerheim', text)
-    text = re.sub(r'[Yy]lipäällikkö', 'Carl Gustaf Mannerheim', text)
     text = text.replace('Paavo Nurmi', '##')
-    text = text.replace('T. M. Kivimäki', 'Toivo Mikael Kivimäki')
+    text = text.replace('T. M. Kivimäki', 'T.M.Kivimäki')
     text = text.replace('Verner Viiklan', 'Verner Viikla')
     text = text.replace('Heinrichsin', 'Heinrichs')
     text = text.replace('Linderin', 'Linder')
     text = text.replace('Karl Takkula', 'K. Takkula')
-    text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
     text = text.replace('Laiva Josif Stalin', '##')
     text = re.sub(r'(Aleksandra\W)?Kollontai(\b|lle|n|hin)', 'Alexandra Kollontay', text)
     text = re.sub(r'Blick(\b|ille|in)', 'Aarne Leopold Blick', text)
@@ -187,26 +241,34 @@ def preprocessor(text, *args):
     text = text.replace('majuri V.Tuompo', '##')
     text = text.replace('Tuompo, Viljo Einar', 'kenraaliluutnantti Tuompo')
     text = text.replace('Erfurth & Tuompo', 'Waldemar Erfurth ja kenraaliluutnantti Tuompo')
-    text = text.replace('[Kk]enraali(majuri|luutnantti) Siilasvuo', 'Hjalmar Fridolf Siilasvuo')
+    text = text.replace('[Kk]enraali(majuri|luutnantti) Siilasvuo', '# Hjalmar Fridolf Siilasvuo #')
     text = text.replace('Wuolijoki', '## Hella Wuolijoki')
+    text = text.replace('Presidentti ja rouva R. Ryti', 'Risto Ryti # Gerda Ryti')
+    text = text.replace('[Pp]residentti Ryti', '# Risto Ryti #')
     text = re.sub(r'[Mm]inisteri Koivisto', 'Juho Koivisto', text)
+    text = re.sub(r'[Pp]residentti Kallio', '## Kyösti Kallio ##', text)
+    text = re.sub(r'[Rr](ou)?va(\.)? Kallio', '## Kaisa Kallio ##', text)
+    text = re.sub(r'[Ee]versti Vaala(n|lle|a)?\b', '# kenraalimajuri Vaala #', text)
+    # Hack because of duplicate person
+    text = re.sub(r'((G\.)|([Ee]versti)) Snellman', '## everstiluutnantti G. Snellman', text)
+    text = text.replace('Cajander', '## Aimo Kaarlo Cajander')
     # Needs tweaking for photos
-    text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
+    #text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
     text = text.replace('Ribbentrop', '## Joachim von_Ribbentrop')
+    #text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
     #text = text.replace('Kuusisen hallituksen', '## O. W. Kuusinen')
     #text = text.replace('Molotov', '## V. Molotov')  # not for photos
     #text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '## Kyösti Kallio', text)
-    text = re.sub(r'[Pp]residentti Kallio', '## Kyösti Kallio ##', text)
-    text = re.sub(r'[Rr]va Kallio', '## Kaisa Kallio ##', text)
-    text = text.replace('E. Mäkinen', '## kenraalimajuri Mäkinen')
-    text = text.replace('Ryti', '## Risto Ryti')
-    text = text.replace('Tanner', '## Väinö Tanner')
-    text = text.replace('Niukkanen', '## Juho Niukkanen')
-    text = text.replace('Söderhjelm', '## Johan Otto Söderhjelm')
-    text = text.replace('Paasikivi', '## Juho Kusti Paasikivi')
-    text = text.replace('Walden', '## Karl Rudolf Walden')
-    text = text.replace('Cajander', '## Aimo Kaarlo Cajander')
-    text = re.sub('[vV]ääpeli( Oiva)? Tuomi(nen|selle|sen)', '## Oiva Emil Kalervo Tuominen', text)
+    #text = text.replace('E. Mäkinen', '## kenraalimajuri Mäkinen')
+    #text = text.replace('Ryti', '## Risto Ryti')
+    #text = text.replace('Tanner', '## Väinö Tanner')
+    text = re.sub(r'(?<!Aimo )(?<!Aukusti )(?<!Y\.)Tanner', '# Väinö Tanner #', text)
+    #text = text.replace('Niukkanen', '## Juho Niukkanen')
+    #text = text.replace('Söderhjelm', '## Johan Otto Söderhjelm')
+    text = re.sub(r'(?<![Ee]verstiluutnantti )Paasikivi', '## Juho Kusti Paasikivi')
+    text = re.sub(r'[Mm]inisteri Walden', '## kenraaliluutnantti Walden #')
+    text = re.sub(r'(?<!eversti )(?<!kenraaliluutnantti )Walden', '## kenraaliluutnantti Walden #')
+    text = re.sub('[vV]ääpeli( (Oiva)? Tuomi(nen|selle|sen)', '## Oiva Emil Kalervo Tuominen', text)
 
     return text
 
