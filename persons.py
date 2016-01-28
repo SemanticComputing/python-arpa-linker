@@ -208,7 +208,6 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<![Mm]arsalkka )Mannerheim(?!-)(in|ille|ia)?\b', '## Carl Gustaf Mannerheim ##', text)
     text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', ' ## Carl Gustaf Mannerheim ##', text)
     text = re.sub(r'Marski(n|a|lle)\b', ' ## Carl Gustaf Mannerheim ##', text)
-    re.sub(r'([A-Z]){2}', callback, s)
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
     text = replace_general_list(text)
