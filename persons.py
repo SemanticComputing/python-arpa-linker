@@ -264,9 +264,9 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<!Aimo )(?<!Aukusti )(?<!Y\.)Tanner', '# Väinö Tanner #', text)
     #text = text.replace('Niukkanen', '## Juho Niukkanen')
     #text = text.replace('Söderhjelm', '## Johan Otto Söderhjelm')
-    text = re.sub(r'(?<![Ee]verstiluutnantti )Paasikivi', '## Juho Kusti Paasikivi')
-    text = re.sub(r'[Mm]inisteri Walden', '## kenraaliluutnantti Walden #')
-    text = re.sub(r'(?<!eversti )(?<!kenraaliluutnantti )Walden', '## kenraaliluutnantti Walden #')
+    text = re.sub(r'(?<![Ee]verstiluutnantti )Paasikivi', '## Juho Kusti Paasikivi', text)
+    text = re.sub(r'[Mm]inisteri Walden', '## kenraaliluutnantti Walden #', text)
+    text = re.sub(r'(?<!eversti )(?<!kenraaliluutnantti )Walden', '## kenraaliluutnantti Walden #', text)
     text = re.sub('[vV]ääpeli( (Oiva)? Tuomi(nen|selle|sen)', '## Oiva Emil Kalervo Tuominen', text)
 
     return text
