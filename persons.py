@@ -155,9 +155,10 @@ def add_titles(regex, title, text):
     if people:
         for i, p in enumerate(people[0], 1):
             if p:
-                groups.append('{} \\{}'.format(title, str(i)))
+                groups.append('{} \\{}'.format(title, i))
         if groups:
-            repl = ' # ' + ' # '.join(groups) + ' # '
+            repl = ' # ' + ' # '.join(groups)
+            logger.info('Adding titles to {} ({})'.format(text, repl))
             return regex.sub(repl, text)
     return text
 
@@ -197,13 +198,31 @@ to_be_lowercased = (
 
 
 def preprocessor(text, *args):
+    """
+    >>> text = "Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko."
+    >>> preprocessor(text)
+    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arolaministeri Honka,  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko.'
+    >>> text = "Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa."
+    >>> preprocessor(text)
+    ' # kenraaliluutnantti Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    >>> text = "Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa."
+    >>> preprocessor(text)
+    'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
+    """
+
+    orig = text
+    logger.info('Preprocessing: {}'.format(text))
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
     if text == "Lentomestari \"Oippa\" Tuominen.":
-        return "lentomestari Tuominen"
+        text = "lentomestari Tuominen"
+        logger.info('=> {}'.format(text))
+        return text
     if text in snellman_list:
+        logger.info('Snellman list: {}'.format(text))
         return 'kenraalimajuri Snellman'
     if text == 'Eversti Snellman ja Eversti Vaala.':
+        logger.info('Snellman and Vaala: {}'.format(text))
         return 'kenraalimajuri Snellman # kenraalimajuri Vaala'
     text = re.sub(r'(?<![Mm]arsalkka )Mannerheim(?!-)(in|ille|ia)?\b', '## Carl Gustaf Mannerheim ##', text)
     text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', ' ## Carl Gustaf Mannerheim ##', text)
@@ -216,12 +235,12 @@ def preprocessor(text, *args):
     text = replace_major_list(text)
     text = text.replace('hal.neuv.', 'ministeri')
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
-    text = re.sub(r'\b[Kk]enr\.\b', 'kenraali#', text)
-    text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti#', text)
+    text = re.sub(r'\b[Kk]enr\.\b', 'kenraali§', text)
+    text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti§', text)
     text = re.sub(r'\b[Ll]uu(tn|nt)\.', 'luutnantti', text)
     text = re.sub(r'\b[Mm]aj\.', 'majuri', text)
     text = re.sub(r'\b[Kk]apt\.', 'kapteeni', text)
-    text = text.replace('#', '')
+    text = text.replace('§', '')
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
     text = text.replace('F. E. Sillanpää', '##')
@@ -267,16 +286,24 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<![Ee]verstiluutnantti )Paasikivi', '## Juho Kusti Paasikivi', text)
     text = re.sub(r'[Mm]inisteri Walden', '## kenraaliluutnantti Walden #', text)
     text = re.sub(r'(?<!eversti )(?<!kenraaliluutnantti )Walden', '## kenraaliluutnantti Walden #', text)
-    text = re.sub('[vV]ääpeli( (Oiva)? Tuomi(nen|selle|sen)', '## Oiva Emil Kalervo Tuominen', text)
+    text = re.sub('[vV]ääpeli( Oiva)? Tuomi(nen|selle|sen)', '## Oiva Emil Kalervo Tuominen', text)
+    text = text.replace('Sotamies Pihlajamaa', 'sotamies Väinö Pihlajamaa')  # in photos
+    text = text.replace('Martti Pihlaja ', ' # ')
+
+    if text != orig:
+        logger.info('Preprocessed to: {}'.format(text))
 
     return text
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
     args = parse_args()
 
     global dataset
-    if args.tprop == 'http://purl.org/dc/terms/subject':
+    if str(args.tprop) == 'http://purl.org/dc/terms/subject':
         logger.info('Handling as photos')
         dataset = 'photo'
     else:
