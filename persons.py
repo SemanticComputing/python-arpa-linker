@@ -136,7 +136,7 @@ def validator(graph, s):
 
 list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
-_g_re = '[Kk]enraali(majurit)?(?:t)?(?:)?\W+' + list_regex
+_g_re = '[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+' + list_regex
 g_regex = re.compile(_g_re)
 
 _el_re = '[Ee]verstiluutnantit(?:)?\W+' + list_regex
@@ -150,17 +150,17 @@ m_regex = re.compile(_m_re)
 
 
 def add_titles(regex, title, text):
-    groups = []
     people = regex.findall(text)
-    if people:
-        for i, p in enumerate(people[0], 1):
+    for batch in people:
+        groups = []
+        for i, p in enumerate(batch, 1):
             if p:
-                groups.append('{} \\{}'.format(title, i))
+                groups.append(r'§ \{}'.format(i))
         if groups:
-            repl = ' # ' + ' # '.join(groups)
-            logger.info('Adding titles to {} ({})'.format(text, repl))
-            return regex.sub(repl, text)
-    return text
+            repl = r' # ' + r' # '.join(groups) + ' '
+            logger.info('Adding titles to "{}" ({})'.format(text, repl))
+            text = regex.sub(repl, text, 1)
+    return text.replace('§', title)
 
 
 def replace_general_list(text):
@@ -199,15 +199,14 @@ to_be_lowercased = (
 
 def preprocessor(text, *args):
     """
-    >>> text = "Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko."
-    >>> preprocessor(text)
-    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arolaministeri Honka,  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko.'
-    >>> text = "Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa."
-    >>> preprocessor(text)
-    ' # kenraaliluutnantti Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
-    >>> text = "Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa."
-    >>> preprocessor(text)
+    >>> preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
+    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arola # ministeri Honka  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström  # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko .'
+    >>> preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.")
+    ' # kenraaliluutnantti Hägglund  seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    >>> preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.")
     'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
+    >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit  Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
+    'Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri,  # kenraaliluutnantti Neuvonen # kenraaliluutnantti Walden # kenraaliluutnantti Mäkinen eversti Sihvo,  # kenraaliluutnantti Airo # kenraaliluutnantti Oesch eversti Hersalo ym. klo 12.45.'
     """
 
     orig = text
@@ -229,11 +228,11 @@ def preprocessor(text, *args):
     text = re.sub(r'Marski(n|a|lle)\b', ' ## Carl Gustaf Mannerheim ##', text)
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
+    text = text.replace('hal.neuv.', '')
     text = replace_general_list(text)
     text = replace_minister_list(text)
     text = replace_el_list(text)
     text = replace_major_list(text)
-    text = text.replace('hal.neuv.', 'ministeri')
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
     text = re.sub(r'\b[Kk]enr\.\b', 'kenraali§', text)
     text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti§', text)
