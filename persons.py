@@ -209,7 +209,7 @@ def preprocessor(text, *args):
     'Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri,  # kenraaliluutnantti Neuvonen # kenraaliluutnantti Walden # kenraaliluutnantti Mäkinen eversti Sihvo,  # kenraaliluutnantti Airo # kenraaliluutnantti Oesch eversti Hersalo ym. klo 12.45.'
     """
 
-    orig = text
+    orig = str(text)
     logger.info('Preprocessing: {}'.format(text))
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
