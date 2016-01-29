@@ -207,6 +207,16 @@ def preprocessor(text, *args):
     'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit  Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
     'Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri,  # kenraaliluutnantti Neuvonen # kenraaliluutnantti Walden # kenraaliluutnantti Mäkinen eversti Sihvo,  # kenraaliluutnantti Airo # kenraaliluutnantti Oesch eversti Hersalo ym. klo 12.45.'
+    >>> preprocessor("Sotamarsalkka Raasulissa.")
+    '# sotamarsalkka Mannerheim # Raasulissa.'
+    >>> preprocessor("Eräs Brewster-koneista, jotka seurasivat marsalkan seuruetta.")
+    'Eräs Brewster-koneista, jotka seurasivat # sotamarsalkka Mannerheim # seuruetta.'
+    >>> preprocessor("Kenraali Walden Marsalkan junassa aterialla.")
+    ' # kenraaliluutnantti Walden  # sotamarsalkka Mannerheim # junassa aterialla.'
+    >>> preprocessor('"Eläköön Sotamarsalkka"')
+    '"Eläköön # sotamarsalkka Mannerheim #"'
+    >>> preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.")
+    'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.'
     """
 
     orig = str(text)
@@ -223,9 +233,14 @@ def preprocessor(text, *args):
     if text == 'Eversti Snellman ja Eversti Vaala.':
         logger.info('Snellman and Vaala: {}'.format(text))
         return 'kenraalimajuri Snellman # kenraalimajuri Vaala'
-    text = re.sub(r'(?<![Mm]arsalkka )Mannerheim(?!-)(in|ille|ia)?\b', '## Carl Gustaf Mannerheim ##', text)
-    text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', ' ## Carl Gustaf Mannerheim ##', text)
-    text = re.sub(r'Marski(n|a|lle)\b', ' ## Carl Gustaf Mannerheim ##', text)
+
+    # Mannerheim
+    text = text.replace('Fältmarsalk', 'sotamarsalkka')
+    text = re.sub(r'(?<![Ss]otamarsalkka )(?<![Mm]arsalkka )Mannerheim(?!-)(in|ille|ia)?\b', '# sotamarsalkka Mannerheim #', text)
+    text = re.sub(r'([Ss]ota)?[Mm]arsalk(ka|an|alle|en)?\b(?! Mannerheim)', '# sotamarsalkka Mannerheim #', text)
+    text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', '# sotamarsalkka Mannerheim #', text)
+    text = re.sub(r'Marski(n|a|lle)\b', '# sotamarsalkka Mannerheim #', text)
+
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
     text = text.replace('hal.neuv.', '')
@@ -240,6 +255,7 @@ def preprocessor(text, *args):
     text = re.sub(r'\b[Mm]aj\.', 'majuri', text)
     text = re.sub(r'\b[Kk]apt\.', 'kapteeni', text)
     text = text.replace('§', '')
+    text = re.sub(r'[Gg]eneralmajor(s)?', 'kenraalimajuri', text)
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
     text = text.replace('F. E. Sillanpää', '##')
