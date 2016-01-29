@@ -55,7 +55,7 @@ def validator(graph, s):
             if person['label'] == 'Eric Väinö Tanner' \
                     or person['label'] == 'Erik Gustav Martin Heinrichs' \
                     or person['id'] == 'http://ldf.fi/warsa/actors/person_p10276':
-                logger.info("Filtering out person {}".format(person.get('id')))
+                logger.info("FAILURE: Filtering out person {}".format(person.get('id')))
                 continue
             try:
                 death_date = datetime.strptime(
@@ -66,7 +66,7 @@ def validator(graph, s):
             else:
                 if start and start > death_date:
                     logger.info(
-                        "{} ({}) died ({}) before event start ({})".format(
+                        "FAILURE: {} ({}) died ({}) before event start ({})".format(
                             person.get('label'), person.get('id'),
                             death_date, start))
                     continue
@@ -93,7 +93,7 @@ def validator(graph, s):
                     person.get('id')))
                 filtered.append(person)
             else:
-                logger.info("{} {} ({}) failed validation after matching {} in {} (in preliminary step)".format(
+                logger.info("FAILURE: {} {} ({}) failed validation after matching {} in {} (in preliminary step)".format(
                     get_ranks(person),
                     person.get('label'),
                     person.get('id'),
@@ -105,14 +105,14 @@ def validator(graph, s):
                 match_len = len(p.get('matches'))
                 ranks = get_ranks(p)
                 if ('"Sotamies"' in ranks) and not re.findall(r"([Ss]otamie|[Ss]tm\b)", text):
-                    logger.info("Filterin out private {} {} ({}), matched {} in {}".format(
+                    logger.info("FAILURE: Filterin out private {} {} ({}), matched {} in {}".format(
                         ranks,
                         p.get('label'),
                         p.get('id'),
                         p.get('matches'),
                         l))
                 elif match_len >= longest_matches[p.get('matches')[0]]:
-                    logger.info("{} {} ({}) passed validation, matching {} in {}".format(
+                    logger.info("SUCCESS: {} {} ({}) passed validation, matching {} in {}".format(
                         ranks,
                         p.get('label'),
                         p.get('id'),
@@ -120,17 +120,18 @@ def validator(graph, s):
                         l))
                     res.append(p)
                 else:
-                    logger.info("{} {} ({}) failed validation after matching {} in {}".format(
+                    logger.info("FAILURE: {} {} ({}) failed validation after matching {} in {}".format(
                         ranks,
                         p.get('label'),
                         p.get('id'),
                         p.get('matches'),
                         l))
 
+            logger.info("PASSED VALIDATION: {}".format(res))
             return res
-        # Event date unknown, return the original results
-        logger.warning("Event date unknown: {} ({})".format(s, l))
-        return results
+        # No matches
+        logger.info("ALL MATCHES FAILED VALIDATION: {} ({})".format(s, l))
+        return None
 
     return validate
 
@@ -147,6 +148,9 @@ ma_regex = re.compile(_ma_re)
 
 _m_re = '[Mm]inisterit(?:)?\W+' + list_regex
 m_regex = re.compile(_m_re)
+
+_c_re = '[Kk]apteenit\W+' + list_regex
+c_regex = re.compile(_c_re)
 
 
 def add_titles(regex, title, text):
@@ -177,6 +181,10 @@ def replace_minister_list(text):
 
 def replace_major_list(text):
     return add_titles(ma_regex, 'majuri', text)
+
+
+def replace_captain_list(text):
+    return add_titles(c_regex, 'kapteeni', text)
 
 
 snellman_list = (
@@ -217,13 +225,25 @@ def preprocessor(text, *args):
     '"Eläköön # sotamarsalkka Mannerheim #"'
     >>> preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.")
     'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.'
+    >>> preprocessor("Majuri Laaksonen JR 8:ssa.")
+    '# everstiluutnantti Sulo Laaksonen # JR 8:ssa.'
+    >>> preprocessor("Everstiluutnantti Laaksonen")
+    '# everstiluutnantti Sulo Laaksonen #'
+    >>> preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.")
+    'Vas: # everstiluutnantti Sulo Laaksonen #, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.'
+    >>> preprocessor("Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.")
+    'majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. majuri Laaksonen seisomassa kuvan keskellä.'
+    >>> preprocessor("Luutn. Juutilainen Saharan kauhu jouluk. Alussa.")
+    '# kapteeni Juutilainen # # kapteeni Juutilainen # jouluk. Alussa.'
+    >>> preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa.")
+    ' # kapteeni Palolampi # kapteeni Juutilainen  ratsailla Levinassa.'
     """
 
-    orig = str(text)
+    text = str(text)
     logger.info('Preprocessing: {}'.format(text))
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
-    if text == "Lentomestari \"Oippa\" Tuominen.":
+    if text.replace('"', '') == "Lentomestari Oippa Tuominen.":
         text = "lentomestari Tuominen"
         logger.info('=> {}'.format(text))
         return text
@@ -233,6 +253,8 @@ def preprocessor(text, *args):
     if text == 'Eversti Snellman ja Eversti Vaala.':
         logger.info('Snellman and Vaala: {}'.format(text))
         return 'kenraalimajuri Snellman # kenraalimajuri Vaala'
+
+    orig = text
 
     # Mannerheim
     text = text.replace('Fältmarsalk', 'sotamarsalkka')
@@ -248,6 +270,7 @@ def preprocessor(text, *args):
     text = replace_minister_list(text)
     text = replace_el_list(text)
     text = replace_major_list(text)
+    text = replace_captain_list(text)
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
     text = re.sub(r'\b[Kk]enr\.\b', 'kenraali§', text)
     text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti§', text)
@@ -255,6 +278,7 @@ def preprocessor(text, *args):
     text = re.sub(r'\b[Mm]aj\.', 'majuri', text)
     text = re.sub(r'\b[Kk]apt\.', 'kapteeni', text)
     text = text.replace('§', '')
+    text = re.sub(r'[Ll]entomies', 'lentomestari', text)
     text = re.sub(r'[Gg]eneralmajor(s)?', 'kenraalimajuri', text)
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
@@ -282,9 +306,18 @@ def preprocessor(text, *args):
     text = re.sub(r'[Pp]residentti Kallio', '## Kyösti Kallio ##', text)
     text = re.sub(r'[Rr](ou)?va(\.)? Kallio', '## Kaisa Kallio ##', text)
     text = re.sub(r'[Ee]versti Vaala(n|lle|a)?\b', '# kenraalimajuri Vaala #', text)
+
+    text = text.replace(r'Saharan kauhu', '# kapteeni Juutilainen #')
+    text = text.replace(r'luutnantti Juutilainen', '# kapteeni Juutilainen #')
+
+    text = re.sub(r'(?<!patterin päällikkö )[Kk]apteeni (Joppe )?Karhu(nen|sen)', '# kapteeni Jorma Karhunen #', text)
+    text = text.replace(r'Wind', '# luutnantti Wind #')
     # Hack because of duplicate person
     text = re.sub(r'((G\.)|([Ee]versti)) Snellman', '## everstiluutnantti G. Snellman', text)
     text = text.replace('Cajander', '## Aimo Kaarlo Cajander')
+    text = re.sub('eversti(luutnantti)? Laaksonen', '# everstiluutnantti Sulo Laaksonen #', text)
+    if 'JR 8' in text:
+        text = re.sub('majuri Laaksonen', '# everstiluutnantti Sulo Laaksonen #', text)
     # Needs tweaking for photos
     #text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
     text = text.replace('Ribbentrop', '## Joachim von_Ribbentrop')
