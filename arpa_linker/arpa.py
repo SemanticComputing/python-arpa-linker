@@ -250,11 +250,12 @@ class Arpa:
 
         results = self.query(text).get('results', None)
 
-        if validator:
+        if validator and results:
+            logger.debug('Validating results: {}'.format(results))
             results = validator(text, results)
 
         if results:
-            logger.debug('Found matches for {}: {}'.format(text, results))
+            logger.debug('Found matches {}'.format(results))
             res = [x['id'] for x in results]
         else:
             logger.debug('No matches for {}'.format(text))

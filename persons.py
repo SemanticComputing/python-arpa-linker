@@ -5,7 +5,7 @@ from rdflib.namespace import SKOS
 import logging
 import re
 
-log_to_file('persons.log', 'INFO')
+log_to_file('persons.log', 'DEBUG')
 logger = logging.getLogger('arpa_linker.arpa')
 
 
@@ -52,9 +52,7 @@ def validator(graph, s):
         longest_matches = {}
         filtered = []
         for person in results:
-            if person['label'] == 'Eric Väinö Tanner' \
-                    or person['label'] == 'Erik Gustav Martin Heinrichs' \
-                    or person['id'] == 'http://ldf.fi/warsa/actors/person_p10276':
+            if person['id'] == 'http://ldf.fi/warsa/actors/person_p10276':
                 logger.info("FAILURE: Filtering out person {}".format(person.get('id')))
                 continue
             try:
@@ -100,44 +98,41 @@ def validator(graph, s):
                     person.get('matches'),
                     l))
 
-            res = []
-            for p in filtered:
-                match_len = len(p.get('matches'))
-                ranks = get_ranks(p)
-                if ('"Sotamies"' in ranks) and not re.findall(r"([Ss]otamie|[Ss]tm\b)", text):
-                    logger.info("FAILURE: Filterin out private {} {} ({}), matched {} in {}".format(
-                        ranks,
-                        p.get('label'),
-                        p.get('id'),
-                        p.get('matches'),
-                        l))
-                elif match_len >= longest_matches[p.get('matches')[0]]:
-                    logger.info("SUCCESS: {} {} ({}) passed validation, matching {} in {}".format(
-                        ranks,
-                        p.get('label'),
-                        p.get('id'),
-                        p.get('matches'),
-                        l))
-                    res.append(p)
-                else:
-                    logger.info("FAILURE: {} {} ({}) failed validation after matching {} in {}".format(
-                        ranks,
-                        p.get('label'),
-                        p.get('id'),
-                        p.get('matches'),
-                        l))
+        res = []
+        for p in filtered:
+            match_len = len(p.get('matches'))
+            ranks = get_ranks(p)
+            if ('"Sotamies"' in ranks) and not re.findall(r"([Ss]otamie|[Ss]tm\b)", text):
+                logger.info("FAILURE: Filterin out private {} {} ({}), matched {} in {}".format(
+                    ranks,
+                    p.get('label'),
+                    p.get('id'),
+                    p.get('matches'),
+                    l))
+            elif match_len >= longest_matches[p.get('matches')[0]]:
+                logger.info("SUCCESS: {} {} ({}) passed validation, matching {} in {}".format(
+                    ranks,
+                    p.get('label'),
+                    p.get('id'),
+                    p.get('matches'),
+                    l))
+                res.append(p)
+            else:
+                logger.info("FAILURE: {} {} ({}) failed validation after matching {} in {}".format(
+                    ranks,
+                    p.get('label'),
+                    p.get('id'),
+                    p.get('matches'),
+                    l))
 
-            logger.info("PASSED VALIDATION: {}".format(res))
-            return res
-        # No matches
-        logger.info("ALL MATCHES FAILED VALIDATION: {} ({})".format(s, l))
-        return None
+        logger.info("PASSED VALIDATION: {}".format(res))
+        return res
 
     return validate
 
 list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
-_g_re = '[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+' + list_regex
+_g_re = '(?:[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+)' + list_regex
 g_regex = re.compile(_g_re)
 
 _el_re = '[Ee]verstiluutnantit(?:)?\W+' + list_regex
@@ -153,17 +148,31 @@ _c_re = '[Kk]apteenit\W+' + list_regex
 c_regex = re.compile(_c_re)
 
 
+def repl(groups):
+
+    def rep(m):
+        res = r''
+        for i in groups:
+            if m.group(i):
+                res = res + ' # § {}'.format(m.group(i))
+        return '{} # '.format(res) if res else m.group(0)
+
+    return rep
+
+
 def add_titles(regex, title, text):
     people = regex.findall(text)
     for batch in people:
         groups = []
         for i, p in enumerate(batch, 1):
             if p:
-                groups.append(r'§ \{}'.format(i))
+                groups.append(i)
         if groups:
-            repl = r' # ' + r' # '.join(groups) + ' '
-            logger.info('Adding titles to "{}" ({})'.format(text, repl))
-            text = regex.sub(repl, text, 1)
+            logger.info('Adding titles ({}) to "{}"'.format(title, text))
+            try:
+                text = regex.sub(repl(groups), text)
+            except Exception:
+                logger.exception('Regex error while adding titles')
     return text.replace('§', title)
 
 
@@ -189,7 +198,7 @@ def replace_captain_list(text):
 
 snellman_list = (
     "Eversti Snellman 17.Divisioonan komentaja.",
-    "Piirros Aarne Nopsanen: \"Eversti Snellman\".",
+    "Piirros Aarne Nopsanen: Eversti Snellman.",
     "Hangon ryhmän komentaja ev. Snellman",
     "17. Divisioonan hiihtokilpailuiden palkintojenjakotilaisuudesta:Komentaja, eversti Snellman puhuu ennen palkintojen jakoa. Pöydällä pokaaleita.",
     "Divisioonan hiihtokilpailut Syvärin rannalla: Komentaja eversti Snellman toimitsijoiden seurassa.",
@@ -208,21 +217,21 @@ to_be_lowercased = (
 def preprocessor(text, *args):
     """
     >>> preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
-    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arola # ministeri Honka  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström  # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko .'
+    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arola # ministeri Honka #  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström #  # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko # .'
     >>> preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.")
-    ' # kenraaliluutnantti Hägglund  seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    ' # kenraaliluutnantti Hägglund #  seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.")
     'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit  Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
-    'Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri,  # kenraaliluutnantti Neuvonen # kenraaliluutnantti Walden # kenraaliluutnantti Mäkinen eversti Sihvo,  # kenraaliluutnantti Airo # kenraaliluutnantti Oesch eversti Hersalo ym. klo 12.45.'
+    '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri,  # kenraaliluutnantti Neuvonen # kenraaliluutnantti Walden # kenraaliluutnantti Mäkinen # eversti Sihvo,  # kenraaliluutnantti Airo # kenraaliluutnantti Oesch # eversti Hersalo ym. klo 12.45.'
     >>> preprocessor("Sotamarsalkka Raasulissa.")
     '# sotamarsalkka Mannerheim # Raasulissa.'
     >>> preprocessor("Eräs Brewster-koneista, jotka seurasivat marsalkan seuruetta.")
     'Eräs Brewster-koneista, jotka seurasivat # sotamarsalkka Mannerheim # seuruetta.'
     >>> preprocessor("Kenraali Walden Marsalkan junassa aterialla.")
-    ' # kenraaliluutnantti Walden  # sotamarsalkka Mannerheim # junassa aterialla.'
+    ' # kenraaliluutnantti Walden #  # sotamarsalkka Mannerheim # junassa aterialla.'
     >>> preprocessor('"Eläköön Sotamarsalkka"')
-    '"Eläköön # sotamarsalkka Mannerheim #"'
+    'Eläköön # sotamarsalkka Mannerheim #'
     >>> preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.")
     'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.'
     >>> preprocessor("Majuri Laaksonen JR 8:ssa.")
@@ -236,14 +245,16 @@ def preprocessor(text, *args):
     >>> preprocessor("Luutn. Juutilainen Saharan kauhu jouluk. Alussa.")
     '# kapteeni Juutilainen # # kapteeni Juutilainen # jouluk. Alussa.'
     >>> preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa.")
-    ' # kapteeni Palolampi # kapteeni Juutilainen  ratsailla Levinassa.'
+    ' # kapteeni Palolampi # kapteeni Juutilainen #  ratsailla Levinassa.'
+    >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
+    'kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväen # kenraaliluutnantti Heinrichs # # kenraalimajuri Vaala #.'
     """
 
-    text = str(text)
+    text = str(text).replace('"', '')
     logger.info('Preprocessing: {}'.format(text))
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
-    if text.replace('"', '') == "Lentomestari Oippa Tuominen.":
+    if text == "Lentomestari Oippa Tuominen.":
         text = "lentomestari Tuominen"
         logger.info('=> {}'.format(text))
         return text
@@ -301,17 +312,19 @@ def preprocessor(text, *args):
     text = text.replace('[Kk]enraali(majuri|luutnantti) Siilasvuo', '# Hjalmar Fridolf Siilasvuo #')
     text = text.replace('Wuolijoki', '## Hella Wuolijoki')
     text = text.replace('Presidentti ja rouva R. Ryti', 'Risto Ryti # Gerda Ryti')
-    text = text.replace('[Pp]residentti Ryti', '# Risto Ryti #')
+    text = re.sub('[Pp]residentti Ryti', '# Risto Ryti #', text)
     text = re.sub(r'[Mm]inisteri Koivisto', 'Juho Koivisto', text)
     text = re.sub(r'[Pp]residentti Kallio', '## Kyösti Kallio ##', text)
     text = re.sub(r'[Rr](ou)?va(\.)? Kallio', '## Kaisa Kallio ##', text)
     text = re.sub(r'[Ee]versti Vaala(n|lle|a)?\b', '# kenraalimajuri Vaala #', text)
+    text = re.sub(r'(kenraaliluutnantti|eversti) Raappana', '# kenraalimajuri Raappana #', text)
 
     text = text.replace(r'Saharan kauhu', '# kapteeni Juutilainen #')
     text = text.replace(r'luutnantti Juutilainen', '# kapteeni Juutilainen #')
 
     text = re.sub(r'(?<!patterin päällikkö )[Kk]apteeni (Joppe )?Karhu(nen|sen)', '# kapteeni Jorma Karhunen #', text)
     text = text.replace(r'Wind', '# luutnantti Wind #')
+    text = re.sub(r'(?<!3\. )(?<!III )(luutnantti|[Vv]änrikki|Lauri Wilhelm) Nissi(nen|sen)\b', '# vänrikki Lauri Nissinen #', text)
     # Hack because of duplicate person
     text = re.sub(r'((G\.)|([Ee]versti)) Snellman', '## everstiluutnantti G. Snellman', text)
     text = text.replace('Cajander', '## Aimo Kaarlo Cajander')
@@ -344,10 +357,14 @@ def preprocessor(text, *args):
     return text
 
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+ignore = [
+    'Ensio Pehr Hjalmar Siilasvuo',
+    'Eric Väinö Tanner',
+    'Erik Gustav Martin Heinrichs'
+]
 
+
+if __name__ == "__main__":
     args = parse_args()
 
     global dataset
@@ -358,7 +375,7 @@ if __name__ == "__main__":
         logger.info('Handling as events')
         dataset = 'event'
 
-    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
 
     # Query the ARPA service, add the matches and serialize the graph to disk.
     process(args.input, args.fi, args.output, args.fo, args.tprop, arpa, args.prop,
