@@ -11,7 +11,7 @@ If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasb
 The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
     usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT]
-                [--rdf_class CLASS] [--prop PROPERTY]
+                [--new_graph NEW_GRAPH] [--rdf_class CLASS] [--prop PROPERTY]
                 [--ignore [TERM [TERM ...]]] [--min_ngram N]
                 [--no_duplicates [TYPE [TYPE ...]]]
                 [--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}]
@@ -28,29 +28,34 @@ The module can be invoked as a script from the command line or by calling `arpa.
     optional arguments:
     -h, --help            show this help message and exit
     --fi INPUT_FORMAT     Input file format (rdflib parser). Will be guessed if
-                            omitted.
+                          omitted.
     --fo OUTPUT_FORMAT    Output file format (rdflib serializer). Default is
-                            turtle.
+                          turtle.
+    --new_graph NEW_GRAPH
+                          Add the ARPA results to a new graph instead of the
+                          original. The output file contains all the triples of
+                          the original graph by default. With this argument set
+                          the output file will contain only the results.
     --rdf_class CLASS     Process only subjects of the given type (goes through
-                            all subjects by default).
+                          all subjects by default).
     --prop PROPERTY       Property that's value is to be used in matching.
-                            Default is skos:prefLabel.
+                          Default is skos:prefLabel.
     --ignore [TERM [TERM ...]]
-                            Terms that should be ignored even if matched
+                          Terms that should be ignored even if matched
     --min_ngram N         The minimum ngram length that is considered a match.
-                            Default is 1.
+                          Default is 1.
     --no_duplicates [TYPE [TYPE ...]]
-                        Remove duplicate matches based on the 'label' returned
-                        by the ARPA service. Here 'duplicate' means a subject
-                        with the same label as another subject in the same
-                        result set. A list of types can be given with this
-                        argument. If given, prioritize matches based on it -
-                        the first given type will get the highest priority and
-                        so on. Note that the response from the service has to
-                        include a 'type' variable for this to work.
+                          Remove duplicate matches based on the 'label' returned
+                          by the ARPA service. Here 'duplicate' means a subject
+                          with the same label as another subject in the same
+                          result set. A list of types can be given with this
+                          argument. If given, prioritize matches based on it -
+                          the first given type will get the highest priority and
+                          so on. Note that the response from the service has to
+                          include a 'type' variable for this to work.
     --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                            Logging level, default is INFO. The log file is
-                            arpa_linker.log.
+                          Logging level, default is INFO. The log file is
+                          arpa_linker.log.
 
 The arguments can also be read from a file using "@" (example arg file [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)):
 
@@ -263,6 +268,30 @@ class Arpa:
 
         return res
 
+    def get_candidates(self, text):
+        """
+        Get the candidates from `text` that would be used by the ARPA service
+        to query for matches.
+
+        Return the candidates as JSON.
+        """
+
+        text = self._sanitize(text)
+        if not text:
+            raise ValueError("Empty ARPA query text")
+
+        cgen_url = "{}?cgen".format(self._url)
+        data = 'text="{}"'.format(text)
+        res = requests.post(cgen_url, data={'text': text})
+        logger.debug('Querying ARPA at {} for candidates for text: {}'.format(self._url, text))
+        try:
+            res.raise_for_status()
+        except HTTPError as e:
+            raise HTTPError('Error ({}) when querying the ARPA service for candidates with data "{}".'
+                    .format(e.response.status_code, data))
+
+        return self._filter(res.json())
+
 
 class Bar:
     """
@@ -297,11 +326,13 @@ def get_bar(n, use_pyprind):
 
 
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
-            preprocessor=None, validator=None, progress=None):
+            output_graph=None, preprocessor=None, validator=None,
+            candidates_only=False, progress=None):
     """
-    Link a property to resources using ARPA. Modify the graph in place.
+    Link a property to resources using ARPA. Modify the graph in place,
+    unless `output_graph` is given.
 
-    Return a dict with the amount of processed triples (processed),
+    Return a dict with the amount of processed triples (processed), the resulting graph (graph),
     match count (matches) and errors encountered (errors).
 
     `graph` is the graph to link (will be modified).
@@ -313,6 +344,9 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     `source_prop` is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).
 
     If `rdf_class` is given, only go through instances of this type.
+
+    `output_graph` is the graph to which the results should be added. If not given, the results will be added
+    to the input `graph`.
 
     `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
     It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.
@@ -327,6 +361,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     if source_prop is None:
         source_prop = SKOS['prefLabel']
+    if output_graph is None:
+        output_graph = graph
 
     subgraph = Graph()
 
@@ -357,11 +393,16 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
                 subject_match_count += 1
             # Add each uri found as a value of the target property
             for uri in match_uris:
-                graph.add((s, target_prop, URIRef(uri)))
+                output_graph.add((s, target_prop, URIRef(uri)))
         bar.update()
 
-    res = {'processed': len(subgraph), 'matches': triple_match_count,
-           'subjects_matched': subject_match_count, 'errors': errors}
+    res = {
+        'graph': output_graph,
+        'processed': len(subgraph),
+        'matches': triple_match_count,
+        'subjects_matched': subject_match_count,
+        'errors': errors
+    }
 
     logger.info("Processed {} triples, found {} matches ({} errors)"
                 .format(res['processed'], res['matches'], len(res['errors'])))
@@ -397,6 +438,10 @@ def parse_args():
         help="Input file format (rdflib parser). Will be guessed if omitted.")
     argparser.add_argument("--fo", metavar="OUTPUT_FORMAT",
         help="Output file format (rdflib serializer). Default is turtle.", default="turtle")
+    argparser.add_argument("--new_graph", metavar="NEW_GRAPH", default=False,
+        help="""Add the ARPA results to a new graph instead of the original. The output file
+        contains all the triples of the original graph by default. With this argument set
+        the output file will contain only the results.""")
     argparser.add_argument("--rdf_class", metavar="CLASS",
         help="Process only subjects of the given type (goes through all subjects by default).")
     argparser.add_argument("--prop", metavar="PROPERTY",
@@ -436,23 +481,7 @@ def parse_args():
     return args
 
 
-def main():
-    """Main function for running via the command line."""
-
-    args = parse_args()
-
-    log_to_file('arpa_linker.log', args.log_level)
-
-    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
-
-    # Query the ARPA service, add the matches and serialize graph to disk
-    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-            args.prop, args.rdf_class, progress=True)
-
-    logging.shutdown()
-
-
-def process(input_file, input_format, output_file, output_format, *args, **kwargs):
+def process(input_file, input_format, output_file, output_format, new_graph=False, *args, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
@@ -462,6 +491,8 @@ def process(input_file, input_format, output_file, output_format, *args, **kwarg
     `output_file` is the output file name.
 
     `output_format` is the output file format.
+
+    If `new_graph` is set, use a new empty graph for adding the results.
 
     All other arguments are passed to `arpa.arpafy`.
 
@@ -473,6 +504,9 @@ def process(input_file, input_format, output_file, output_format, *args, **kwarg
     logger.info('Parsing file {}'.format(input_file))
     g.parse(input_file, format=input_format)
     logger.info('Parsing complete')
+
+    output_graph = Graph() if new_graph else None
+    kwargs['output_graph'] = output_graph
 
     logger.info('Begin processing')
     start_time = time.monotonic()
@@ -492,6 +526,22 @@ def process(input_file, input_format, output_file, output_format, *args, **kwarg
     res['graph'] = g
 
     return res
+
+
+def main():
+    """Main function for running via the command line."""
+
+    args = parse_args()
+
+    log_to_file('arpa_linker.log', args.log_level)
+
+    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore)
+
+    # Query the ARPA service, add the matches and serialize graph to disk
+    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+            args.prop, args.rdf_class, progress=True)
+
+    logging.shutdown()
 
 
 if __name__ == '__main__':
