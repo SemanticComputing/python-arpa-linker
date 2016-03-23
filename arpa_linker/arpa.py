@@ -275,21 +275,24 @@ class Arpa:
         data = 'text="{}"'.format(text)
 
         tries = self._retries + 1
+        assert tries > 0, "Invalid amount of tries when querying"
+
         while tries:
             logger.debug('Querying ARPA at {} with text: {}'.format(self._url, text))
             res = requests.post(url, data={'text': text})
             tries -= 1
             try:
                 res.raise_for_status()
-            except HTTPError as e:
+                res = res.json()
+            except (HTTPError, ValueError) as e:
                 if tries:
-                    logger.warning('Retrying after error ({}) when querying the ARPA service with data "{}".'.format(e.response.status_code, data))
+                    logger.warning('Retrying after error ({}) when querying the ARPA service with data "{}".'.format(e, data))
                     continue
                 elif self._retries:
-                        logger.warning('Error {}, out of retries.'.format(e.response.status_code))
-                raise HTTPError('Error ({}) when querying the ARPA service with data "{}".'.format(e.response.status_code, data))
+                        logger.warning('Error {}, out of retries.'.format(e))
+                raise HTTPError('Error ({}) when querying the ARPA service with data "{}".'.format(e, data))
 
-        return res.json().get('results', None)
+        return res.get('results', None)
 
     def get_uri_matches(self, text, validator=None):
         """
@@ -547,8 +550,7 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     All other arguments are passed to `arpa.arpafy`.
 
-    Return the results dict as returned by `arpa.arpafy` with the graph added
-    with key 'graph'.
+    Return the results dict as returned by `arpa.arpafy`.
     """
 
     g = Graph()
@@ -560,7 +562,7 @@ def process(input_file, input_format, output_file, output_format, *args,
         output_graph = Graph()
         output_graph.namespace_manager = g.namespace_manager
     else:
-        output_graph = None
+        output_graph = g
     kwargs['output_graph'] = output_graph
 
     logger.info('Begin processing')
@@ -576,9 +578,6 @@ def process(input_file, input_format, output_file, output_format, *args,
     logger.info('Serializing graph as {}'.format(output_file))
     output_graph.serialize(destination=output_file, format=output_format)
     logger.info('Serialization complete')
-
-    # Add the graph to the results
-    res['graph'] = g
 
     return res
 
