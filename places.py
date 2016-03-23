@@ -111,7 +111,7 @@ if __name__ == '__main__':
         'taavetti',
         'berliini',
         'hannula',
-        'hannuksela'
+        'hannuksela',
         'itä',
         'karhu',
         'tausta',
@@ -161,10 +161,13 @@ if __name__ == '__main__':
         'kunta',
         'kallela',
         'palojärvi',
+        'olli',
+        'motti',
+        'valko',
         'maaselkä',  # the proper one does not exist yet
         'kalajoki',  # the proper one does not exist yet
-        'turtola', # only for events!
-        'pajari'  # only for events, remove for photos
+        #'turtola', # only for events!
+        #'pajari'  # only for events, remove for photos
         #'karsikko'?
     ]
 
@@ -187,8 +190,8 @@ if __name__ == '__main__':
 
     # Query the ARPA service, add the matches, and serialize the graph to disk.
     process('input.ttl', rdf_format, 'output.ttl', rdf_format,
-            #URIRef('http://purl.org/dc/terms/spatial'),
-            URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
+            URIRef('http://purl.org/dc/terms/spatial'),
+            #URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
             arpa,
-            #URIRef('http://ldf.fi/warsa/photographs/place_string'),
+            URIRef('http://ldf.fi/warsa/photographs/place_string'),
             preprocessor=preprocessor, validator=validator, progress=True)
