@@ -1092,55 +1092,68 @@ table {
 <p>If you want to see a progress bar, you'll need <a href="https://github.com/rasbt/pyprind">PyPrind</a>.</p>
 <h2>Usage</h2>
 <p>The module can be invoked as a script from the command line or by calling <a href="#arpa.arpafy"><code>arpafy</code></a> (or <a href="#arpa.process"><code>process</code></a>) in your Python code.</p>
-<div class="codehilite"><pre><span class="n">usage</span><span class="o">:</span> <span class="n">arpa</span><span class="o">.</span><span class="na">py</span> <span class="o">[-</span><span class="n">h</span><span class="o">]</span> <span class="o">[--</span><span class="n">fi</span> <span class="n">INPUT_FORMAT</span><span class="o">]</span> <span class="o">[--</span><span class="n">fo</span> <span class="n">OUTPUT_FORMAT</span><span class="o">]</span> <span class="o">[-</span><span class="n">n</span><span class="o">]</span>
-            <span class="o">[--</span><span class="n">rdf_class</span> <span class="n">CLASS</span><span class="o">]</span> <span class="o">[--</span><span class="n">prop</span> <span class="n">PROPERTY</span><span class="o">]</span>
-            <span class="o">[--</span><span class="n">ignore</span> <span class="o">[</span><span class="n">TERM</span> <span class="o">[</span><span class="n">TERM</span> <span class="o">...]]]</span> <span class="o">[--</span><span class="n">min_ngram</span> <span class="n">N</span><span class="o">]</span>
-            <span class="o">[--</span><span class="n">no_duplicates</span> <span class="o">[</span><span class="n">TYPE</span> <span class="o">[</span><span class="n">TYPE</span> <span class="o">...]]]</span> <span class="o">[-</span><span class="n">r</span> <span class="n">N</span><span class="o">]</span>
-            <span class="o">[--</span><span class="n">log_level</span> <span class="o">{</span><span class="n">NOTSET</span><span class="o">,</span><span class="n">DEBUG</span><span class="o">,</span><span class="n">INFO</span><span class="o">,</span><span class="n">WARNING</span><span class="o">,</span><span class="n">ERROR</span><span class="o">,</span><span class="n">CRITICAL</span><span class="o">}]</span>
-            <span class="n">input</span> <span class="n">output</span> <span class="n">target_property</span> <span class="n">arpa</span>
+<pre>
+usage: arpa.py [-h] [--fi INPUT_FORMAT]
+            [--fo OUTPUT_FORMAT] [-n]
+            [--rdf_class CLASS] [--prop PROPERTY]
+            [--ignore [TERM [TERM ...]]] [--min_ngram N]
+            [--no_duplicates [TYPE [TYPE ...]]] [-r N]
+            [--log_level
+                {NOTSET,DEBUG,INFO,WARNING, ERROR,CRITICAL}]
+            input output target_property arpa
 
-<span class="n">Link</span> <span class="n">resources</span> <span class="n">to</span> <span class="n">an</span> <span class="n">RDF</span> <span class="n">graph</span> <span class="k">with</span> <span class="n">ARPA</span><span class="o">.</span>
+Link resources to an RDF graph with ARPA.
 
-<span class="n">positional</span> <span class="k">arguments</span><span class="o">:</span>
-<span class="n">input</span>                 <span class="n">Input</span> <span class="n">rdf</span> <span class="n">file</span>
-<span class="n">output</span>                <span class="n">Output</span> <span class="n">file</span>
-<span class="n">target_property</span>       <span class="n">Target</span> <span class="n">property</span> <span class="k">for</span> <span class="n">the</span> <span class="n">matches</span>
-<span class="n">arpa</span>                  <span class="n">ARPA</span> <span class="n">service</span> <span class="n">URL</span>
+positional arguments:
+input                 Input rdf file
+output                Output file
+target_property       Target property for the matches
+arpa                  ARPA service URL
 
-<span class="n">optional</span> <span class="k">arguments</span><span class="o">:</span>
-<span class="o">-</span><span class="n">h</span><span class="o">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="k">this</span> <span class="n">help</span> <span class="n">message</span> <span class="n">and</span> <span class="n">exit</span>
-<span class="o">--</span><span class="n">fi</span> <span class="n">INPUT_FORMAT</span>     <span class="n">Input</span> <span class="n">file</span> <span class="n">format</span> <span class="o">(</span><span class="n">rdflib</span> <span class="n">parser</span><span class="o">).</span> <span class="n">Will</span> <span class="n">be</span> <span class="n">guessed</span> <span class="k">if</span>
-                      <span class="n">omitted</span><span class="o">.</span>
-<span class="o">--</span><span class="n">fo</span> <span class="n">OUTPUT_FORMAT</span>    <span class="n">Output</span> <span class="n">file</span> <span class="n">format</span> <span class="o">(</span><span class="n">rdflib</span> <span class="n">serializer</span><span class="o">).</span> <span class="n">Default</span> <span class="k">is</span>
-                        <span class="n">turtle</span><span class="o">.</span>
-<span class="o">-</span><span class="n">n</span><span class="o">,</span> <span class="o">--</span><span class="n">new_graph</span>       <span class="n">Add</span> <span class="n">the</span> <span class="n">ARPA</span> <span class="n">results</span> <span class="n">to</span> <span class="n">a</span> <span class="k">new</span> <span class="n">graph</span> <span class="n">instead</span> <span class="n">of</span> <span class="n">the</span>
-                      <span class="n">original</span><span class="o">.</span> <span class="n">The</span> <span class="n">output</span> <span class="n">file</span> <span class="n">contains</span> <span class="n">all</span> <span class="n">the</span> <span class="n">triples</span> <span class="n">of</span>
-                      <span class="n">the</span> <span class="n">original</span> <span class="n">graph</span> <span class="n">by</span> <span class="k">default</span><span class="o">.</span> <span class="n">With</span> <span class="k">this</span> <span class="n">argument</span> <span class="kd">set</span>
-                      <span class="n">the</span> <span class="n">output</span> <span class="n">file</span> <span class="n">will</span> <span class="n">contain</span> <span class="n">only</span> <span class="n">the</span> <span class="n">results</span><span class="o">.</span>
-<span class="o">--</span><span class="n">rdf_class</span> <span class="n">CLASS</span>     <span class="n">Process</span> <span class="n">only</span> <span class="n">subjects</span> <span class="n">of</span> <span class="n">the</span> <span class="n">given</span> <span class="n">type</span> <span class="o">(</span><span class="n">goes</span> <span class="n">through</span>
-                      <span class="n">all</span> <span class="n">subjects</span> <span class="n">by</span> <span class="k">default</span><span class="o">).</span>
-<span class="o">--</span><span class="n">prop</span> <span class="n">PROPERTY</span>       <span class="n">Property</span> <span class="n">that</span><span class="s1">&#39;s value is to be used in matching.</span>
-<span class="s1">                      Default is skos:prefLabel.</span>
-<span class="s1">--ignore [TERM [TERM ...]]</span>
-<span class="s1">                      Terms that should be ignored even if matched</span>
-<span class="s1">--min_ngram N         The minimum ngram length that is considered a match.</span>
-<span class="s1">                      Default is 1.</span>
-<span class="s1">--no_duplicates [TYPE [TYPE ...]]</span>
-<span class="s1">                      Remove duplicate matches based on the &#39;</span><span class="n">label</span><span class="s1">&#39; returned</span>
-<span class="s1">                      by the ARPA service. Here &#39;</span><span class="n">duplicate</span><span class="s1">&#39; means a subject</span>
-<span class="s1">                      with the same label as another subject in the same</span>
-<span class="s1">                      result set. A list of types can be given with this</span>
-<span class="s1">                      argument. If given, prioritize matches based on it -</span>
-<span class="s1">                      the first given type will get the highest priority and</span>
-<span class="s1">                      so on. Note that the response from the service has to</span>
-<span class="s1">                      include a &#39;</span><span class="n">type</span><span class="err">&#39;</span> <span class="n">variable</span> <span class="k">for</span> <span class="k">this</span> <span class="n">to</span> <span class="n">work</span><span class="o">.</span>
-<span class="o">-</span><span class="n">r</span> <span class="n">N</span><span class="o">,</span> <span class="o">--</span><span class="n">retries</span> <span class="n">N</span>     <span class="n">The</span> <span class="n">amount</span> <span class="n">of</span> <span class="n">retries</span> <span class="n">per</span> <span class="n">query</span> <span class="k">if</span> <span class="n">a</span> <span class="n">HTTP</span> <span class="n">error</span> <span class="k">is</span>
-                      <span class="n">received</span><span class="o">.</span> <span class="n">Default</span> <span class="k">is</span> <span class="mi">0</span><span class="o">.</span>
-<span class="o">--</span><span class="n">log_level</span> <span class="o">{</span><span class="n">NOTSET</span><span class="o">,</span><span class="n">DEBUG</span><span class="o">,</span><span class="n">INFO</span><span class="o">,</span><span class="n">WARNING</span><span class="o">,</span><span class="n">ERROR</span><span class="o">,</span><span class="n">CRITICAL</span><span class="o">}</span>
-                      <span class="n">Logging</span> <span class="n">level</span><span class="o">,</span> <span class="k">default</span> <span class="k">is</span> <span class="n">INFO</span><span class="o">.</span> <span class="n">The</span> <span class="n">log</span> <span class="n">file</span> <span class="k">is</span>
-                      <span class="n">arpa_linker</span><span class="o">.</span><span class="na">log</span><span class="o">.</span>
-</pre></div>
-
+optional arguments:
+-h, --help            show this help message and exit
+--fi INPUT_FORMAT     Input file format (rdflib parser).
+                      Will be guessed if omitted.
+--fo OUTPUT_FORMAT    Output file format (rdflib
+                      serializer). Default is turtle.
+-n, --new_graph       Add the ARPA results to a new graph
+                      instead of the original. The output
+                      file contains all the triples of the
+                      original graph by default. With this
+                      argument set the output file will
+                      contain only the results.
+--rdf_class CLASS     Process only subjects of the given
+                      type (goes through all subjects by
+                      default).
+--prop PROPERTY       Property that's value is to be used
+                      in matching.
+                      Default is skos:prefLabel.
+--ignore [TERM [TERM ...]]
+                      Terms that should be ignored even
+                      if matched
+--min_ngram N         The minimum ngram length that is
+                      considered a match. Default is 1.
+--no_duplicates [TYPE [TYPE ...]]
+                      Remove duplicate matches based on
+                      the 'label' returned by the ARPA
+                      service. Here 'duplicate' means a
+                      subject with the same label as
+                      another subject in the same result
+                      set. A list of types can be given
+                      with this argument. If given,
+                      prioritize matches based on it
+                      - the first given type will get the
+                      highest priority and so on. Note
+                      that the response from the service
+                      has to include a 'type' variable for
+                      this to work.
+-r N, --retries N     The amount of retries per query if
+                      a HTTP error is received.
+                      Default is 0.
+--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                      Logging level, default is INFO.
+                      The log file is arpa_linker.log.
+</pre>
 
 <p>The arguments can also be read from a file using "@" (example arg file <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a>):</p>
 <p><code>$ python3 arpa.py @arpa.args</code></p>
@@ -1163,53 +1176,68 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
 <span class="sd">The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.</span>
 
-<span class="sd">    usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT] [-n]</span>
-<span class="sd">                [--rdf_class CLASS] [--prop PROPERTY]</span>
-<span class="sd">                [--ignore [TERM [TERM ...]]] [--min_ngram N]</span>
-<span class="sd">                [--no_duplicates [TYPE [TYPE ...]]] [-r N]</span>
-<span class="sd">                [--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}]</span>
-<span class="sd">                input output target_property arpa</span>
+<span class="sd">&lt;pre&gt;</span>
+<span class="sd">usage: arpa.py [-h] [--fi INPUT_FORMAT]</span>
+<span class="sd">            [--fo OUTPUT_FORMAT] [-n]</span>
+<span class="sd">            [--rdf_class CLASS] [--prop PROPERTY]</span>
+<span class="sd">            [--ignore [TERM [TERM ...]]] [--min_ngram N]</span>
+<span class="sd">            [--no_duplicates [TYPE [TYPE ...]]] [-r N]</span>
+<span class="sd">            [--log_level</span>
+<span class="sd">                {NOTSET,DEBUG,INFO,WARNING, ERROR,CRITICAL}]</span>
+<span class="sd">            input output target_property arpa</span>
 
-<span class="sd">    Link resources to an RDF graph with ARPA.</span>
+<span class="sd">Link resources to an RDF graph with ARPA.</span>
 
-<span class="sd">    positional arguments:</span>
-<span class="sd">    input                 Input rdf file</span>
-<span class="sd">    output                Output file</span>
-<span class="sd">    target_property       Target property for the matches</span>
-<span class="sd">    arpa                  ARPA service URL</span>
+<span class="sd">positional arguments:</span>
+<span class="sd">input                 Input rdf file</span>
+<span class="sd">output                Output file</span>
+<span class="sd">target_property       Target property for the matches</span>
+<span class="sd">arpa                  ARPA service URL</span>
 
-<span class="sd">    optional arguments:</span>
-<span class="sd">    -h, --help            show this help message and exit</span>
-<span class="sd">    --fi INPUT_FORMAT     Input file format (rdflib parser). Will be guessed if</span>
-<span class="sd">                          omitted.</span>
-<span class="sd">    --fo OUTPUT_FORMAT    Output file format (rdflib serializer). Default is</span>
-<span class="sd">                            turtle.</span>
-<span class="sd">    -n, --new_graph       Add the ARPA results to a new graph instead of the</span>
-<span class="sd">                          original. The output file contains all the triples of</span>
-<span class="sd">                          the original graph by default. With this argument set</span>
-<span class="sd">                          the output file will contain only the results.</span>
-<span class="sd">    --rdf_class CLASS     Process only subjects of the given type (goes through</span>
-<span class="sd">                          all subjects by default).</span>
-<span class="sd">    --prop PROPERTY       Property that&#39;s value is to be used in matching.</span>
-<span class="sd">                          Default is skos:prefLabel.</span>
-<span class="sd">    --ignore [TERM [TERM ...]]</span>
-<span class="sd">                          Terms that should be ignored even if matched</span>
-<span class="sd">    --min_ngram N         The minimum ngram length that is considered a match.</span>
-<span class="sd">                          Default is 1.</span>
-<span class="sd">    --no_duplicates [TYPE [TYPE ...]]</span>
-<span class="sd">                          Remove duplicate matches based on the &#39;label&#39; returned</span>
-<span class="sd">                          by the ARPA service. Here &#39;duplicate&#39; means a subject</span>
-<span class="sd">                          with the same label as another subject in the same</span>
-<span class="sd">                          result set. A list of types can be given with this</span>
-<span class="sd">                          argument. If given, prioritize matches based on it -</span>
-<span class="sd">                          the first given type will get the highest priority and</span>
-<span class="sd">                          so on. Note that the response from the service has to</span>
-<span class="sd">                          include a &#39;type&#39; variable for this to work.</span>
-<span class="sd">    -r N, --retries N     The amount of retries per query if a HTTP error is</span>
-<span class="sd">                          received. Default is 0.</span>
-<span class="sd">    --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}</span>
-<span class="sd">                          Logging level, default is INFO. The log file is</span>
-<span class="sd">                          arpa_linker.log.</span>
+<span class="sd">optional arguments:</span>
+<span class="sd">-h, --help            show this help message and exit</span>
+<span class="sd">--fi INPUT_FORMAT     Input file format (rdflib parser).</span>
+<span class="sd">                      Will be guessed if omitted.</span>
+<span class="sd">--fo OUTPUT_FORMAT    Output file format (rdflib</span>
+<span class="sd">                      serializer). Default is turtle.</span>
+<span class="sd">-n, --new_graph       Add the ARPA results to a new graph</span>
+<span class="sd">                      instead of the original. The output</span>
+<span class="sd">                      file contains all the triples of the</span>
+<span class="sd">                      original graph by default. With this</span>
+<span class="sd">                      argument set the output file will</span>
+<span class="sd">                      contain only the results.</span>
+<span class="sd">--rdf_class CLASS     Process only subjects of the given</span>
+<span class="sd">                      type (goes through all subjects by</span>
+<span class="sd">                      default).</span>
+<span class="sd">--prop PROPERTY       Property that&#39;s value is to be used</span>
+<span class="sd">                      in matching.</span>
+<span class="sd">                      Default is skos:prefLabel.</span>
+<span class="sd">--ignore [TERM [TERM ...]]</span>
+<span class="sd">                      Terms that should be ignored even</span>
+<span class="sd">                      if matched</span>
+<span class="sd">--min_ngram N         The minimum ngram length that is</span>
+<span class="sd">                      considered a match. Default is 1.</span>
+<span class="sd">--no_duplicates [TYPE [TYPE ...]]</span>
+<span class="sd">                      Remove duplicate matches based on</span>
+<span class="sd">                      the &#39;label&#39; returned by the ARPA</span>
+<span class="sd">                      service. Here &#39;duplicate&#39; means a</span>
+<span class="sd">                      subject with the same label as</span>
+<span class="sd">                      another subject in the same result</span>
+<span class="sd">                      set. A list of types can be given</span>
+<span class="sd">                      with this argument. If given,</span>
+<span class="sd">                      prioritize matches based on it</span>
+<span class="sd">                      - the first given type will get the</span>
+<span class="sd">                      highest priority and so on. Note</span>
+<span class="sd">                      that the response from the service</span>
+<span class="sd">                      has to include a &#39;type&#39; variable for</span>
+<span class="sd">                      this to work.</span>
+<span class="sd">-r N, --retries N     The amount of retries per query if</span>
+<span class="sd">                      a HTTP error is received.</span>
+<span class="sd">                      Default is 0.</span>
+<span class="sd">--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}</span>
+<span class="sd">                      Logging level, default is INFO.</span>
+<span class="sd">                      The log file is arpa_linker.log.</span>
+<span class="sd">&lt;/pre&gt;</span>
 
 <span class="sd">The arguments can also be read from a file using &quot;@&quot; (example arg file [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)):</span>
 
