@@ -8,7 +8,7 @@ def read(fname):
 setup(
     name="arpa_linker",
     version="0.2.2",
-    author="Erkk Heino",
+    author="Erkki Heino",
     description="Tool for linking rdf datasets to other datasets using ARPA",
     license="MIT",
     keywords="rdf",

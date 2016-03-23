@@ -297,7 +297,7 @@ def get_bar(n, use_pyprind):
 
 
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
-            preprocessor=None, validator=None, progress=None):
+            preprocessor=None, validator=None, progress=None, retry_amount=1):
     """
     Link a property to resources using ARPA. Modify the graph in place.
 
@@ -346,18 +346,28 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     for s, o in subgraph.subject_objects():
         o = preprocessor(o, s, graph) if preprocessor else o
         args = (o, validator(graph, s)) if validator else (o,)
-        try:
-            match_uris = arpa.get_uri_matches(*args)
-        except (HTTPError, ValueError) as e:
-            logger.exception('Error getting matches from ARPA')
-            errors.append(e)
-        else:
-            triple_match_count += len(match_uris)
-            if match_uris:
-                subject_match_count += 1
-            # Add each uri found as a value of the target property
-            for uri in match_uris:
-                graph.add((s, target_prop, URIRef(uri)))
+        retry_n = retry_amount
+        while retry_n:
+            try:
+                match_uris = arpa.get_uri_matches(*args)
+            except (HTTPError, ValueError) as e:
+                retry_n -= 1
+                if retry_n:
+                    logger.warning('Error getting matches from ARPA for {o}, waiting 10 seconds before retrying...'.
+                                   format(o=o))
+                    time.sleep(10)
+                else:
+                    logger.exception('Error getting matches from ARPA')
+                    errors.append(e)
+            else:
+                retry_n = 0
+                triple_match_count += len(match_uris)
+                if match_uris:
+                    subject_match_count += 1
+                # Add each uri found as a value of the target property
+                for uri in match_uris:
+                    graph.add((s, target_prop, URIRef(uri)))
+
         bar.update()
 
     res = {'processed': len(subgraph), 'matches': triple_match_count,
