@@ -1,9 +1,9 @@
 import unittest
 import responses
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from requests.exceptions import HTTPError
-from arpa_linker.arpa import Arpa, arpafy, process
+from arpa import Arpa, arpafy, process, parse_args
 from rdflib import Graph, Literal, URIRef
 
 candidate_response = {
@@ -112,6 +112,7 @@ class TestArpa(TestCase):
                 match_querystring=True)
         arpa = Arpa('http://url')
         res = arpa.get_candidates('Hanko')
+
         self.assertEqual(len(res), 3)
         for r in res:
             self.assertTrue(isinstance(r, Literal))
@@ -122,6 +123,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url')
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(res), 3)
         for r in res:
             self.assertTrue(isinstance(r, URIRef))
@@ -132,6 +134,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', remove_duplicates=True)
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/pnr/P_10311760')
         self.assertEqual(str(res[1]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
@@ -143,6 +146,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', remove_duplicates=no_dups)
         res = arpa.get_uri_matches('Hanko Hanko')
+
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/places/municipalities/m_place_506')
         self.assertEqual(str(res[1]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
@@ -153,6 +157,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', min_ngram_length=2)
         res = arpa.get_uri_matches('Hanko Hanko')
+
         self.assertEqual(len(res), 1)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
 
@@ -162,6 +167,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', ignore=['Hanko Hanko'])
         res = arpa.get_uri_matches('Hanko Hanko')
+
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/pnr/P_10311760')
         self.assertEqual(str(res[1]), 'http://ldf.fi/warsa/places/municipalities/m_place_506')
@@ -171,13 +177,15 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 body='error', status=503)
 
-        arpa = Arpa('http://url', retries=1)
+        arpa = Arpa('http://url', retries=1, wait_between_tries=0)
+
         self.assertRaises(HTTPError, arpa.get_uri_matches, 'Hanko Hanko')
         self.assertEqual(len(responses.calls), 2)
 
         responses.calls.reset()
 
-        arpa = Arpa('http://url')
+        arpa = Arpa('http://url', wait_between_tries=0)
+
         self.assertRaises(HTTPError, arpa.get_uri_matches, 'Hanko Hanko')
         self.assertEqual(len(responses.calls), 1)
 
@@ -192,6 +200,7 @@ class TestArpa(TestCase):
         arpa = Arpa('http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Hanko'], retries=1)
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(responses.calls), 1)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0],
@@ -205,6 +214,7 @@ class TestArpa(TestCase):
         arpa = Arpa('http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Hanko Hanko'])
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(res), 0)
 
     @responses.activate
@@ -212,6 +222,7 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url', status=200)
 
         arpa = Arpa('http://url')
+
         self.assertRaises(HTTPError, arpa.get_uri_matches, 'Hanko')
 
     @responses.activate
@@ -220,6 +231,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
 
         arpa = Arpa('http://url')
+
         self.assertRaises(ValueError, arpa.get_uri_matches, '')
         self.assertEqual(len(responses.calls), 0)
 
@@ -248,7 +260,6 @@ class TestArpafy(TestCase):
                 candidates_only=True)
 
         self.assertEqual(res['graph'], output_graph)
-
         self.assertEqual(res['matches'], 3)
         self.assertEqual(len(output_graph), 3)
         self.assertEqual(len(set(output_graph.subjects())), 1)
@@ -266,7 +277,6 @@ class TestArpafy(TestCase):
                 output_graph=output_graph)
 
         self.assertEqual(res['graph'], output_graph)
-
         self.assertEqual(res['matches'], 3)
         self.assertEqual(len(output_graph), 3)
         self.assertEqual(len(set(output_graph.subjects())), 1)
@@ -285,7 +295,6 @@ class TestArpafy(TestCase):
                 output_graph=self.graph)
 
         self.assertEqual(res['graph'], self.graph)
-
         self.assertEqual(res['matches'], 3)
         self.assertEqual(len(self.graph), original_len + 3)
         self.assertEqual(set(self.graph.objects(predicate=self.tprop)), match_uris)
@@ -355,7 +364,7 @@ class TestProcess(TestCase):
         self.graph.add(self.triple)
 
     @responses.activate
-    @patch('arpa_linker.arpa.Graph')
+    @patch('arpa.Graph')
     def test_process_in_same_graph(self, mocked_graph):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
@@ -371,7 +380,7 @@ class TestProcess(TestCase):
         self.assertEqual(len(res['graph']), original_len + len(match_uris))
 
     @responses.activate
-    @patch('arpa_linker.arpa.Graph')
+    @patch('arpa.Graph')
     def test_process_in_new_graph(self, mocked_graph):
         self.first_side_effect = True
 
@@ -396,6 +405,102 @@ class TestProcess(TestCase):
         self.assertEqual(res['matches'], 3)
         self.assertEqual(res['subjects_matched'], 1)
         self.assertEqual(res['errors'], [])
+
+
+class TestParseArgs(TestCase):
+    def setUp(self):
+        self.base_params = ['input.ttl', 'output.ttl', 'target', 'url']
+
+    def test_parse_empty_args(self):
+        self.assertRaises(SystemExit, parse_args, [])
+
+    def test_parse_minimal_args(self):
+        args = parse_args(self.base_params)
+
+        self.assertEqual(args.input, 'input.ttl')
+        self.assertEqual(args.output, 'output.ttl')
+        self.assertEqual(args.tprop, URIRef('target'))
+        self.assertEqual(args.arpa, 'url')
+
+        self.assertEqual(args.fi, 'turtle')
+        self.assertEqual(args.fo, 'turtle')
+        self.assertEqual(args.min_ngram, 1)
+        self.assertEqual(args.no_duplicates, False)
+        self.assertEqual(args.new_graph, False)
+        self.assertEqual(args.retries, 0)
+        self.assertEqual(args.log_level, 'INFO')
+
+        self.assertEqual(args.prop, None)
+        self.assertEqual(args.rdf_class, None)
+        self.assertEqual(args.ignore, None)
+
+    def test_rdf_class(self):
+        params = self.base_params + ['--rdf_class', 'http://type']
+        params = ['input.ttl', 'output.ttl', 'target', 'url', '--rdf_class', 'http://type']
+        args = parse_args(params)
+
+        self.assertEqual(args.rdf_class, URIRef('http://type'))
+
+    def test_prop(self):
+        params = self.base_params + ['--prop', 'property']
+        args = parse_args(params)
+
+        self.assertEqual(args.prop, URIRef('property'))
+
+    def test_new_graph(self):
+        params = self.base_params + ['--new_graph']
+        args = parse_args(params)
+
+        self.assertEqual(args.new_graph, True)
+
+        params = self.base_params + ['-n']
+        args = parse_args(params)
+
+        self.assertEqual(args.new_graph, True)
+
+    def test_min_ngram(self):
+        params = self.base_params + ['--min_ngram', '2']
+        args = parse_args(params)
+
+        self.assertEqual(args.min_ngram, 2)
+
+    def test_ignore(self):
+        params = self.base_params + ['--ignore', 'foo', 'bar']
+        args = parse_args(params)
+
+        self.assertEqual(args.ignore, ['foo', 'bar'])
+
+    def test_no_duplicates(self):
+        params = self.base_params + ['--no_duplicates']
+        args = parse_args(params)
+
+        self.assertEqual(args.no_duplicates, True)
+
+        params = self.base_params + ['--no_duplicates', 'foo', 'bar']
+        args = parse_args(params)
+
+        self.assertEqual(args.no_duplicates, ['foo', 'bar'])
+
+    def test_retries(self):
+        params = self.base_params + ['--retries', '2']
+        args = parse_args(params)
+
+        self.assertEqual(args.retries, 2)
+
+        params = self.base_params + ['-r', '3']
+        args = parse_args(params)
+
+        self.assertEqual(args.retries, 3)
+
+    def test_log_level(self):
+        params = self.base_params + ['--log_level', 'DEBUG']
+        args = parse_args(params)
+
+        self.assertEqual(args.log_level, 'DEBUG')
+
+        params = self.base_params + ['--log_level', 'WRONG']
+        self.assertRaises(SystemExit, parse_args, params)
+
 
 if __name__ == '__main__':
     unittest.main()
