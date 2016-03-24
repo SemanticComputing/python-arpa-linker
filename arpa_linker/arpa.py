@@ -138,7 +138,9 @@ class Arpa:
 
         logger.debug('Initialize Arpa instance')
 
-        assert retries >= 0, "Number of retries has to be at least 0"
+        if retries < 0:
+            raise ValueError("Number of retries has to be at least 0")
+
         self._retries = retries
 
         self._url = url
@@ -280,17 +282,18 @@ class Arpa:
         while tries:
             logger.debug('Querying ARPA at {} with text: {}'.format(self._url, text))
             res = requests.post(url, data={'text': text})
-            tries -= 1
             try:
                 res.raise_for_status()
                 res = res.json()
             except (HTTPError, ValueError) as e:
+                tries -= 1
                 if tries:
                     logger.warning('Retrying after error ({}) when querying the ARPA service with data "{}".'.format(e, data))
                     continue
                 elif self._retries:
                         logger.warning('Error {}, out of retries.'.format(e))
                 raise HTTPError('Error ({}) when querying the ARPA service with data "{}".'.format(e, data))
+            break
 
         return res.get('results', None)
 
