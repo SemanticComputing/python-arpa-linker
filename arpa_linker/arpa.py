@@ -84,6 +84,7 @@ See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blo
 and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args) for an example arg file.
 """
 
+import sys
 import argparse
 import requests
 import time
@@ -479,7 +480,7 @@ def log_to_file(file_name, level):
     logger.addHandler(handler)
 
 
-def parse_args():
+def parse_args(args):
     """ Parse command line arguments. """
 
     argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
@@ -518,7 +519,7 @@ def parse_args():
         choices=["NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging level, default is INFO. The log file is arpa_linker.log.")
 
-    args = argparser.parse_args()
+    args = argparser.parse_args(args)
 
     if not args.fi:
         args.fi = guess_format(args.input)
@@ -588,7 +589,7 @@ def process(input_file, input_format, output_file, output_format, *args,
 def main():
     """Main function for running via the command line."""
 
-    args = parse_args()
+    args = parse_args(sys.argv[1:])
 
     log_to_file('arpa_linker.log', args.log_level)
 
