@@ -554,7 +554,7 @@ table {
   html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100%;
   }
   body {
     background: #fff;
@@ -1087,10 +1087,10 @@ table {
   <header id="section-intro">
   <h1 class="title"><span class="name">arpa</span> module</h1>
   <p>A module for linking resources to an RDF graph with an <a href="https://github.com/jiemakel/arpa">ARPA</a> service.</p>
-<h2>Requirements</h2>
+<h2>Requirements<a name="requirements"></a></h2>
 <p>Python 3, <a href="http://rdflib.readthedocs.org/en/latest/">RDFLib</a> and <a href="http://docs.python-requests.org/en/latest/">Requests</a></p>
 <p>If you want to see a progress bar, you'll need <a href="https://github.com/rasbt/pyprind">PyPrind</a>.</p>
-<h2>Usage</h2>
+<h2>Usage<a name="usage"></a></h2>
 <p>The module can be invoked as a script from the command line or by calling <a href="#arpa.arpafy"><code>arpafy</code></a> (or <a href="#arpa.process"><code>process</code></a>) in your Python code.</p>
 <pre>
 usage: arpa.py [-h] [--fi INPUT_FORMAT]
@@ -1157,7 +1157,7 @@ optional arguments:
 
 <p>The arguments can also be read from a file using "@" (example arg file <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a>):</p>
 <p><code>$ python3 arpa.py @arpa.args</code></p>
-<h2>Examples</h2>
+<h2>Examples<a name="examples"></a></h2>
 <p>See <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py">menehtyneet.py</a> and
 <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py">places.py</a> for code examples
 and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a> for an example arg file.</p>
@@ -1167,12 +1167,12 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <div class="codehilite"><pre><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">A module for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service.</span>
 
-<span class="sd">## Requirements</span>
+<span class="sd">## Requirements&lt;a name=&quot;requirements&quot;&gt;&lt;/a&gt;</span>
 <span class="sd">Python 3, [RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)</span>
 
 <span class="sd">If you want to see a progress bar, you&#39;ll need [PyPrind](https://github.com/rasbt/pyprind).</span>
 
-<span class="sd">## Usage</span>
+<span class="sd">## Usage&lt;a name=&quot;usage&quot;&gt;&lt;/a&gt;</span>
 
 <span class="sd">The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.</span>
 
@@ -1243,13 +1243,14 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
 <span class="sd">`$ python3 arpa.py @arpa.args`</span>
 
-<span class="sd">## Examples</span>
+<span class="sd">## Examples&lt;a name=&quot;examples&quot;&gt;&lt;/a&gt;</span>
 
 <span class="sd">See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) and</span>
 <span class="sd">[places.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py) for code examples</span>
 <span class="sd">and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args) for an example arg file.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">time</span>
@@ -1281,7 +1282,8 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="k">class</span> <span class="nc">Arpa</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Class representing the ARPA service&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">min_ngram_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">min_ngram_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">wait_between_tries</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the Arpa service object.</span>
 
@@ -1300,6 +1302,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        `ignore` is a list of matches that should be removed from the results (case insensitive).</span>
 
 <span class="sd">        `retries` is the number of retries per query.</span>
+
+<span class="sd">        `wait_between_tries` is the amount of times in seconds to wait between retries.</span>
+<span class="sd">        Default is 1 second. Has no effect if `retries` is not set.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initialize Arpa instance&#39;</span><span class="p">)</span>
@@ -1312,6 +1317,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">=</span> <span class="n">url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ignore</span> <span class="ow">or</span> <span class="p">[]]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span> <span class="o">=</span> <span class="n">min_ngram_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span> <span class="o">=</span> <span class="n">wait_between_tries</span>
 
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
@@ -1380,6 +1386,10 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="k">def</span> <span class="nf">_filter_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">get_len</span><span class="p">,</span> <span class="n">get_label</span><span class="p">,</span> <span class="n">skip_remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal filter function used by `arpa.Arpa._filter`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="c1"># Filter ignored resultsults</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">get_label</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">]</span>
@@ -1388,10 +1398,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">get_len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span><span class="p">]</span>
 
-        <span class="c1"># Remove duplicates if requested</span>
+        <span class="c1"># Remove duplicates unless requested to skip</span>
         <span class="k">if</span> <span class="n">skip_remove_duplicates</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">results</span>
-
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_duplicates</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
@@ -1454,7 +1463,10 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
             <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
                 <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Retrying after error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">))</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
                     <span class="k">continue</span>
                 <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">:</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -1551,7 +1563,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">    Return a dict with the amount of processed triples (processed), the resulting graph (graph),</span>
 <span class="sd">    match count (matches) and errors encountered (errors).</span>
 
-<span class="sd">    `graph` is the graph to link (will be modified).</span>
+<span class="sd">    `graph` is the graph to link (will be modified unless `output_graph` is defined.</span>
 
 <span class="sd">    `target_prop` is the property name that is used for saving the link.</span>
 
@@ -1645,8 +1657,12 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">parse_args</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot; Parse command line arguments. &quot;&quot;&quot;</span>
+<span class="k">def</span> <span class="nf">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse command line arguments. See [Usage](#usage) (or the source code) for details.</span>
+
+<span class="sd">    `args` is the list of command line arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">argparser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Link resources to an RDF graph with ARPA.&quot;</span><span class="p">,</span>
             <span class="n">fromfile_prefix_chars</span><span class="o">=</span><span class="s2">&quot;@&quot;</span><span class="p">)</span>
@@ -1684,7 +1700,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;NOTSET&quot;</span><span class="p">,</span> <span class="s2">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span> <span class="s2">&quot;WARNING&quot;</span><span class="p">,</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> <span class="s2">&quot;CRITICAL&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Logging level, default is INFO. The log file is arpa_linker.log.&quot;</span><span class="p">)</span>
 
-    <span class="n">args</span> <span class="o">=</span> <span class="n">argparser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">argparser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">fi</span><span class="p">:</span>
         <span class="n">args</span><span class="o">.</span><span class="n">fi</span> <span class="o">=</span> <span class="n">guess_format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
@@ -1751,10 +1767,10 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="k">return</span> <span class="n">res</span>
 
 
-<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Main function for running via the command line.&quot;&quot;&quot;</span>
 
-    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="n">log_to_file</span><span class="p">(</span><span class="s1">&#39;arpa_linker.log&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">log_level</span><span class="p">)</span>
 
@@ -1768,7 +1784,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="n">main</span><span class="p">()</span>
+    <span class="n">main</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 </pre></div>
 
   </div>
@@ -1811,7 +1827,7 @@ Only needed for prioritized duplicate removal.</p></div>
 unless <code>output_graph</code> is given.</p>
 <p>Return a dict with the amount of processed triples (processed), the resulting graph (graph),
 match count (matches) and errors encountered (errors).</p>
-<p><code>graph</code> is the graph to link (will be modified).</p>
+<p><code>graph</code> is the graph to link (will be modified unless <code>output_graph</code> is defined.</p>
 <p><code>target_prop</code> is the property name that is used for saving the link.</p>
 <p><code>arpa</code> is the <a href="#arpa.Arpa"><code>Arpa</code></a> class instance.</p>
 <p><code>source_prop</code> is the property that's value will be used when querying ARPA (if omitted, skos:prefLabel is used).</p>
@@ -1838,7 +1854,7 @@ This is a function and not an object because of reasons.</p>
 <span class="sd">    Return a dict with the amount of processed triples (processed), the resulting graph (graph),</span>
 <span class="sd">    match count (matches) and errors encountered (errors).</span>
 
-<span class="sd">    `graph` is the graph to link (will be modified).</span>
+<span class="sd">    `graph` is the graph to link (will be modified unless `output_graph` is defined.</span>
 
 <span class="sd">    `target_prop` is the property name that is used for saving the link.</span>
 
@@ -1960,7 +1976,7 @@ This is a function and not an object because of reasons.</p>
       
   <div class="item">
     <div class="name def" id="arpa.main">
-    <p>def <span class="ident">main</span>(</p><p>)</p>
+    <p>def <span class="ident">main</span>(</p><p>args)</p>
     </div>
     
 
@@ -1970,10 +1986,10 @@ This is a function and not an object because of reasons.</p>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.main', this);">Show source &equiv;</a></p>
   <div id="source-arpa.main" class="source">
-    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Main function for running via the command line.&quot;&quot;&quot;</span>
 
-    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="n">log_to_file</span><span class="p">(</span><span class="s1">&#39;arpa_linker.log&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">log_level</span><span class="p">)</span>
 
@@ -1994,18 +2010,23 @@ This is a function and not an object because of reasons.</p>
       
   <div class="item">
     <div class="name def" id="arpa.parse_args">
-    <p>def <span class="ident">parse_args</span>(</p><p>)</p>
+    <p>def <span class="ident">parse_args</span>(</p><p>args)</p>
     </div>
     
 
     
   
-    <div class="desc"><p>Parse command line arguments.</p></div>
+    <div class="desc"><p>Parse command line arguments. See <a href="#usage">Usage</a> (or the source code) for details.</p>
+<p><code>args</code> is the list of command line arguments.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.parse_args', this);">Show source &equiv;</a></p>
   <div id="source-arpa.parse_args" class="source">
-    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">parse_args</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot; Parse command line arguments. &quot;&quot;&quot;</span>
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse command line arguments. See [Usage](#usage) (or the source code) for details.</span>
+
+<span class="sd">    `args` is the list of command line arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">argparser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Link resources to an RDF graph with ARPA.&quot;</span><span class="p">,</span>
             <span class="n">fromfile_prefix_chars</span><span class="o">=</span><span class="s2">&quot;@&quot;</span><span class="p">)</span>
@@ -2043,7 +2064,7 @@ This is a function and not an object because of reasons.</p>
         <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;NOTSET&quot;</span><span class="p">,</span> <span class="s2">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span> <span class="s2">&quot;WARNING&quot;</span><span class="p">,</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> <span class="s2">&quot;CRITICAL&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Logging level, default is INFO. The log file is arpa_linker.log.&quot;</span><span class="p">)</span>
 
-    <span class="n">args</span> <span class="o">=</span> <span class="n">argparser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">argparser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">fi</span><span class="p">:</span>
         <span class="n">args</span><span class="o">.</span><span class="n">fi</span> <span class="o">=</span> <span class="n">guess_format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
@@ -2154,7 +2175,8 @@ graph on disk.</p>
     <div class="codehilite"><pre><span class="k">class</span> <span class="nc">Arpa</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Class representing the ARPA service&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">min_ngram_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">min_ngram_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">wait_between_tries</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the Arpa service object.</span>
 
@@ -2173,6 +2195,9 @@ graph on disk.</p>
 <span class="sd">        `ignore` is a list of matches that should be removed from the results (case insensitive).</span>
 
 <span class="sd">        `retries` is the number of retries per query.</span>
+
+<span class="sd">        `wait_between_tries` is the amount of times in seconds to wait between retries.</span>
+<span class="sd">        Default is 1 second. Has no effect if `retries` is not set.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initialize Arpa instance&#39;</span><span class="p">)</span>
@@ -2185,6 +2210,7 @@ graph on disk.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">=</span> <span class="n">url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ignore</span> <span class="ow">or</span> <span class="p">[]]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span> <span class="o">=</span> <span class="n">min_ngram_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span> <span class="o">=</span> <span class="n">wait_between_tries</span>
 
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
@@ -2253,6 +2279,10 @@ graph on disk.</p>
         <span class="k">return</span> <span class="n">res</span>
 
     <span class="k">def</span> <span class="nf">_filter_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">get_len</span><span class="p">,</span> <span class="n">get_label</span><span class="p">,</span> <span class="n">skip_remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal filter function used by `arpa.Arpa._filter`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="c1"># Filter ignored resultsults</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">get_label</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">]</span>
@@ -2261,10 +2291,9 @@ graph on disk.</p>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">get_len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span><span class="p">]</span>
 
-        <span class="c1"># Remove duplicates if requested</span>
+        <span class="c1"># Remove duplicates unless requested to skip</span>
         <span class="k">if</span> <span class="n">skip_remove_duplicates</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">results</span>
-
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_duplicates</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
@@ -2327,7 +2356,10 @@ graph on disk.</p>
             <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
                 <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Retrying after error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">))</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
                     <span class="k">continue</span>
                 <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">:</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -2396,7 +2428,7 @@ graph on disk.</p>
             
   <div class="item">
     <div class="name def" id="arpa.Arpa.__init__">
-    <p>def <span class="ident">__init__</span>(</p><p>self, url, remove_duplicates=False, min_ngram_length=1, ignore=None, retries=0)</p>
+    <p>def <span class="ident">__init__</span>(</p><p>self, url, remove_duplicates=False, min_ngram_length=1, ignore=None, retries=0, wait_between_tries=1)</p>
     </div>
     
 
@@ -2413,11 +2445,14 @@ that has the class of the match as the value.</p>
 <p><code>min_ngram_length</code> is the minimum ngram match length that will be included when
 returning the query results.</p>
 <p><code>ignore</code> is a list of matches that should be removed from the results (case insensitive).</p>
-<p><code>retries</code> is the number of retries per query.</p></div>
+<p><code>retries</code> is the number of retries per query.</p>
+<p><code>wait_between_tries</code> is the amount of times in seconds to wait between retries.
+Default is 1 second. Has no effect if <code>retries</code> is not set.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.Arpa.__init__', this);">Show source &equiv;</a></p>
   <div id="source-arpa.Arpa.__init__" class="source">
-    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">min_ngram_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">min_ngram_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">wait_between_tries</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialize the Arpa service object.</span>
 <span class="sd">    `url` is the ARPA service url.</span>
@@ -2431,6 +2466,8 @@ returning the query results.</p>
 <span class="sd">    returning the query results.</span>
 <span class="sd">    `ignore` is a list of matches that should be removed from the results (case insensitive).</span>
 <span class="sd">    `retries` is the number of retries per query.</span>
+<span class="sd">    `wait_between_tries` is the amount of times in seconds to wait between retries.</span>
+<span class="sd">    Default is 1 second. Has no effect if `retries` is not set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initialize Arpa instance&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -2439,6 +2476,7 @@ returning the query results.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">=</span> <span class="n">url</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ignore</span> <span class="ow">or</span> <span class="p">[]]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span> <span class="o">=</span> <span class="n">min_ngram_length</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span> <span class="o">=</span> <span class="n">wait_between_tries</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
     <span class="k">else</span><span class="p">:</span>
@@ -2569,7 +2607,10 @@ validated results.</p></div>
         <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Retrying after error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">))</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
                 <span class="k">continue</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -2593,7 +2634,7 @@ validated results.</p></div>
   <footer id="footer">
     <p>
       Documentation generated by
-      <a href="https://github.com/BurntSushi/pdoc">pdoc 0.3.1</a>
+      <a href="https://github.com/BurntSushi/pdoc">pdoc 0.3.2</a>
     </p>
 
     <p>pdoc is in the public domain with the

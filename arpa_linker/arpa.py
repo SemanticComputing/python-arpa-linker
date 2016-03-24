@@ -1,12 +1,12 @@
 """
 A module for linking resources to an RDF graph with an [ARPA](https://github.com/jiemakel/arpa) service.
 
-## Requirements
+## Requirements<a name="requirements"></a>
 Python 3, [RDFLib](http://rdflib.readthedocs.org/en/latest/) and [Requests](http://docs.python-requests.org/en/latest/)
 
 If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasbt/pyprind).
 
-## Usage
+## Usage<a name="usage"></a>
 
 The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
@@ -77,7 +77,7 @@ The arguments can also be read from a file using "@" (example arg file [arpa.arg
 
 `$ python3 arpa.py @arpa.args`
 
-## Examples
+## Examples<a name="examples"></a>
 
 See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) and
 [places.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py) for code examples
@@ -116,7 +116,8 @@ requests_logger.setLevel(logging.WARNING)
 class Arpa:
     """Class representing the ARPA service"""
 
-    def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None, retries=0):
+    def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None, retries=0,
+            wait_between_tries=1):
         """
         Initialize the Arpa service object.
 
@@ -135,6 +136,9 @@ class Arpa:
         `ignore` is a list of matches that should be removed from the results (case insensitive).
 
         `retries` is the number of retries per query.
+
+        `wait_between_tries` is the amount of times in seconds to wait between retries.
+        Default is 1 second. Has no effect if `retries` is not set.
         """
 
         logger.debug('Initialize Arpa instance')
@@ -147,6 +151,7 @@ class Arpa:
         self._url = url
         self._ignore = [s.lower() for s in ignore or []]
         self._min_ngram_length = min_ngram_length
+        self._wait = wait_between_tries
 
         if type(remove_duplicates) == bool:
             self._no_duplicates = remove_duplicates
@@ -215,6 +220,10 @@ class Arpa:
         return res
 
     def _filter_results(self, results, get_len, get_label, skip_remove_duplicates=False):
+        """
+        Internal filter function used by `arpa.Arpa._filter`.
+        """
+
         # Filter ignored resultsults
         if self._ignore:
             results = [x for x in results if get_label(x) not in self._ignore]
@@ -223,10 +232,9 @@ class Arpa:
         if self._min_ngram_length > 1:
             results = [x for x in results if get_len(x) >= self._min_ngram_length]
 
-        # Remove duplicates if requested
+        # Remove duplicates unless requested to skip
         if skip_remove_duplicates:
             return results
-
         return self._remove_duplicates(results)
 
     def _filter(self, results, candidates=False):
@@ -289,7 +297,10 @@ class Arpa:
             except (HTTPError, ValueError) as e:
                 tries -= 1
                 if tries:
-                    logger.warning('Retrying after error ({}) when querying the ARPA service with data "{}".'.format(e, data))
+                    logger.warning('Received error ({}) when querying the ARPA service with data "{}".'
+                            .format(e, data))
+                    logger.warning('Waiting {} seconds before retrying'.format(self._wait))
+                    time.sleep(self._wait)
                     continue
                 elif self._retries:
                         logger.warning('Error {}, out of retries.'.format(e))
@@ -386,7 +397,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     Return a dict with the amount of processed triples (processed), the resulting graph (graph),
     match count (matches) and errors encountered (errors).
 
-    `graph` is the graph to link (will be modified).
+    `graph` is the graph to link (will be modified unless `output_graph` is defined.
 
     `target_prop` is the property name that is used for saving the link.
 
@@ -481,7 +492,11 @@ def log_to_file(file_name, level):
 
 
 def parse_args(args):
-    """ Parse command line arguments. """
+    """
+    Parse command line arguments. See [Usage](#usage) (or the source code) for details.
+
+    `args` is the list of command line arguments.
+    """
 
     argparser = argparse.ArgumentParser(description="Link resources to an RDF graph with ARPA.",
             fromfile_prefix_chars="@")
@@ -586,10 +601,10 @@ def process(input_file, input_format, output_file, output_format, *args,
     return res
 
 
-def main():
+def main(args):
     """Main function for running via the command line."""
 
-    args = parse_args(sys.argv[1:])
+    args = parse_args(args)
 
     log_to_file('arpa_linker.log', args.log_level)
 
@@ -603,4 +618,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

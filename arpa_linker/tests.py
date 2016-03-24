@@ -112,6 +112,7 @@ class TestArpa(TestCase):
                 match_querystring=True)
         arpa = Arpa('http://url')
         res = arpa.get_candidates('Hanko')
+
         self.assertEqual(len(res), 3)
         for r in res:
             self.assertTrue(isinstance(r, Literal))
@@ -122,6 +123,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url')
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(res), 3)
         for r in res:
             self.assertTrue(isinstance(r, URIRef))
@@ -132,6 +134,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', remove_duplicates=True)
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/pnr/P_10311760')
         self.assertEqual(str(res[1]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
@@ -143,6 +146,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', remove_duplicates=no_dups)
         res = arpa.get_uri_matches('Hanko Hanko')
+
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/places/municipalities/m_place_506')
         self.assertEqual(str(res[1]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
@@ -153,6 +157,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', min_ngram_length=2)
         res = arpa.get_uri_matches('Hanko Hanko')
+
         self.assertEqual(len(res), 1)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
 
@@ -162,6 +167,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
         arpa = Arpa('http://url', ignore=['Hanko Hanko'])
         res = arpa.get_uri_matches('Hanko Hanko')
+
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/pnr/P_10311760')
         self.assertEqual(str(res[1]), 'http://ldf.fi/warsa/places/municipalities/m_place_506')
@@ -171,13 +177,15 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 body='error', status=503)
 
-        arpa = Arpa('http://url', retries=1)
+        arpa = Arpa('http://url', retries=1, wait_between_tries=0)
+
         self.assertRaises(HTTPError, arpa.get_uri_matches, 'Hanko Hanko')
         self.assertEqual(len(responses.calls), 2)
 
         responses.calls.reset()
 
-        arpa = Arpa('http://url')
+        arpa = Arpa('http://url', wait_between_tries=0)
+
         self.assertRaises(HTTPError, arpa.get_uri_matches, 'Hanko Hanko')
         self.assertEqual(len(responses.calls), 1)
 
@@ -192,6 +200,7 @@ class TestArpa(TestCase):
         arpa = Arpa('http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Hanko'], retries=1)
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(responses.calls), 1)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0],
@@ -205,6 +214,7 @@ class TestArpa(TestCase):
         arpa = Arpa('http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Hanko Hanko'])
         res = arpa.get_uri_matches('Hanko')
+
         self.assertEqual(len(res), 0)
 
     @responses.activate
@@ -212,6 +222,7 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url', status=200)
 
         arpa = Arpa('http://url')
+
         self.assertRaises(HTTPError, arpa.get_uri_matches, 'Hanko')
 
     @responses.activate
@@ -220,6 +231,7 @@ class TestArpa(TestCase):
                 json=self.matches, status=200)
 
         arpa = Arpa('http://url')
+
         self.assertRaises(ValueError, arpa.get_uri_matches, '')
         self.assertEqual(len(responses.calls), 0)
 
@@ -248,7 +260,6 @@ class TestArpafy(TestCase):
                 candidates_only=True)
 
         self.assertEqual(res['graph'], output_graph)
-
         self.assertEqual(res['matches'], 3)
         self.assertEqual(len(output_graph), 3)
         self.assertEqual(len(set(output_graph.subjects())), 1)
@@ -266,7 +277,6 @@ class TestArpafy(TestCase):
                 output_graph=output_graph)
 
         self.assertEqual(res['graph'], output_graph)
-
         self.assertEqual(res['matches'], 3)
         self.assertEqual(len(output_graph), 3)
         self.assertEqual(len(set(output_graph.subjects())), 1)
@@ -285,7 +295,6 @@ class TestArpafy(TestCase):
                 output_graph=self.graph)
 
         self.assertEqual(res['graph'], self.graph)
-
         self.assertEqual(res['matches'], 3)
         self.assertEqual(len(self.graph), original_len + 3)
         self.assertEqual(set(self.graph.objects(predicate=self.tprop)), match_uris)
