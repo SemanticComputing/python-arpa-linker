@@ -113,6 +113,51 @@ requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
 
 
+def post(url, data, retries=0, wait=1):
+    """
+    Send a post request to the given URL with the given data, expecting a JSON response.
+    Throws a HTTPError if the request fails (after retries, if any) or if JSON
+    parsing fails.
+
+    `url` is the URL to send the request to.
+
+    `data` is a dict containing the data to send to the URL.
+
+    `retries` is the number of retries to attempt if the request fails. Optional.
+
+    `wait` is the number of seconds to wait between retries. Optional, default is 1 second.
+    Has no effect if `retries` is not set.
+    """
+
+    if retries < 0:
+        raise ValueError('Invalid amount of retries: {}'.format(retries))
+    if wait < 0:
+        raise ValueError('Invalid retry wait time: {}'.format(wait))
+
+    tries = retries + 1
+
+    while tries:
+        logger.debug('Sending request to {} with data: {}'.format(url, data))
+        res = requests.post(url, data)
+        try:
+            res.raise_for_status()
+            res = res.json()
+        except (HTTPError, ValueError) as e:
+            tries -= 1
+            if tries:
+                logger.warning('Received error ({}) from {} with request data: {}.'
+                        .format(e, url, data))
+                logger.warning('Waiting {} seconds before retrying'.format(wait))
+                time.sleep(wait)
+                continue
+            elif retries:
+                    logger.warning('Error {}, out of retries.'.format(e))
+            raise HTTPError('Error ({}) from {} with request data: {}.'.format(e, url, data))
+        else:
+            # Success
+            return res
+
+
 class Arpa:
     """Class representing the ARPA service"""
 
@@ -128,23 +173,28 @@ class Arpa:
         If, instead, the value is a list or a tuple, assume that it represents
         a list of class names and prefer those classes when choosing
         the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)
-        that has the class of the match as the value.
+        that has the class of the match as the value. Optional.
 
         `min_ngram_length` is the minimum ngram match length that will be included when
-        returning the query results.
+        returning the query results. Optional.
 
         `ignore` is a list of matches that should be removed from the results (case insensitive).
+        Optional.
 
-        `retries` is the number of retries per query.
+        `retries` is the number of retries per query. Optional.
 
         `wait_between_tries` is the amount of times in seconds to wait between retries.
-        Default is 1 second. Has no effect if `retries` is not set.
+        Optional, default is 1 second. Has no effect if `retries` is not set.
         """
 
         logger.debug('Initialize Arpa instance')
 
         if retries < 0:
-            raise ValueError("Number of retries has to be at least 0")
+            raise ValueError('Number of retries has to be a non-negative number, got {}'
+                    .format(retries))
+        if wait_between_tries < 0:
+            raise ValueError('Retry wait time has to be a non-negative number, got {}'
+                    .format(wait_between_tries))
 
         self._retries = retries
 
@@ -156,7 +206,7 @@ class Arpa:
         if type(remove_duplicates) == bool:
             self._no_duplicates = remove_duplicates
         else:
-            self._no_duplicates = tuple("<{}>".format(x) for x in remove_duplicates)
+            self._no_duplicates = tuple('<{}>'.format(x) for x in remove_duplicates)
 
         logger.debug('ARPA ignore set to {}'.format(self._ignore))
         logger.debug('ARPA url set to {}'.format(self._url))
@@ -265,9 +315,9 @@ class Arpa:
         # Remove quotation marks and brackets - ARPA can return an error if they're present
         if not text:
             return text
-        return text.replace('"', '').replace("(", "").replace(")", "")
+        return text.replace('"', '').replace('(', '').replace(')', '')
 
-    def query(self, text, url_params=""):
+    def query(self, text, url_params=''):
         """
         Query the ARPA service and return the response results as JSON
 
@@ -276,36 +326,16 @@ class Arpa:
         `url_params` is any URL parameters to be added to the ARPA URL, e.g. '?cgen'.
         """
 
-        url = self._url + url_params
-
         text = self._sanitize(text)
         if not text:
-            raise ValueError("Empty ARPA query text")
+            raise ValueError('Empty ARPA query text')
+
+        url = self._url + url_params
 
         # Query the ARPA service with the text
-        data = 'text="{}"'.format(text)
+        data = {'text': text}
 
-        tries = self._retries + 1
-        assert tries > 0, "Invalid amount of tries when querying"
-
-        while tries:
-            logger.debug('Querying ARPA at {} with text: {}'.format(self._url, text))
-            res = requests.post(url, data={'text': text})
-            try:
-                res.raise_for_status()
-                res = res.json()
-            except (HTTPError, ValueError) as e:
-                tries -= 1
-                if tries:
-                    logger.warning('Received error ({}) when querying the ARPA service with data "{}".'
-                            .format(e, data))
-                    logger.warning('Waiting {} seconds before retrying'.format(self._wait))
-                    time.sleep(self._wait)
-                    continue
-                elif self._retries:
-                        logger.warning('Error {}, out of retries.'.format(e))
-                raise HTTPError('Error ({}) when querying the ARPA service with data "{}".'.format(e, data))
-            break
+        res = post(url, data, retries=self._retries, wait=self._wait)
 
         return res.get('results', None)
 
@@ -344,9 +374,9 @@ class Arpa:
 
         text = self._sanitize(text)
         if not text:
-            raise ValueError("Empty ARPA query text")
+            raise ValueError('Empty ARPA query text')
 
-        res = self._filter(self.query(text, "?cgen"), candidates=True)
+        res = self._filter(self.query(text, '?cgen'), candidates=True)
 
         logger.debug('Received candidates: {}'.format(res))
 
@@ -470,7 +500,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
         'errors': errors
     }
 
-    logger.info("Processed {} triples, found {} matches ({} errors)"
+    logger.info('Processed {} triples, found {} matches ({} errors)'
                 .format(res['processed'], res['matches'], len(res['errors'])))
 
     return res
@@ -591,7 +621,7 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     end_time = time.monotonic()
 
-    logger.info("Processing complete, runtime {}".
+    logger.info('Processing complete, runtime {}'.
             format(timedelta(seconds=(end_time - start_time))))
 
     logger.info('Serializing graph as {}'.format(output_file))

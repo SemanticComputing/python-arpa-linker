@@ -554,7 +554,7 @@ table {
   html, body {
     margin: 0;
     padding: 0;
-    min-height: 100%;
+    height: 100%;
   }
   body {
     background: #fff;
@@ -1279,6 +1279,51 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="n">requests_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Send a post request to the given URL with the given data, expecting a JSON response.</span>
+<span class="sd">    Throws a HTTPError if the request fails (after retries, if any) or if JSON</span>
+<span class="sd">    parsing fails.</span>
+
+<span class="sd">    `url` is the URL to send the request to.</span>
+
+<span class="sd">    `data` is a dict containing the data to send to the URL.</span>
+
+<span class="sd">    `retries` is the number of retries to attempt if the request fails. Optional.</span>
+
+<span class="sd">    `wait` is the number of seconds to wait between retries. Optional, default is 1 second.</span>
+<span class="sd">    Has no effect if `retries` is not set.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid amount of retries: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">retries</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">wait</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid retry wait time: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wait</span><span class="p">))</span>
+
+    <span class="n">tries</span> <span class="o">=</span> <span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">while</span> <span class="n">tries</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Sending request to {} with data: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) from {} with request data: {}.&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wait</span><span class="p">))</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">wait</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">retries</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">HTTPError</span><span class="p">(</span><span class="s1">&#39;Error ({}) from {} with request data: {}.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Success</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+
 <span class="k">class</span> <span class="nc">Arpa</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Class representing the ARPA service&quot;&quot;&quot;</span>
 
@@ -1294,23 +1339,28 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        If, instead, the value is a list or a tuple, assume that it represents</span>
 <span class="sd">        a list of class names and prefer those classes when choosing</span>
 <span class="sd">        the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)</span>
-<span class="sd">        that has the class of the match as the value.</span>
+<span class="sd">        that has the class of the match as the value. Optional.</span>
 
 <span class="sd">        `min_ngram_length` is the minimum ngram match length that will be included when</span>
-<span class="sd">        returning the query results.</span>
+<span class="sd">        returning the query results. Optional.</span>
 
 <span class="sd">        `ignore` is a list of matches that should be removed from the results (case insensitive).</span>
+<span class="sd">        Optional.</span>
 
-<span class="sd">        `retries` is the number of retries per query.</span>
+<span class="sd">        `retries` is the number of retries per query. Optional.</span>
 
 <span class="sd">        `wait_between_tries` is the amount of times in seconds to wait between retries.</span>
-<span class="sd">        Default is 1 second. Has no effect if `retries` is not set.</span>
+<span class="sd">        Optional, default is 1 second. Has no effect if `retries` is not set.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initialize Arpa instance&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of retries has to be at least 0&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of retries has to be a non-negative number, got {}&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">retries</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">wait_between_tries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Retry wait time has to be a non-negative number, got {}&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wait_between_tries</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="n">retries</span>
 
@@ -1322,7 +1372,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s2">&quot;&lt;{}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">remove_duplicates</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s1">&#39;&lt;{}&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">remove_duplicates</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA ignore set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">))</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA url set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">))</span>
@@ -1431,9 +1481,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="c1"># Remove quotation marks and brackets - ARPA can return an error if they&#39;re present</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">text</span>
-        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;)&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url_params</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url_params</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Query the ARPA service and return the response results as JSON</span>
 
@@ -1442,36 +1492,16 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        `url_params` is any URL parameters to be added to the ARPA URL, e.g. &#39;?cgen&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="n">url_params</span>
-
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty ARPA query text&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="n">url_params</span>
 
         <span class="c1"># Query the ARPA service with the text</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;text=&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
 
-        <span class="n">tries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">assert</span> <span class="n">tries</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Invalid amount of tries when querying&quot;</span>
-
-        <span class="k">while</span> <span class="n">tries</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Querying ARPA at {} with text: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">})</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">res</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-                <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-            <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
-                <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">))</span>
-                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
-                    <span class="k">continue</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">:</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-                <span class="k">raise</span> <span class="n">HTTPError</span><span class="p">(</span><span class="s1">&#39;Error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-            <span class="k">break</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;results&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
 
@@ -1510,9 +1540,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty ARPA query text&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
 
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s2">&quot;?cgen&quot;</span><span class="p">),</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;?cgen&#39;</span><span class="p">),</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
 
@@ -1636,7 +1666,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="s1">&#39;errors&#39;</span><span class="p">:</span> <span class="n">errors</span>
     <span class="p">}</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processed {} triples, found {} matches ({} errors)&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed {} triples, found {} matches ({} errors)&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;processed&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])))</span>
 
     <span class="k">return</span> <span class="n">res</span>
@@ -1757,7 +1787,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
     <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing complete, runtime {}&quot;</span><span class="o">.</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processing complete, runtime {}&#39;</span><span class="o">.</span>
             <span class="n">format</span><span class="p">(</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="p">(</span><span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))))</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Serializing graph as {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_file</span><span class="p">))</span>
@@ -1927,7 +1957,7 @@ This is a function and not an object because of reasons.</p>
         <span class="s1">&#39;errors&#39;</span><span class="p">:</span> <span class="n">errors</span>
     <span class="p">}</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processed {} triples, found {} matches ({} errors)&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed {} triples, found {} matches ({} errors)&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;processed&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])))</span>
 
     <span class="k">return</span> <span class="n">res</span>
@@ -2146,7 +2176,7 @@ graph on disk.</p>
 
     <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing complete, runtime {}&quot;</span><span class="o">.</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processing complete, runtime {}&#39;</span><span class="o">.</span>
             <span class="n">format</span><span class="p">(</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="p">(</span><span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))))</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Serializing graph as {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_file</span><span class="p">))</span>
@@ -2187,23 +2217,28 @@ graph on disk.</p>
 <span class="sd">        If, instead, the value is a list or a tuple, assume that it represents</span>
 <span class="sd">        a list of class names and prefer those classes when choosing</span>
 <span class="sd">        the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)</span>
-<span class="sd">        that has the class of the match as the value.</span>
+<span class="sd">        that has the class of the match as the value. Optional.</span>
 
 <span class="sd">        `min_ngram_length` is the minimum ngram match length that will be included when</span>
-<span class="sd">        returning the query results.</span>
+<span class="sd">        returning the query results. Optional.</span>
 
 <span class="sd">        `ignore` is a list of matches that should be removed from the results (case insensitive).</span>
+<span class="sd">        Optional.</span>
 
-<span class="sd">        `retries` is the number of retries per query.</span>
+<span class="sd">        `retries` is the number of retries per query. Optional.</span>
 
 <span class="sd">        `wait_between_tries` is the amount of times in seconds to wait between retries.</span>
-<span class="sd">        Default is 1 second. Has no effect if `retries` is not set.</span>
+<span class="sd">        Optional, default is 1 second. Has no effect if `retries` is not set.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initialize Arpa instance&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of retries has to be at least 0&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of retries has to be a non-negative number, got {}&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">retries</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">wait_between_tries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Retry wait time has to be a non-negative number, got {}&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wait_between_tries</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="n">retries</span>
 
@@ -2215,7 +2250,7 @@ graph on disk.</p>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s2">&quot;&lt;{}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">remove_duplicates</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s1">&#39;&lt;{}&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">remove_duplicates</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA ignore set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">))</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA url set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">))</span>
@@ -2324,9 +2359,9 @@ graph on disk.</p>
         <span class="c1"># Remove quotation marks and brackets - ARPA can return an error if they&#39;re present</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">text</span>
-        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;)&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url_params</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url_params</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Query the ARPA service and return the response results as JSON</span>
 
@@ -2335,36 +2370,16 @@ graph on disk.</p>
 <span class="sd">        `url_params` is any URL parameters to be added to the ARPA URL, e.g. &#39;?cgen&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="n">url_params</span>
-
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty ARPA query text&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="n">url_params</span>
 
         <span class="c1"># Query the ARPA service with the text</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;text=&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
 
-        <span class="n">tries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">assert</span> <span class="n">tries</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Invalid amount of tries when querying&quot;</span>
-
-        <span class="k">while</span> <span class="n">tries</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Querying ARPA at {} with text: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">})</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">res</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-                <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-            <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
-                <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">))</span>
-                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
-                    <span class="k">continue</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">:</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-                <span class="k">raise</span> <span class="n">HTTPError</span><span class="p">(</span><span class="s1">&#39;Error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-            <span class="k">break</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;results&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
 
@@ -2403,9 +2418,9 @@ graph on disk.</p>
 
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty ARPA query text&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
 
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s2">&quot;?cgen&quot;</span><span class="p">),</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;?cgen&#39;</span><span class="p">),</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
 
@@ -2441,13 +2456,14 @@ matched subjects that have the same label (arbitrarily).
 If, instead, the value is a list or a tuple, assume that it represents
 a list of class names and prefer those classes when choosing
 the subject. The ARPA results must include a property (<a href="#arpa.TYPE_PROP"><code>TYPE_PROP</code></a>)
-that has the class of the match as the value.</p>
+that has the class of the match as the value. Optional.</p>
 <p><code>min_ngram_length</code> is the minimum ngram match length that will be included when
-returning the query results.</p>
-<p><code>ignore</code> is a list of matches that should be removed from the results (case insensitive).</p>
-<p><code>retries</code> is the number of retries per query.</p>
+returning the query results. Optional.</p>
+<p><code>ignore</code> is a list of matches that should be removed from the results (case insensitive).
+Optional.</p>
+<p><code>retries</code> is the number of retries per query. Optional.</p>
 <p><code>wait_between_tries</code> is the amount of times in seconds to wait between retries.
-Default is 1 second. Has no effect if <code>retries</code> is not set.</p></div>
+Optional, default is 1 second. Has no effect if <code>retries</code> is not set.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.Arpa.__init__', this);">Show source &equiv;</a></p>
   <div id="source-arpa.Arpa.__init__" class="source">
@@ -2461,17 +2477,22 @@ Default is 1 second. Has no effect if <code>retries</code> is not set.</p></div>
 <span class="sd">    If, instead, the value is a list or a tuple, assume that it represents</span>
 <span class="sd">    a list of class names and prefer those classes when choosing</span>
 <span class="sd">    the subject. The ARPA results must include a property (`arpa.TYPE_PROP`)</span>
-<span class="sd">    that has the class of the match as the value.</span>
+<span class="sd">    that has the class of the match as the value. Optional.</span>
 <span class="sd">    `min_ngram_length` is the minimum ngram match length that will be included when</span>
-<span class="sd">    returning the query results.</span>
+<span class="sd">    returning the query results. Optional.</span>
 <span class="sd">    `ignore` is a list of matches that should be removed from the results (case insensitive).</span>
-<span class="sd">    `retries` is the number of retries per query.</span>
+<span class="sd">    Optional.</span>
+<span class="sd">    `retries` is the number of retries per query. Optional.</span>
 <span class="sd">    `wait_between_tries` is the amount of times in seconds to wait between retries.</span>
-<span class="sd">    Default is 1 second. Has no effect if `retries` is not set.</span>
+<span class="sd">    Optional, default is 1 second. Has no effect if `retries` is not set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initialize Arpa instance&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of retries has to be at least 0&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of retries has to be a non-negative number, got {}&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">retries</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">wait_between_tries</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Retry wait time has to be a non-negative number, got {}&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wait_between_tries</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">=</span> <span class="n">retries</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">=</span> <span class="n">url</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ignore</span> <span class="ow">or</span> <span class="p">[]]</span>
@@ -2480,7 +2501,7 @@ Default is 1 second. Has no effect if <code>retries</code> is not set.</p></div>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">)</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="n">remove_duplicates</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s2">&quot;&lt;{}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">remove_duplicates</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_no_duplicates</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s1">&#39;&lt;{}&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">remove_duplicates</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA ignore set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">))</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA url set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">))</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ARPA min_ngram_length set to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_min_ngram_length</span><span class="p">))</span>
@@ -2516,8 +2537,8 @@ to query for matches.</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty ARPA query text&quot;</span><span class="p">)</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s2">&quot;?cgen&quot;</span><span class="p">),</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;?cgen&#39;</span><span class="p">),</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">result</span>
@@ -2584,38 +2605,19 @@ validated results.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.Arpa.query', this);">Show source &equiv;</a></p>
   <div id="source-arpa.Arpa.query" class="source">
-    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url_params</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url_params</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Query the ARPA service and return the response results as JSON</span>
 <span class="sd">    `text` is the text used in the query.</span>
 <span class="sd">    `url_params` is any URL parameters to be added to the ARPA URL, e.g. &#39;?cgen&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="n">url_params</span>
     <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty ARPA query text&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="n">url_params</span>
     <span class="c1"># Query the ARPA service with the text</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="s1">&#39;text=&quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-    <span class="n">tries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="k">assert</span> <span class="n">tries</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Invalid amount of tries when querying&quot;</span>
-    <span class="k">while</span> <span class="n">tries</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Querying ARPA at {} with text: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">})</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">res</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-        <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">tries</span> <span class="o">-=</span> <span class="mi">1</span>
-            <span class="k">if</span> <span class="n">tries</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Received error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Waiting {} seconds before retrying&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">))</span>
-                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error {}, out of retries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-            <span class="k">raise</span> <span class="n">HTTPError</span><span class="p">(</span><span class="s1">&#39;Error ({}) when querying the ARPA service with data &quot;{}&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-        <span class="k">break</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_retries</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;results&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
 </pre></div>
 
@@ -2634,7 +2636,7 @@ validated results.</p></div>
   <footer id="footer">
     <p>
       Documentation generated by
-      <a href="https://github.com/BurntSushi/pdoc">pdoc 0.3.2</a>
+      <a href="https://github.com/BurntSushi/pdoc">pdoc 0.3.1</a>
     </p>
 
     <p>pdoc is in the public domain with the
