@@ -219,7 +219,9 @@ class Arpa:
         Remove duplicates from the entries.
 
         A 'duplicate' is an entry with the same `LABEL_PROP` property value.
+
         If `self._no_duplicates == True`, choose the subject to keep any which way.
+
         If `self._no_duplicates` is a tuple (or a list), choose the kept subject
         by comparing its type to the types contained in the tuple. The lower the
         index of the type in the tuple, the higher the priority.
@@ -274,7 +276,7 @@ class Arpa:
         Internal filter function used by `arpa.Arpa._filter`.
         """
 
-        # Filter ignored resultsults
+        # Filter ignored results
         if self._ignore:
             results = [x for x in results if get_label(x) not in self._ignore]
 
@@ -389,6 +391,7 @@ class Bar:
     """
     Mock progress bar implementation
     """
+
     def __init__(self, n):
         self.n = n
 
@@ -399,8 +402,10 @@ class Bar:
 def get_bar(n, use_pyprind):
     """
     Get a progress bar.
+
     `n` is the number of iterations for the progress bar.
-    If `use_pyprind` is true, try to return a pyprind.ProgBar instance. Otherwise,
+
+    If `use_pyprind` is true, try to return a `pyprind.ProgBar` instance. Otherwise,
     return a mock progress bar.
     """
 
@@ -487,9 +492,9 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
             triple_match_count += len(results)
             if results:
                 subject_match_count += 1
-            # Add each uri found as a value of the target property
-            for result in results:
-                output_graph.add((s, target_prop, result))
+                # Add each result as a value of the target property
+                for result in results:
+                    output_graph.add((s, target_prop, result))
         bar.update()
 
     res = {
@@ -632,7 +637,11 @@ def process(input_file, input_format, output_file, output_format, *args,
 
 
 def main(args):
-    """Main function for running via the command line."""
+    """
+    Main function for running via the command line.
+
+    `args` is the list of command line arguments.
+    """
 
     args = parse_args(args)
 

@@ -1,10 +1,12 @@
 import unittest
 import responses
+import logging
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from requests.exceptions import HTTPError
-from arpa import Arpa, arpafy, process, parse_args, post
 from rdflib import Graph, Literal, URIRef
+from argparse import ArgumentParser
+from arpa import Arpa, arpafy, process, parse_args, post
 
 candidate_response = {
     "locale": "fi",
@@ -97,6 +99,14 @@ match_uris = {URIRef(x['id']) for x in matches['results']}
 
 def do_nothing(*args, **kwargs):
     pass
+
+
+def setUpModule():
+    logging.disable(logging.CRITICAL)
+
+
+def tearDownModule():
+    logging.disable(logging.NOTSET)
 
 
 class TestArpa(TestCase):
@@ -514,49 +524,100 @@ class TestPost(TestCase):
         self.matches = matches
         self.data = {'text': 'text'}
         self.empty_response = {}
+        self.url = 'http://url'
+        self.error = {'error': 'error'}
 
     @responses.activate
     def test_post(self):
-        responses.add(responses.POST, 'http://url',
+        responses.add(responses.POST, self.url,
                 json=self.matches, status=200)
 
-        res = post('http://url', {'text': 'Hanko'})
+        res = post(self.url, {'text': 'Hanko'})
         self.assertEqual(res, self.matches)
 
     @responses.activate
     def test_no_data(self):
-        responses.add(responses.POST, 'http://url',
+        responses.add(responses.POST, self.url,
                 json=self.empty_response, status=200)
 
-        self.assertRaises(HTTPError, post, url='http://url', data=None)
+        self.assertRaises(HTTPError, post, url=self.url, data=None)
 
     @responses.activate
     def test_empty_response(self):
-        responses.add(responses.POST, 'http://url', status=200)
+        responses.add(responses.POST, self.url, status=200)
 
-        self.assertRaises(HTTPError, post, url='http://url', data=self.data)
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data)
 
     @responses.activate
     def test_retries(self):
         responses.add(responses.POST, 'http://url',
+                json=self.error, status=503)
+
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data, retries=1, wait=0)
+        self.assertEqual(len(responses.calls), 2)
+
+        responses.calls.reset()
+
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data, retries=10, wait=0)
+        self.assertEqual(len(responses.calls), 11)
+
+        responses.calls.reset()
+
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data, retries=0, wait=0)
+        self.assertEqual(len(responses.calls), 1)
+
+    @responses.activate
+    @patch('arpa.time')
+    def test_wait(self, mock_time):
+        responses.add(responses.POST, 'http://url',
+                json=self.error, status=503)
+
+        mock_time.sleep = Mock(return_value=None)
+
+        wait = 10
+
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data, retries=0, wait=wait)
+        self.assertEqual(len(responses.calls), 1)
+        mock_time.sleep.assert_not_called()
+
+        responses.calls.reset()
+
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data, retries=1,
+                wait=wait)
+        mock_time.sleep.assert_called_once_with(wait)
+
+        responses.calls.reset()
+        mock_time.sleep.reset_mock()
+
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data, retries=0)
+        self.assertEqual(len(responses.calls), 1)
+
+    @responses.activate
+    def test_invalid_retries(self):
+        responses.add(responses.POST, self.url,
                 json=self.matches, status=200)
 
-        self.assertRaises(ValueError, post, url='http://url', data=self.data,
+        self.assertRaises(ValueError, post, url=self.url, data=self.data,
                 retries=-1)
 
-        self.assertRaises(ValueError, post, url='http://url', data=self.data,
-                wait=-1)
-
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 retries=None)
 
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
-                wait=None)
-
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 retries="string")
 
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+    @responses.activate
+    def test_invalid_wait(self):
+        responses.add(responses.POST, self.url,
+                json=self.matches, status=200)
+
+        self.assertRaises(ValueError, post, url=self.url, data=self.data,
+                wait=-1)
+
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
+                wait=None)
+
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 wait="string")
 
 
