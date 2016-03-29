@@ -554,7 +554,7 @@ table {
   html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100%;
   }
   body {
     background: #fff;
@@ -1385,7 +1385,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        Remove duplicates from the entries.</span>
 
 <span class="sd">        A &#39;duplicate&#39; is an entry with the same `LABEL_PROP` property value.</span>
+
 <span class="sd">        If `self._no_duplicates == True`, choose the subject to keep any which way.</span>
+
 <span class="sd">        If `self._no_duplicates` is a tuple (or a list), choose the kept subject</span>
 <span class="sd">        by comparing its type to the types contained in the tuple. The lower the</span>
 <span class="sd">        index of the type in the tuple, the higher the priority.</span>
@@ -1440,7 +1442,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        Internal filter function used by `arpa.Arpa._filter`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="c1"># Filter ignored resultsults</span>
+        <span class="c1"># Filter ignored results</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">get_label</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">]</span>
 
@@ -1555,6 +1557,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Mock progress bar implementation</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
 
@@ -1565,8 +1568,10 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="k">def</span> <span class="nf">get_bar</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">use_pyprind</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a progress bar.</span>
+
 <span class="sd">    `n` is the number of iterations for the progress bar.</span>
-<span class="sd">    If `use_pyprind` is true, try to return a pyprind.ProgBar instance. Otherwise,</span>
+
+<span class="sd">    If `use_pyprind` is true, try to return a `pyprind.ProgBar` instance. Otherwise,</span>
 <span class="sd">    return a mock progress bar.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1653,9 +1658,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
             <span class="n">triple_match_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
                 <span class="n">subject_match_count</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="c1"># Add each uri found as a value of the target property</span>
-            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-                <span class="n">output_graph</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
+                <span class="c1"># Add each result as a value of the target property</span>
+                <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                    <span class="n">output_graph</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
         <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
 
     <span class="n">res</span> <span class="o">=</span> <span class="p">{</span>
@@ -1798,7 +1803,11 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
 
 <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Main function for running via the command line.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main function for running via the command line.</span>
+
+<span class="sd">    `args` is the list of command line arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
@@ -1944,9 +1953,9 @@ This is a function and not an object because of reasons.</p>
             <span class="n">triple_match_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
                 <span class="n">subject_match_count</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="c1"># Add each uri found as a value of the target property</span>
-            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-                <span class="n">output_graph</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
+                <span class="c1"># Add each result as a value of the target property</span>
+                <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                    <span class="n">output_graph</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
         <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
 
     <span class="n">res</span> <span class="o">=</span> <span class="p">{</span>
@@ -2012,12 +2021,17 @@ This is a function and not an object because of reasons.</p>
 
     
   
-    <div class="desc"><p>Main function for running via the command line.</p></div>
+    <div class="desc"><p>Main function for running via the command line.</p>
+<p><code>args</code> is the list of command line arguments.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.main', this);">Show source &equiv;</a></p>
   <div id="source-arpa.main" class="source">
     <div class="codehilite"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Main function for running via the command line.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main function for running via the command line.</span>
+
+<span class="sd">    `args` is the list of command line arguments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
@@ -2263,7 +2277,9 @@ graph on disk.</p>
 <span class="sd">        Remove duplicates from the entries.</span>
 
 <span class="sd">        A &#39;duplicate&#39; is an entry with the same `LABEL_PROP` property value.</span>
+
 <span class="sd">        If `self._no_duplicates == True`, choose the subject to keep any which way.</span>
+
 <span class="sd">        If `self._no_duplicates` is a tuple (or a list), choose the kept subject</span>
 <span class="sd">        by comparing its type to the types contained in the tuple. The lower the</span>
 <span class="sd">        index of the type in the tuple, the higher the priority.</span>
@@ -2318,7 +2334,7 @@ graph on disk.</p>
 <span class="sd">        Internal filter function used by `arpa.Arpa._filter`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="c1"># Filter ignored resultsults</span>
+        <span class="c1"># Filter ignored results</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="n">get_label</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">]</span>
 
@@ -2636,7 +2652,7 @@ validated results.</p></div>
   <footer id="footer">
     <p>
       Documentation generated by
-      <a href="https://github.com/BurntSushi/pdoc">pdoc 0.3.1</a>
+      <a href="https://github.com/BurntSushi/pdoc">pdoc 0.3.2</a>
     </p>
 
     <p>pdoc is in the public domain with the
