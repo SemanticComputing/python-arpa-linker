@@ -514,49 +514,52 @@ class TestPost(TestCase):
         self.matches = matches
         self.data = {'text': 'text'}
         self.empty_response = {}
+        self.url = 'http://url'
 
     @responses.activate
     def test_post(self):
-        responses.add(responses.POST, 'http://url',
+        responses.add(responses.POST, self.url,
                 json=self.matches, status=200)
 
-        res = post('http://url', {'text': 'Hanko'})
+        res = post(self.url, {'text': 'Hanko'})
         self.assertEqual(res, self.matches)
 
     @responses.activate
     def test_no_data(self):
-        responses.add(responses.POST, 'http://url',
+        responses.add(responses.POST, self.url,
                 json=self.empty_response, status=200)
 
-        self.assertRaises(HTTPError, post, url='http://url', data=None)
+        self.assertRaises(HTTPError, post, url=self.url, data=None)
 
     @responses.activate
     def test_empty_response(self):
-        responses.add(responses.POST, 'http://url', status=200)
+        responses.add(responses.POST, self.url, status=200)
 
-        self.assertRaises(HTTPError, post, url='http://url', data=self.data)
+        self.assertRaises(HTTPError, post, url=self.url, data=self.data)
 
     @responses.activate
     def test_retries(self):
-        responses.add(responses.POST, 'http://url',
+        responses.add(responses.POST, self.url,
                 json=self.matches, status=200)
 
-        self.assertRaises(ValueError, post, url='http://url', data=self.data,
+        post(self.url, data=self.data, retries=2)
+
+        self.assertRaises(ValueError, post, url=self.url, data=self.data,
                 retries=-1)
 
-        self.assertRaises(ValueError, post, url='http://url', data=self.data,
+        self.assertRaises(ValueError, post, url=self.url, data=self.data,
                 wait=-1)
 
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 retries=None)
 
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 wait=None)
 
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 retries="string")
 
-        self.assertRaises(TypeError, post, url='http://url', data=self.data,
+        self.assertRaises(TypeError, post, url=self.url, data=self.data,
                 wait="string")
 
 
