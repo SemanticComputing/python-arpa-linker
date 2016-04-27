@@ -1,9 +1,10 @@
 from datetime import datetime
-from arpa_linker.arpa import Arpa, process, log_to_file, parse_args
+from arpa_linker.arpa import Arpa, process, log_to_file, parse_args, prune_candidates
 from rdflib import URIRef
 from rdflib.namespace import SKOS
 import logging
 import re
+import sys
 
 log_to_file('persons.log', 'DEBUG')
 logger = logging.getLogger('arpa_linker.arpa')
@@ -364,8 +365,18 @@ ignore = [
 ]
 
 
-if __name__ == "__main__":
-    args = parse_args()
+name_re = "^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$"
+name_re_compiled = re.compile(name_re)
+
+
+def pruner(candidate):
+    if name_re_compiled.match(candidate):
+        return candidate
+    return None
+
+
+if __name__ == '__main__':
+    args = parse_args(sys.argv[2:])
 
     global dataset
     if str(args.tprop) == 'http://purl.org/dc/terms/subject':
@@ -378,5 +389,7 @@ if __name__ == "__main__":
     arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
 
     # Query the ARPA service, add the matches and serialize the graph to disk.
-    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa, args.prop,
-            preprocessor=preprocessor, validator=validator, progress=True)
+    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+            source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
+            preprocessor=preprocessor, validator=validator, progress=True,
+            candidates_only=args.candidates_only)

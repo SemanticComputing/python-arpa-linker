@@ -371,7 +371,7 @@ class Arpa:
         Get the candidates from `text` that would be used by the ARPA service
         to query for matches.
 
-        Return the candidates as JSON.
+        Return the candidates as a list of rdflib Literals.
         """
 
         text = self._sanitize(text)
@@ -422,6 +422,19 @@ def get_bar(n, use_pyprind):
     return Bar(n)
 
 
+def _get_subgraph(graph, source_prop, rdf_class=None):
+    subgraph = Graph()
+
+    if rdf_class:
+        # Filter out subjects that are not of the given type
+        for s in graph.subjects(RDF.type, rdf_class):
+            subgraph += graph.triples((s, source_prop, None))
+    else:
+        subgraph += graph.triples((None, source_prop, None))
+
+    return subgraph
+
+
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
             output_graph=None, preprocessor=None, validator=None,
             candidates_only=False, progress=None):
@@ -465,14 +478,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     else:
         get_results = arpa.get_uri_matches
 
-    subgraph = Graph()
-
-    if rdf_class:
-        # Filter out subjects that are not of the given type
-        for s in graph.subjects(RDF.type, rdf_class):
-            subgraph += graph.triples((s, source_prop, None))
-    else:
-        subgraph += graph.triples((None, source_prop, None))
+    subgraph = _get_subgraph(graph, source_prop, rdf_class)
 
     triple_match_count = 0
     subject_match_count = 0
@@ -507,6 +513,55 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     logger.info('Processed {} triples, found {} matches ({} errors)'
                 .format(res['processed'], res['matches'], len(res['errors'])))
+
+    return res
+
+
+def prune_candidates(graph, source_prop, pruner, rdf_class=None,
+            output_graph=None, progress=None):
+    """
+    Prune undesired candidates.
+
+    Return a dict with the amount of candidates left after pruning (result_count),
+    and the resulting graph (graph).
+
+    `graph` is the graph containing the candidates. Will be modified if `output_graph`
+    is not given.
+
+    `source_prop` is the property in the graph that has the candidates as its value.
+
+    `pruner` is a function that receives
+
+    If `rdf_class` is given, only go through instances of this type.
+
+    `output_graph` is the graph to which the results should be added.
+    If not given, the results will be added to the input `graph`,
+    and the old candidates removed.
+    """
+
+    if output_graph is None:
+        output_graph = graph
+
+    subgraph = _get_subgraph(graph, source_prop, rdf_class)
+
+    bar = get_bar(len(subgraph), progress)
+
+    result_count = 0
+
+    for s, o in subgraph.subject_objects():
+        result = pruner(o)
+        # Remove the original candidate
+        output_graph.remove((s, source_prop, o))
+        if result:
+            result_count += 1
+            # Add the pruned candidate to the output graph
+            output_graph.add((s, source_prop, result))
+        bar.update()
+
+    res = {
+        'graph': output_graph,
+        'result_count': result_count
+    }
 
     return res
 
@@ -547,6 +602,8 @@ def parse_args(args):
         help="""Add the ARPA results to a new graph instead of the original. The output file
         contains all the triples of the original graph by default. With this argument set
         the output file will contain only the results.""")
+    argparser.add_argument("-c", "--candidates_only", action="store_true",
+        help="""Get candidates (n-grams) only from ARPA.""")
     argparser.add_argument("--rdf_class", metavar="CLASS",
         help="Process only subjects of the given type (goes through all subjects by default).")
     argparser.add_argument("--prop", metavar="PROPERTY",
@@ -589,7 +646,7 @@ def parse_args(args):
 
 
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, **kwargs):
+        new_graph=False, prune_only=False, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
@@ -622,10 +679,12 @@ def process(input_file, input_format, output_file, output_format, *args,
     logger.info('Begin processing')
     start_time = time.monotonic()
 
-    res = arpafy(g, *args, **kwargs)
+    if prune_only:
+        res = prune_candidates(g, *args, **kwargs)
+    else:
+        res = arpafy(g, *args, **kwargs)
 
     end_time = time.monotonic()
-
     logger.info('Processing complete, runtime {}'.
             format(timedelta(seconds=(end_time - start_time))))
 
@@ -651,7 +710,8 @@ def main(args):
 
     # Query the ARPA service, add the matches and serialize graph to disk
     process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-            args.prop, args.rdf_class, new_graph=args.new_graph, progress=True)
+            args.prop, args.rdf_class, new_graph=args.new_graph, progress=True,
+            candidates_only=args.candidates_only)
 
     logging.shutdown()
 
