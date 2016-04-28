@@ -273,7 +273,7 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<![Ss]otamarsalkka )(?<![Mm]arsalkka )Mannerheim(?!-)(in|ille|ia)?\b', '# sotamarsalkka Mannerheim #', text)
     text = re.sub(r'([Ss]ota)?[Mm]arsalk(ka|an|alle|en)?\b(?! Mannerheim)', '# sotamarsalkka Mannerheim #', text)
     text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', '# sotamarsalkka Mannerheim #', text)
-    text = re.sub(r'Marski(n|a|lle)\b', '# sotamarsalkka Mannerheim #', text)
+    text = re.sub(r'Marski(n|a|lle)?\b', '# sotamarsalkka Mannerheim #', text)
 
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
@@ -365,7 +365,7 @@ ignore = [
 ]
 
 
-name_re = "^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$"
+name_re = "^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([A-ZÄÖÅÜ][_a-zA-ZäÄöÖåÅèü-]{2,})$"
 name_re_compiled = re.compile(name_re)
 
 
@@ -377,7 +377,6 @@ def pruner(candidate):
 
 if __name__ == '__main__':
     args = parse_args(sys.argv[2:])
-
     global dataset
     if str(args.tprop) == 'http://purl.org/dc/terms/subject':
         logger.info('Handling as photos')
@@ -386,10 +385,15 @@ if __name__ == '__main__':
         logger.info('Handling as events')
         dataset = 'event'
 
-    arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
+    if sys.argv[1] == 'prune':
+        process(args.input, args.fi, args.output, args.fo, args.tprop, prune_only=True,
+                pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
+                new_graph=args.new_graph, progress=True)
+    else:
+        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
 
-    # Query the ARPA service, add the matches and serialize the graph to disk.
-    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-            source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-            preprocessor=preprocessor, validator=validator, progress=True,
-            candidates_only=args.candidates_only)
+        # Query the ARPA service, add the matches and serialize the graph to disk.
+        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
+                preprocessor=preprocessor, validator=validator, progress=True,
+                candidates_only=args.candidates_only)

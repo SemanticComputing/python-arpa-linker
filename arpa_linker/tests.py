@@ -422,6 +422,38 @@ class TestProcess(TestCase):
         self.assertEqual(res['subjects_matched'], 1)
         self.assertEqual(res['errors'], [])
 
+    @patch('arpa.Graph')
+    def test_prune_only_same_graph(self, mocked_graph):
+        def nop_pruner(cand):
+            return cand
+
+        mocked_graph.side_effect = [self.graph, Graph()]
+
+        original_len = len(self.graph)
+
+        res = process('input', 'turtle', 'output', 'turtle', source_prop=self.prop,
+                target_prop=self.tprop, prune_only=True, pruner=nop_pruner)
+
+        self.assertEqual(res['graph'], self.graph)
+        self.assertEqual(len(self.graph), original_len)
+
+    @patch('arpa.Graph')
+    def test_prune_only_new_graph(self, mocked_graph):
+        def no_res_pruner(cand):
+            return None
+
+        mocked_graph.side_effect = [self.graph, Graph(), Graph()]
+
+        original_len = len(self.graph)
+
+        res = process('input', 'turtle', 'output', 'turtle', source_prop=self.prop,
+                target_prop=self.tprop, new_graph=True, prune_only=True,
+                pruner=no_res_pruner)
+
+        self.assertNotEqual(res['graph'], self.graph)
+        self.assertEqual(original_len, len(self.graph))
+        self.assertEqual(0, len(res['graph']))
+
 
 class TestParseArgs(TestCase):
     def setUp(self):
@@ -536,14 +568,19 @@ class TestPruneCandidates(TestCase):
 
         g = prune_candidates(self.graph, self.prop, pruner)['graph']
 
+        self.assertEqual(self.graph, g)
+
         self.assertEqual(2, len(g))
-        self.assertEqual(self.value, str(list(g.objects())[0]))
+        self.assertTrue(self.triple in g)
+        self.assertTrue(self.triple2 in g)
 
     def test_no_results(self):
         def pruner(cand):
             return None
 
         g = prune_candidates(self.graph, self.prop, pruner)['graph']
+
+        self.assertEqual(self.graph, g)
 
         self.assertEqual(0, len(g))
 
@@ -552,6 +589,8 @@ class TestPruneCandidates(TestCase):
             return cand if cand == 'Hanko' else None
 
         g = prune_candidates(self.graph, self.prop, pruner)['graph']
+
+        self.assertEqual(self.graph, g)
 
         self.assertEqual(1, len(g))
         self.assertEqual(self.value, str(list(g.objects())[0]))

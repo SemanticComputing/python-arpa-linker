@@ -11,66 +11,55 @@ If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasb
 The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
 <pre>
-usage: arpa.py [-h] [--fi INPUT_FORMAT]
-            [--fo OUTPUT_FORMAT] [-n]
-            [--rdf_class CLASS] [--prop PROPERTY]
-            [--ignore [TERM [TERM ...]]] [--min_ngram N]
-            [--no_duplicates [TYPE [TYPE ...]]] [-r N]
-            [--log_level
-                {NOTSET,DEBUG,INFO,WARNING, ERROR,CRITICAL}]
-            input output target_property arpa
+usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT] [-n] [-c]
+               [--rdf_class CLASS] [--prop PROPERTY]
+               [--ignore [TERM [TERM ...]]] [--min_ngram N]
+               [--no_duplicates [TYPE [TYPE ...]]] [-r N]
+               [--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+               input output target_property arpa
 
 Link resources to an RDF graph with ARPA.
 
 positional arguments:
-input                 Input rdf file
-output                Output file
-target_property       Target property for the matches
-arpa                  ARPA service URL
+  input                 Input rdf file
+  output                Output file
+  target_property       Target property for the matches
+  arpa                  ARPA service URL
 
 optional arguments:
--h, --help            show this help message and exit
---fi INPUT_FORMAT     Input file format (rdflib parser).
-                      Will be guessed if omitted.
---fo OUTPUT_FORMAT    Output file format (rdflib
-                      serializer). Default is turtle.
--n, --new_graph       Add the ARPA results to a new graph
-                      instead of the original. The output
-                      file contains all the triples of the
-                      original graph by default. With this
-                      argument set the output file will
-                      contain only the results.
---rdf_class CLASS     Process only subjects of the given
-                      type (goes through all subjects by
-                      default).
---prop PROPERTY       Property that's value is to be used
-                      in matching.
-                      Default is skos:prefLabel.
---ignore [TERM [TERM ...]]
-                      Terms that should be ignored even
-                      if matched
---min_ngram N         The minimum ngram length that is
-                      considered a match. Default is 1.
---no_duplicates [TYPE [TYPE ...]]
-                      Remove duplicate matches based on
-                      the 'label' returned by the ARPA
-                      service. Here 'duplicate' means a
-                      subject with the same label as
-                      another subject in the same result
-                      set. A list of types can be given
-                      with this argument. If given,
-                      prioritize matches based on it
-                      - the first given type will get the
-                      highest priority and so on. Note
-                      that the response from the service
-                      has to include a 'type' variable for
-                      this to work.
--r N, --retries N     The amount of retries per query if
-                      a HTTP error is received.
-                      Default is 0.
---log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                      Logging level, default is INFO.
-                      The log file is arpa_linker.log.
+  -h, --help            show this help message and exit
+  --fi INPUT_FORMAT     Input file format (rdflib parser). Will be guessed if
+                        omitted.
+  --fo OUTPUT_FORMAT    Output file format (rdflib serializer). Default is
+                        turtle.
+  -n, --new_graph       Add the ARPA results to a new graph instead of the
+                        original. The output file contains all the triples of
+                        the original graph by default. With this argument set
+                        the output file will contain only the results.
+  -c, --candidates_only
+                        Get candidates (n-grams) only from ARPA.
+  --rdf_class CLASS     Process only subjects of the given type (goes through
+                        all subjects by default).
+  --prop PROPERTY       Property that's value is to be used in matching.
+                        Default is skos:prefLabel.
+  --ignore [TERM [TERM ...]]
+                        Terms that should be ignored even if matched
+  --min_ngram N         The minimum ngram length that is considered a match.
+                        Default is 1.
+  --no_duplicates [TYPE [TYPE ...]]
+                        Remove duplicate matches based on the 'label' returned
+                        by the ARPA service. Here 'duplicate' means a subject
+                        with the same label as another subject in the same
+                        result set. A list of types can be given with this
+                        argument. If given, prioritize matches based on it -
+                        the first given type will get the highest priority and
+                        so on. Note that the response from the service has to
+                        include a 'type' variable for this to work.
+  -r N, --retries N     The amount of retries per query if a HTTP error is
+                        received. Default is 0.
+  --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        Logging level, default is INFO. The log file is
+                        arpa_linker.log.
 </pre>
 
 The arguments can also be read from a file using "@" (example arg file [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)):
@@ -95,7 +84,8 @@ from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'process', 'log_to_file', 'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'arpafy', 'process', 'prune_candidates', 'log_to_file',
+            'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -111,6 +101,18 @@ logger = logging.getLogger(__name__)
 # Hide requests INFO logging spam
 requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
+
+
+# def map_results(results):
+    # res = {}
+    # for obj in results:
+        # s = obj['id']
+        # if not res.get(s):
+            # res['id'] = s
+        # elif value not in res.get(key):
+            # res[key].append(value)
+
+    # return res
 
 
 def post(url, data, retries=0, wait=1):
@@ -151,7 +153,7 @@ def post(url, data, retries=0, wait=1):
                 time.sleep(wait)
                 continue
             elif retries:
-                    logger.warning('Error {}, out of retries.'.format(e))
+                logger.warning('Error {}, out of retries.'.format(e))
             raise HTTPError('Error ({}) from {} with request data: {}.'.format(e, url, data))
         else:
             # Success
@@ -662,6 +664,8 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     If `new_graph` is set, use a new empty graph for adding the results.
 
+    If `prune_only` is set, only prune candidates using `arpa.prune_candidates`.
+
     All other arguments are passed to `arpa.arpafy`.
 
     Return the results dict as returned by `arpa.arpafy`.
@@ -683,7 +687,9 @@ def process(input_file, input_format, output_file, output_format, *args,
     start_time = time.monotonic()
 
     if prune_only:
-        res = prune_candidates(g, *args, **kwargs)
+        res = prune_candidates(g, kwargs.get('source_prop'), kwargs.get('pruner'),
+                rdf_class=kwargs.get('rdf_class'), output_graph=output_graph,
+                progress=kwargs.get('progress'))
     else:
         res = arpafy(g, *args, **kwargs)
 
