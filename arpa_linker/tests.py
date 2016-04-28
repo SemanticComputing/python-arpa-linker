@@ -5,8 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from requests.exceptions import HTTPError
 from rdflib import Graph, Literal, URIRef
-from argparse import ArgumentParser
-from arpa import Arpa, arpafy, process, parse_args, post
+from arpa import Arpa, arpafy, process, parse_args, post, prune_candidates
 
 candidate_response = {
     "locale": "fi",
@@ -517,6 +516,61 @@ class TestParseArgs(TestCase):
 
         params = self.base_params + ['--log_level', 'WRONG']
         self.assertRaises(SystemExit, parse_args, params)
+
+
+class TestPruneCandidates(TestCase):
+    def setUp(self):
+        self.value = 'Hanko'
+        self.value2 = 'Toinen'
+        self.prop = URIRef('http://warsa/place')
+        self.tprop = URIRef('http://warsa/target')
+        self.triple = (URIRef('http://warsa/event'), self.prop, Literal(self.value))
+        self.triple2 = (URIRef('http://warsa/event'), self.prop, Literal(self.value2))
+        self.graph = Graph()
+        self.graph.add(self.triple)
+        self.graph.add(self.triple2)
+
+    def test_nop_pruner(self):
+        def pruner(cand):
+            return cand
+
+        g = prune_candidates(self.graph, self.prop, pruner)['graph']
+
+        self.assertEqual(2, len(g))
+        self.assertEqual(self.value, str(list(g.objects())[0]))
+
+    def test_no_results(self):
+        def pruner(cand):
+            return None
+
+        g = prune_candidates(self.graph, self.prop, pruner)['graph']
+
+        self.assertEqual(0, len(g))
+
+    def test_prune_some(self):
+        def pruner(cand):
+            return cand if cand == 'Hanko' else None
+
+        g = prune_candidates(self.graph, self.prop, pruner)['graph']
+
+        self.assertEqual(1, len(g))
+        self.assertEqual(self.value, str(list(g.objects())[0]))
+
+    def test_output_graph(self):
+        def pruner(cand):
+            return cand if cand == 'Hanko' else None
+
+        g = Graph()
+        res_g = prune_candidates(self.graph, self.prop, pruner, output_graph=g)['graph']
+
+        self.assertEqual(g, res_g)
+
+        self.assertEqual(1, len(g))
+        self.assertEqual(self.value, str(list(g.objects())[0]))
+
+        self.assertEqual(2, len(self.graph))
+        self.assertTrue(self.triple in self.graph)
+        self.assertTrue(self.triple2 in self.graph)
 
 
 class TestPost(TestCase):

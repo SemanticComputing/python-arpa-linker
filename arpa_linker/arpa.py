@@ -530,7 +530,10 @@ def prune_candidates(graph, source_prop, pruner, rdf_class=None,
 
     `source_prop` is the property in the graph that has the candidates as its value.
 
-    `pruner` is a function that receives
+    `pruner` is a function that receives a single candidate as string and returns
+    a falsey value if the candidate should not be added to the output graph, and
+    otherwise a string (the candidate, possibly modified) that should be added
+    to the output graph.
 
     If `rdf_class` is given, only go through instances of this type.
 
@@ -549,13 +552,13 @@ def prune_candidates(graph, source_prop, pruner, rdf_class=None,
     result_count = 0
 
     for s, o in subgraph.subject_objects():
-        result = pruner(o)
+        result = pruner(str(o))
         # Remove the original candidate
         output_graph.remove((s, source_prop, o))
         if result:
             result_count += 1
             # Add the pruned candidate to the output graph
-            output_graph.add((s, source_prop, result))
+            output_graph.add((s, source_prop, Literal(result)))
         bar.update()
 
     res = {

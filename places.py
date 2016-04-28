@@ -181,17 +181,19 @@ if __name__ == '__main__':
         'http://ldf.fi/pnr-schema#place_type_560',
     ]
 
-    log_to_file('places.log', 'INFO')
+    log_to_file('places_test.log', 'DEBUG')
 
-    arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-event-place',
-            remove_duplicates=no_duplicates, ignore=ignore)
+    arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-eventplace',
+            remove_duplicates=no_duplicates, ignore=ignore, retries=2)
 
     rdf_format = 'turtle'
 
     # Query the ARPA service, add the matches, and serialize the graph to disk.
-    process('input.ttl', rdf_format, 'output.ttl', rdf_format,
-            URIRef('http://purl.org/dc/terms/spatial'),
-            #URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
+    process('test.ttl', rdf_format, 'test_output.ttl', rdf_format,
+            #URIRef('http://purl.org/dc/terms/spatial'),
+            URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
             arpa,
-            URIRef('http://ldf.fi/warsa/photographs/place_string'),
+            #URIRef('http://ldf.fi/warsa/photographs/place_string'),
+            candidates_only=True,
+            new_graph=True,
             preprocessor=preprocessor, validator=validator, progress=True)
