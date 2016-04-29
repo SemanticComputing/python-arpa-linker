@@ -1,11 +1,13 @@
 import unittest
 import responses
 import logging
+import re
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from requests.exceptions import HTTPError
 from rdflib import Graph, Literal, URIRef
-from arpa import Arpa, arpafy, process, parse_args, post, prune_candidates, map_results
+from arpa import Arpa, arpafy, process, parse_args, post, prune_candidates, \
+    map_results, combine_candidates
 
 candidate_response = {
     "locale": "fi",
@@ -838,6 +840,29 @@ class TestMapResults(TestCase):
         self.assertEqual(res[0]['properties']['promotion_rank'], self.ranks)
         self.assertEqual(res[0]['matches'], self.ngrams)
 
+
+class TestCombineCandidates(TestCase):
+    def setUp(self):
+        self.value = 'Hanko'
+        self.value2 = 'Toinen'
+        self.prop = URIRef('http://warsa/place')
+        self.triple = (URIRef('http://warsa/event'), self.prop, Literal(self.value))
+        self.triple2 = (URIRef('http://warsa/event'), self.prop, Literal(self.value2))
+        self.graph = Graph()
+        self.graph.add(self.triple)
+        self.graph.add(self.triple2)
+
+    def test_combine(self):
+        g = combine_candidates(self.graph, self.prop)
+
+        self.assertEqual(self.graph, g)
+
+        self.assertEqual(1, len(g))
+        val = str(list(g.objects())[0])
+        print(val)
+        self.assertTrue('Hanko' in val)
+        self.assertTrue('Toinen' in val)
+        self.assertTrue(re.match('"\w+" "\w+"', val))
 
 if __name__ == '__main__':
     unittest.main()

@@ -185,8 +185,8 @@ def post(url, data, retries=0, wait=1):
 class Arpa:
     """Class representing the ARPA service"""
 
-    def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None, retries=0,
-            wait_between_tries=1):
+    def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None,
+            retries=0, wait_between_tries=1):
         """
         Initialize the Arpa service object.
 
@@ -411,15 +411,59 @@ class Arpa:
         return result
 
 
+class ArpaMimic(Arpa):
+    """
+    Class that behaves like `arpa.Arpa` except that it queries a SPARQL endpoint
+    instead of an ARPA service.
+    """
+
+    def __init__(self, query_template, *args, **kwargs):
+        """
+        Initialize the ArpaMimic instance.
+
+        `query_template` is a SPARQL query template like ARPA uses.
+        """
+
+        self.query_template = query_template
+
+        super().__init__(*args, **kwargs)
+
+    def query(self, text, url_params=''):
+        """
+        Query a SPARQL endpoint and return the response results as JSON mapped
+        as if returned by ARPA.
+
+        `text` is the text used in the query.
+
+        `url_params` is any URL parameters to be added to the URL.
+        """
+
+        text = self._sanitize(text)
+
+        if not text:
+            raise ValueError('Empty query text')
+
+        query = self.query_template.replace('<VALUES>', text)
+
+        url = self._url + url_params
+
+        # Query the endpoint with the text
+        data = {'query': query}
+
+        res = post(url, data, retries=self._retries, wait=self._wait)
+
+        return res.get('results', None)
+
+
 class Bar:
     """
     Mock progress bar implementation
     """
 
-    def __init__(self, n):
+    def __init__(self, n, *args, **kwargs):
         self.n = n
 
-    def update(self):
+    def update(self, *args, **kwargs):
         pass
 
 
@@ -672,8 +716,28 @@ def parse_args(args):
     return args
 
 
+def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=None):
+    subgraph = _get_subgraph(graph, prop, rdf_class)
+
+    if output_graph is None:
+        output_graph = graph
+
+    subjects = subgraph.subjects()
+    bar = get_bar(len(subgraph), progress)
+
+    for s in subjects:
+        objs = [str(o) for o in subgraph.objects(s)]
+        combined = '"' + '" "'.join(objs) + '"'
+        # Remove the original candidate
+        output_graph.remove((s, None, None))
+        output_graph.add((s, prop, Literal(combined)))
+        bar.update(len(objs))
+
+    return output_graph
+
+
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, prune_only=False, **kwargs):
+        new_graph=False, prune_only=False, disambiguate_only=False, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
@@ -703,6 +767,11 @@ def process(input_file, input_format, output_file, output_format, *args,
         output_graph.namespace_manager = g.namespace_manager
     else:
         output_graph = g
+
+    if disambiguate_only:
+        output_graph = combine_candidates(g, kwargs.get('source_prop', SKOS['prefLabel']),
+                output_graph=output_graph, rdf_class=kwargs.get('rdf_class'),
+                progress=kwargs.get('progress'))
     kwargs['output_graph'] = output_graph
 
     logger.info('Begin processing')
