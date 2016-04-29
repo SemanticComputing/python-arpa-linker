@@ -103,16 +103,38 @@ requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
 
 
-# def map_results(results):
-    # res = {}
-    # for obj in results:
-        # s = obj['id']
-        # if not res.get(s):
-            # res['id'] = s
-        # elif value not in res.get(key):
-            # res[key].append(value)
+def map_results(results):
+    """
+    Map general SPARQL results to the format ARPA returns.
 
-    # return res
+    Return the mapped results.
+
+    `results` is the SPARQL result as a dict. Each row has to include an 'id' variable.
+    """
+
+    res = []
+    for obj in results['results']['bindings']:
+        o_id = obj['id']['value']
+
+        idx = next((index for (index, d) in enumerate(res) if d["id"] == o_id), None)
+        if idx is None:
+            props = {key: [value.get('value')] for key, value in obj.items()}
+            o = {
+                'id': o_id,
+                'label': obj.get('label', {}).get('value'),
+                'matches': [obj.get('ngram', {}).get('value')],
+                'properties': props
+            }
+            res.append(o)
+        else:
+            o = res[idx]
+            ngram = obj.get('ngram', {}).get('value')
+            if ngram not in o['matches']:
+                o['matches'].append(ngram)
+            for k, v in obj.items():
+                o['properties'][k].append(v.get('value'))
+
+    return {'results': res}
 
 
 def post(url, data, retries=0, wait=1):
