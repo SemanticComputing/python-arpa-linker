@@ -6,7 +6,6 @@ import logging
 import re
 import sys
 
-log_to_file('persons.log', 'INFO')
 logger = logging.getLogger('arpa_linker.arpa')
 
 dataset = ''
@@ -393,19 +392,27 @@ def set_dataset(args):
 
 if __name__ == '__main__':
     if sys.argv[1] == 'prune':
+        log_to_file('persons.log', 'INFO')
         args = parse_args(sys.argv[2:])
         set_dataset(args)
         process(args.input, args.fi, args.output, args.fo, args.tprop, prune_only=True,
                 pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, progress=True)
-    elif sys.argv[1] == 'disambiguate':
+    elif 'disambiguate' in sys.argv[1]:
         args = parse_args(sys.argv[3:])
         set_dataset(args)
         f = open(sys.argv[2])
         qry = f.read()
         f.close()
         arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore)
-        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
+        if sys.argv[1] == 'disambiguate_validate':
+            log_to_file('persons_validate.log', 'INFO')
+            val = validator
+        else:
+            log_to_file('persons_disambiguate.log', 'INFO')
+            val = None
+
+        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa, validator=val,
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
                 progress=True)
     else:
