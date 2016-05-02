@@ -1,0 +1,73 @@
+PREFIX text: <http://jena.apache.org/text#>
+PREFIX apf: <http://jena.hpl.hp.com/ARQ/property#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX actors: <http://ldf.fi/warsa/actors/>
+PREFIX etype: <http://ldf.fi/warsa/events/event_types/>
+PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX cas: <http://ldf.fi/schema/narc-menehtyneet1939-45/>
+
+SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?etunimet ?sukunimi ?promotion_rank ?earliest_promotion_time ?death_date WHERE {
+  VALUES ?ngram {
+    <VALUES>
+  }
+  FILTER(STRLEN(?ngram)>2)
+  BIND("^((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$" AS ?nimiregex)
+  BIND(UCASE(REPLACE(REPLACE(?ngram, ?nimiregex, "$4"), "_", " ")) AS ?sukunimi)
+  BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
+  BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
+  BIND(UCASE(?ngrametu) AS ?etu)
+  FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
+  BIND(UCASE(?ngramkeski) AS ?keski)
+  BIND(CONCAT('"',?sukunimi,'"') AS ?qstring)
+
+  GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
+  ?id foaf:familyName ?familyName .
+  FILTER(?sukunimi = UCASE(?familyName))
+  ?id skos:prefLabel ?plabel .
+  OPTIONAL { ?id foaf:firstName ?etunimet . }
+  BIND(CONCAT(?etunimet, ' ', ?familyName) AS ?nlabel)
+  OPTIONAL {
+    ?promotion_id a etype:Promotion ;
+                  crm:P11_had_participant ?id ;
+                  actors:hasRank ?promotion_rank_id ;
+                  crm:P4_has_time-span ?timespan_id .
+    ?promotion_rank_id skos:prefLabel ?promotion_rank .
+    ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
+  }
+  BIND(CONCAT("(^|[ ])", substr(?etu, 1, 1)) as ?etukirjainre)
+  BIND(CONCAT("(^|[ ])", substr(?keski, 1, 1)) as ?keskikirjainre)
+  BIND(CONCAT("(^|[ ])", ?etu, "($|[ ])") AS ?etunimire)
+  BIND(CONCAT("(^|[ ])", ?keski, "($|[ ])") AS ?toinennimire)
+  BIND(IF(STRLEN(?keski)=2, ?keskikirjainre, IF(?keski="", ".", ?toinennimire)) AS ?keskire)
+  BIND(IF(STRLEN(?etu)=2, ?etukirjainre, ?etunimire) AS ?eture)
+  BIND(CONCAT("(^|[ ])", ?etu, " ", ?keski, "($|[ ])") AS ?longrankre)
+  BIND(REGEX(?etu, "MINISTERI$") AS ?minister_test)
+  FILTER(IF(?minister_test,
+      NOT EXISTS { ?id a <http://ldf.fi/warsa/actors/actor_types/MilitaryPerson> . },TRUE)
+  )
+  BIND(REGEX(?promotion_rank, ?eture, "i") AS ?rank_test)
+  BIND((REGEX(?promotion_rank, ?longrankre, "i") || REGEX(?rank_label, ?longrankre, "i")) AS ?long_rank_test)
+  FILTER(
+    IF(STRENDS(?etu, "."),
+      REGEX(?etunimet, ?etukirjainre) && REGEX(?etunimet, ?keskire),
+      (REGEX(?etunimet, ?keskire, "i") && (REGEX(?etunimet, ?eture, "i"))) ||
+      IF(?keski != "",
+        ?rank_test && REGEX(?etunimet, ?keskire, "i")
+        || ?long_rank_test || (?minister_test && REGEX(?etunimet, ?keskire, "i")),
+        ?minister_test || ?rank_test || ?long_rank_test
+      )
+    )
+  )
+  OPTIONAL {
+    ?death crm:P100_was_death_of ?id .
+    ?death crm:P4_has_time-span ?death_date_id .
+    ?death_date_id crm:P82b_end_of_the_end ?death_date .
+  }
+  OPTIONAL {
+    ?id owl:sameAs ?cas .
+    ?cas cas:kuolinaika ?death_date .
+  }
+}
