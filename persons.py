@@ -1,13 +1,15 @@
 from datetime import datetime
-from arpa_linker.arpa import Arpa, process, log_to_file, parse_args, prune_candidates
+from arpa_linker.arpa import Arpa, ArpaMimic, process, log_to_file, parse_args
 from rdflib import URIRef
 from rdflib.namespace import SKOS
 import logging
 import re
 import sys
 
-log_to_file('persons.log', 'DEBUG')
+log_to_file('persons.log', 'INFO')
 logger = logging.getLogger('arpa_linker.arpa')
+
+dataset = ''
 
 
 def validator(graph, s):
@@ -368,15 +370,18 @@ ignore = [
 name_re = "^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([A-ZÄÖÅÜ][_a-zA-ZäÄöÖåÅèü-]{2,})$"
 name_re_compiled = re.compile(name_re)
 
+name_re_exclude = "[a-zäåö]+\W[a-zäåö]+"
+name_re_exclude_compiled = re.compile(name_re_exclude)
+
 
 def pruner(candidate):
-    if name_re_compiled.match(candidate):
-        return candidate
+    if name_re_compiled.fullmatch(candidate):
+        if not name_re_exclude_compiled.search(candidate):
+            return candidate
     return None
 
 
-if __name__ == '__main__':
-    args = parse_args(sys.argv[2:])
+def set_dataset(args):
     global dataset
     if str(args.tprop) == 'http://purl.org/dc/terms/subject':
         logger.info('Handling as photos')
@@ -385,11 +390,26 @@ if __name__ == '__main__':
         logger.info('Handling as events')
         dataset = 'event'
 
+
+if __name__ == '__main__':
     if sys.argv[1] == 'prune':
+        args = parse_args(sys.argv[2:])
+        set_dataset(args)
         process(args.input, args.fi, args.output, args.fo, args.tprop, prune_only=True,
                 pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, progress=True)
+    elif sys.argv[1] == 'disambiguate':
+        args = parse_args(sys.argv[3:])
+        set_dataset(args)
+        f = open(sys.argv[2])
+        qry = f.read()
+        f.close()
+        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore)
+        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
+                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
+                progress=True)
     else:
+        args = parse_args(sys.argv[1:])
         arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
 
         # Query the ARPA service, add the matches and serialize the graph to disk.

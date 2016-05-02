@@ -84,7 +84,8 @@ from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'process', 'prune_candidates', 'log_to_file',
+__all__ = ['Arpa', 'ArpaMimic', 'arpafy', 'process', 'prune_candidates',
+            'combine_candidates', 'map_results', 'log_to_file', 'post',
             'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
@@ -112,6 +113,8 @@ def map_results(results):
     `results` is the SPARQL result as a dict. Each row has to include an 'id' variable.
     """
 
+    logger.debug('Mapping results {} to ARPA format'.format(results))
+
     res = []
     for obj in results['results']['bindings']:
         o_id = obj['id']['value']
@@ -134,7 +137,11 @@ def map_results(results):
             for k, v in obj.items():
                 o['properties'][k].append(v.get('value'))
 
-    return {'results': res}
+    res = {'results': res}
+
+    logger.debug('Mapped to: {}'.format(res))
+
+    return res
 
 
 def post(url, data, retries=0, wait=1):
@@ -179,6 +186,7 @@ def post(url, data, retries=0, wait=1):
             raise HTTPError('Error ({}) from {} with request data: {}.'.format(e, url, data))
         else:
             # Success
+            logger.debug('Success, received: {}'.format(res))
             return res
 
 
@@ -326,11 +334,13 @@ class Arpa:
         """
 
         if candidates:
+            logger.debug('Filtering candidates')
             get_len = lambda x: len(x.split())
             get_label = lambda x: x.lower()
             # No use in removing literal duplicates
             skip_remove_duplicates = True
         else:
+            logger.debug('Filtering results')
             get_len = lambda x: len(x['properties']['ngram'][0].split())
             get_label = lambda x: x[LABEL_PROP].lower()
             skip_remove_duplicates = False
@@ -351,6 +361,8 @@ class Arpa:
 
         `url_params` is any URL parameters to be added to the ARPA URL, e.g. '?cgen'.
         """
+
+        logger.debug('Query ARPA at {} with text {}'.format(self._url, text))
 
         text = self._sanitize(text)
         if not text:
@@ -375,6 +387,8 @@ class Arpa:
         validated results.
         """
 
+        logger.debug('Get URI matches for text {}'.format(text))
+
         results = self._filter(self.query(text))
 
         if validator and results:
@@ -382,10 +396,10 @@ class Arpa:
             results = validator(text, results)
 
         if results:
-            logger.debug('Found matches {}'.format(results))
+            logger.info('Found matches {}'.format(results))
             res = [URIRef(x['id']) for x in results]
         else:
-            logger.debug('No matches for {}'.format(text))
+            logger.info('No matches for {}'.format(text))
             res = []
 
         return res
@@ -438,7 +452,7 @@ class ArpaMimic(Arpa):
         `url_params` is any URL parameters to be added to the URL.
         """
 
-        text = self._sanitize(text)
+        logger.debug('Querying {} with text {} using ArpaMimic'.format(self._url, text))
 
         if not text:
             raise ValueError('Empty query text')
@@ -451,6 +465,8 @@ class ArpaMimic(Arpa):
         data = {'query': query}
 
         res = post(url, data, retries=self._retries, wait=self._wait)
+
+        res = map_results(res)
 
         return res.get('results', None)
 
@@ -534,6 +550,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     (that have been validated based on the subject, graph and results). Optional.
     This is a function and not an object because of reasons.
 
+    If `candidates_only` is set, get candidates (n-grams) only from ARPA.
+
     If `progress` is `True`, show a progress bar. Requires pyprind.
     """
 
@@ -610,6 +628,8 @@ def prune_candidates(graph, source_prop, pruner, rdf_class=None,
     and the old candidates removed.
     """
 
+    logger.info('Pruning candidates')
+
     if output_graph is None:
         output_graph = graph
 
@@ -633,6 +653,8 @@ def prune_candidates(graph, source_prop, pruner, rdf_class=None,
         'graph': output_graph,
         'result_count': result_count
     }
+
+    logger.info('Candidate pruning complete')
 
     return res
 
@@ -717,7 +739,27 @@ def parse_args(args):
 
 
 def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=None):
+    """
+    Combine each subject's candidates into a single string.
+
+    Return the resulting graph.
+
+    `graph` is the graph containing the candidates. Will be modified if `output_graph`
+    is not given.
+
+    `prop` is the URIRef of the property containing the candidates.
+
+    `output_graph` is the graph to which the results should be added.
+    If not given, `graph` will be modified.
+
+    If `rdf_class` is given, only go through instances of this type.
+
+    If `progress` is set, display a progress bar.
+    """
+
     subgraph = _get_subgraph(graph, prop, rdf_class)
+
+    logger.info('Combining candidates')
 
     if output_graph is None:
         output_graph = graph
@@ -727,17 +769,19 @@ def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=
 
     for s in subjects:
         objs = [str(o) for o in subgraph.objects(s)]
-        combined = '"' + '" "'.join(objs) + '"'
+        combined = '\"' + '\" \"'.join(objs) + '\"'
         # Remove the original candidate
         output_graph.remove((s, None, None))
         output_graph.add((s, prop, Literal(combined)))
-        bar.update(len(objs))
+        bar.update()
+
+    logger.info('Candidates combined succesfully')
 
     return output_graph
 
 
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, prune_only=False, disambiguate_only=False, **kwargs):
+        new_graph=False, prune_only=False, join_candidates=False, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
@@ -752,6 +796,9 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     If `prune_only` is set, only prune candidates using `arpa.prune_candidates`.
 
+    If `join_candidates` is set, combine candidates into a single value using
+    `arpa.combine_candidates`.
+
     All other arguments are passed to `arpa.arpafy`.
 
     Return the results dict as returned by `arpa.arpafy`.
@@ -763,12 +810,14 @@ def process(input_file, input_format, output_file, output_format, *args,
     logger.info('Parsing complete')
 
     if new_graph:
+        logger.debug('Output to new graph')
         output_graph = Graph()
         output_graph.namespace_manager = g.namespace_manager
     else:
         output_graph = g
 
-    if disambiguate_only:
+    if join_candidates:
+        logger.debug('Combine candidates')
         output_graph = combine_candidates(g, kwargs.get('source_prop', SKOS['prefLabel']),
                 output_graph=output_graph, rdf_class=kwargs.get('rdf_class'),
                 progress=kwargs.get('progress'))
@@ -778,10 +827,12 @@ def process(input_file, input_format, output_file, output_format, *args,
     start_time = time.monotonic()
 
     if prune_only:
+        logger.info('Pruning candidates only')
         res = prune_candidates(g, kwargs.get('source_prop'), kwargs.get('pruner'),
                 rdf_class=kwargs.get('rdf_class'), output_graph=output_graph,
                 progress=kwargs.get('progress'))
     else:
+        logger.info('Processing normally')
         res = arpafy(g, *args, **kwargs)
 
     end_time = time.monotonic()
