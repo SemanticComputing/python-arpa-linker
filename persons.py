@@ -65,11 +65,10 @@ def validator(graph, s):
                 logger.info("No death date found for {}".format(person.get('id')))
             else:
                 if start and start > death_date:
-                    logger.info(
-                        "FAILURE: {} ({}) died ({}) before event start ({})".format(
+                    logger.warning(
+                        "DEAD PERSON: {} ({}) died ({}) before start ({}) of event {} ({})".format(
                             person.get('label'), person.get('id'),
-                            death_date, start))
-                    continue
+                            death_date, start, s, l))
             # The person either died after the event or the date of death is unknown
             match_len = len(person.get('matches'))
             count = 0
@@ -279,6 +278,7 @@ def preprocessor(text, *args):
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
     text = text.replace('hal.neuv.', '')
+    text = text.replace("luutnantti Herman ja Yrjö Nykäsen", "luutnantti Herman Nykänen # luutnantti Yrjö Nykänen")
     text = replace_general_list(text)
     text = replace_minister_list(text)
     text = replace_el_list(text)
@@ -308,6 +308,7 @@ def preprocessor(text, *args):
     text = text.replace('A.-E. Martola', 'Ilmari Armas-Eino Martola')
     text = re.sub(r'(?<!alikersantti\W)Neno(nen|selle|sen)\b', '## kenraaliluutnantti Nenonen', text)
     text = re.sub(r'[Mm]ajuri(\W+K\.\W*)? Kari(n|lle)?\b', 'everstiluutnantti Kari', text)
+    # Some young guy in one photo
     text = text.replace('majuri V.Tuompo', '##')
     text = text.replace('Tuompo, Viljo Einar', 'kenraaliluutnantti Tuompo')
     text = text.replace('Erfurth & Tuompo', 'Waldemar Erfurth ja kenraaliluutnantti Tuompo')
@@ -320,6 +321,9 @@ def preprocessor(text, *args):
     text = re.sub(r'[Rr](ou)?va(\.)? Kallio', '## Kaisa Kallio ##', text)
     text = re.sub(r'[Ee]versti Vaala(n|lle|a)?\b', '# kenraalimajuri Vaala #', text)
     text = re.sub(r'(kenraaliluutnantti|eversti) Raappana', '# kenraalimajuri Raappana #', text)
+    # John Rosenbröijer is also a possibility, but photos were checked manually
+    text = re.sub(r'[RB]osenbröijer(in|ille|ia)?\b', '# Edvin Rosenbröijer #', text)
+    text = re.sub(r'Turo Kart(on|olle|toa)\b', '# Turo Kartto #', text)
 
     text = text.replace(r'Saharan kauhu', '# kapteeni Juutilainen #')
     text = text.replace(r'luutnantti Juutilainen', '# kapteeni Juutilainen #')
@@ -392,7 +396,7 @@ def set_dataset(args):
 
 if __name__ == '__main__':
     if sys.argv[1] == 'prune':
-        log_to_file('persons.log', 'INFO')
+        log_to_file('persons_prune.log', 'INFO')
         args = parse_args(sys.argv[2:])
         set_dataset(args)
         process(args.input, args.fi, args.output, args.fo, args.tprop, prune_only=True,
@@ -416,6 +420,7 @@ if __name__ == '__main__':
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
                 progress=True)
     else:
+        log_to_file('persons.log', 'INFO')
         args = parse_args(sys.argv[1:])
         arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
 

@@ -135,7 +135,11 @@ def map_results(results):
             if ngram not in o['matches']:
                 o['matches'].append(ngram)
             for k, v in obj.items():
-                o['properties'][k].append(v.get('value'))
+                p = o.get('properties').get(k, None)
+                if p:
+                    p.append(v.get('value'))
+                else:
+                    o['properties'][k] = v.get('value')
 
     res = {'results': res}
 

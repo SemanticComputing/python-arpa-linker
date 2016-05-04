@@ -31,11 +31,13 @@ SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?etunimet ?suk
   BIND(CONCAT(?etunimet, ' ', ?familyName) AS ?nlabel)
   OPTIONAL {
     ?promotion_id a etype:Promotion ;
-                  crm:P11_had_participant ?id ;
-                  actors:hasRank ?promotion_rank_id ;
-                  crm:P4_has_time-span ?timespan_id .
+            crm:P11_had_participant ?id ;
+            actors:hasRank ?promotion_rank_id .
     ?promotion_rank_id skos:prefLabel ?promotion_rank .
-    ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
+    OPTIONAL {
+        ?promotion_id crm:P4_has_time-span ?timespan_id .
+        ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
+    }
   }
   BIND(CONCAT("(^|[ ])", substr(?etu, 1, 1)) as ?etukirjainre)
   BIND(CONCAT("(^|[ ])", substr(?keski, 1, 1)) as ?keskikirjainre)
