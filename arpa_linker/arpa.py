@@ -139,7 +139,7 @@ def map_results(results):
                 if p:
                     p.append(v.get('value'))
                 else:
-                    o['properties'][k] = v.get('value')
+                    o['properties'][k] = [v.get('value')]
 
     res = {'results': res}
 

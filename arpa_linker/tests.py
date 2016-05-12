@@ -194,6 +194,145 @@ sparql_result_with_duplicates = {
     }
 }
 
+sparql_result_with_missing = {
+    "head": {
+        "vars": ["id", "ngram", "label", "etunimet", "sukunimi", "promotion_rank", "earliest_promotion_time", "death_date"]
+    },
+    "results": {
+        "bindings": [
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Kenraaliluutnantti"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1917-04-25"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Kenraalimajuri"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1911-02-13"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Ratsuväenkenraali"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1918-03-07"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Sotamarsalkka"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1933-05-19"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Suomen Marsalkka"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1942-06-04"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Carl Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Kenraaliluutnantti"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1917-04-25"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Carl Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Kenraalimajuri"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1911-02-13"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Carl Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Ratsuväenkenraali"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1918-03-07"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Carl Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Sotamarsalkka"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1933-05-19"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_1"},
+                "ngram": {"type": "literal", "value": "Carl Gustaf Mannerheim"},
+                "label": {"type": "literal", "value": "Carl Gustaf Emil Mannerheim"},
+                "etunimet": {"type": "literal", "value": "Carl Gustaf Emil"},
+                "sukunimi": {"type": "literal", "value": "MANNERHEIM"},
+                "promotion_rank": {"type": "literal", "value": "Suomen Marsalkka"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1942-06-04"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1951-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_2"},
+                "ngram": {"type": "literal", "value": "Joku Toinen"},
+                "label": {"type": "literal", "value": "Joku Toinen"},
+                "etunimet": {"type": "literal", "value": "Joku"},
+                "sukunimi": {"type": "literal", "value": "TOINEN"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1933-05-19"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1938-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_2"},
+                "ngram": {"type": "literal", "value": "Joku Toinen"},
+                "label": {"type": "literal", "value": "Joku Toinen"},
+                "etunimet": {"type": "literal", "value": "Joku"},
+                "sukunimi": {"type": "literal", "value": "TOINEN"},
+                "promotion_rank": {"type": "literal", "value": "kapteeni"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1939-06-05"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1940-01-27"}
+            },
+            {
+                "id": {"type": "uri", "value": "http://ldf.fi/warsa/actors/person_2"},
+                "ngram": {"type": "literal", "value": "kapteeni Joku Toinen"},
+                "label": {"type": "literal", "value": "Joku Toinen"},
+                "etunimet": {"type": "literal", "value": "Joku"},
+                "sukunimi": {"type": "literal", "value": "TOINEN"},
+                "promotion_rank": {"type": "literal", "value": "kapteeni"},
+                "earliest_promotion_time": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1939-06-05"},
+                "death_date": {"datatype": "http://www.w3.org/2001/XMLSchema#date", "type": "typed-literal", "value": "1940-01-27"}
+            }
+        ]
+    }
+}
+
 candidate_values = {Literal(x[0]) for x in candidate_response['results'].values()}
 
 matches = {
@@ -1052,15 +1191,26 @@ class TestMapResults(TestCase):
                 'Kenraalimajuri', 'Ratsuväenkenraali', 'Sotamarsalkka',
                 'Suomen Marsalkka']
         self.ranks2 = ['luutnantti', 'kapteeni', 'kapteeni']
+        self.ranks_missing = ['kapteeni', 'kapteeni']
         self.ngrams = ['Gustaf Mannerheim', 'Carl Gustaf Mannerheim']
         self.ngrams2 = ['Joku Toinen', 'kapteeni Joku Toinen']
+        self.sparql_result = sparql_result
+        self.sparql_result_with_missing = sparql_result_with_missing
 
     def test_map(self):
-        res = map_results(sparql_result)['results']
+        res = map_results(self.sparql_result)['results']
         self.assertEqual(2, len(res))
         self.assertEqual(res[0]['properties']['promotion_rank'], self.ranks)
         self.assertEqual(res[0]['matches'], self.ngrams)
         self.assertEqual(res[1]['properties']['promotion_rank'], self.ranks2)
+        self.assertEqual(res[1]['matches'], self.ngrams2)
+
+    def test_map_with_missing_values(self):
+        res = map_results(self.sparql_result_with_missing)['results']
+        self.assertEqual(2, len(res))
+        self.assertEqual(res[0]['properties']['promotion_rank'], self.ranks)
+        self.assertEqual(res[0]['matches'], self.ngrams)
+        self.assertEqual(res[1]['properties']['promotion_rank'], self.ranks_missing)
         self.assertEqual(res[1]['matches'], self.ngrams2)
 
 
