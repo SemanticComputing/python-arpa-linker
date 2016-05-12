@@ -752,7 +752,7 @@ class TestProcess(TestCase):
         original_len = len(self.graph)
 
         res = process('input', 'turtle', 'output', 'turtle', source_prop=self.prop,
-                target_prop=self.tprop, prune_only=True, pruner=nop_pruner)
+                target_prop=self.tprop, prune=True, pruner=nop_pruner, run_arpafy=False)
 
         self.assertEqual(res['graph'], self.graph)
         self.assertEqual(len(self.graph), original_len)
@@ -767,8 +767,8 @@ class TestProcess(TestCase):
         original_len = len(self.graph)
 
         res = process('input', 'turtle', 'output', 'turtle', source_prop=self.prop,
-                target_prop=self.tprop, new_graph=True, prune_only=True,
-                pruner=no_res_pruner)
+                target_prop=self.tprop, new_graph=True, prune=True,
+                pruner=no_res_pruner, run_arpafy=False)
 
         self.assertNotEqual(res['graph'], self.graph)
         self.assertEqual(original_len, len(self.graph))

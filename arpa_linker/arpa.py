@@ -785,12 +785,14 @@ def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=
 
 
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, prune_only=False, join_candidates=False, **kwargs):
+        new_graph=False, prune=False, join_candidates=False, run_arpafy=True, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
 
     `input_file` is the name of the rdf file to be parsed.
+
+    `input_format` is the input file format.
 
     `output_file` is the output file name.
 
@@ -798,10 +800,13 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     If `new_graph` is set, use a new empty graph for adding the results.
 
-    If `prune_only` is set, only prune candidates using `arpa.prune_candidates`.
+    If `prune` is set, prune candidates using `arpa.prune_candidates`.
 
     If `join_candidates` is set, combine candidates into a single value using
     `arpa.combine_candidates`.
+
+    Setting `run_arpafy` to False will skip running `arpa.arpafy`.
+    Useful with `join_candidates`.
 
     All other arguments are passed to `arpa.arpafy`.
 
@@ -820,23 +825,28 @@ def process(input_file, input_format, output_file, output_format, *args,
     else:
         output_graph = g
 
+    logger.info('Begin processing')
+    start_time = time.monotonic()
+
+    if prune:
+        logger.info('Prune candidates')
+        res = prune_candidates(g, kwargs.get('source_prop'), kwargs.get('pruner'),
+                rdf_class=kwargs.get('rdf_class'), output_graph=output_graph,
+                progress=kwargs.get('progress'))
+        g = res['graph']
+
     if join_candidates:
         logger.debug('Combine candidates')
         output_graph = combine_candidates(g, kwargs.get('source_prop', SKOS['prefLabel']),
                 output_graph=output_graph, rdf_class=kwargs.get('rdf_class'),
                 progress=kwargs.get('progress'))
+        g = output_graph
+        res = {'graph': output_graph}
+
     kwargs['output_graph'] = output_graph
 
-    logger.info('Begin processing')
-    start_time = time.monotonic()
-
-    if prune_only:
-        logger.info('Pruning candidates only')
-        res = prune_candidates(g, kwargs.get('source_prop'), kwargs.get('pruner'),
-                rdf_class=kwargs.get('rdf_class'), output_graph=output_graph,
-                progress=kwargs.get('progress'))
-    else:
-        logger.info('Processing normally')
+    if run_arpafy:
+        logger.info('Start arpafy')
         res = arpafy(g, *args, **kwargs)
 
     end_time = time.monotonic()

@@ -402,6 +402,12 @@ if __name__ == '__main__':
         process(args.input, args.fi, args.output, args.fo, args.tprop, prune_only=True,
                 pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, progress=True)
+    elif sys.argv[1] == 'join':
+        args = parse_args(sys.argv[3:])
+        process(args.input, args.fi, args.output, args.fo, args.tprop, source_prop=args.prop,
+                rdf_class=args.rdf_class, new_graph=args.new_graph, join_candidates=True,
+                run_arpafy=False, progress=True)
+
     elif 'disambiguate' in sys.argv[1]:
         args = parse_args(sys.argv[3:])
         set_dataset(args)
