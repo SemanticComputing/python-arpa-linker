@@ -104,6 +104,19 @@ requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
 
 
+def _get_value(result):
+    type_ = result.get('type', None)
+    value = result.get('value', '')
+    if type_ == 'literal':
+        datatype = result.get('datatype', None)
+        if datatype:
+            return '"{}"^^{}'.format(value, datatype)
+        return '"{}"'.format(value)
+    if type_ == 'uri':
+        return '<{}>'.format(value)
+    return value
+
+
 def map_results(results):
     """
     Map general SPARQL results to the format ARPA returns.
@@ -119,27 +132,27 @@ def map_results(results):
     for obj in results['results']['bindings']:
         o_id = obj['id']['value']
 
-        idx = next((index for (index, d) in enumerate(res) if d["id"] == o_id), None)
+        idx = next((index for (index, d) in enumerate(res) if d['id'] == o_id), None)
         if idx is None:
-            props = {key: [value.get('value')] for key, value in obj.items()}
+            props = {key: [_get_value(value)] for key, value in obj.items()}
             o = {
                 'id': o_id,
-                'label': obj.get('label', {}).get('value'),
-                'matches': [obj.get('ngram', {}).get('value')],
+                'label': obj.get('label', {}).get('value', ''),
+                'matches': [obj.get('ngram', {}).get('value', '')],
                 'properties': props
             }
             res.append(o)
         else:
             o = res[idx]
-            ngram = obj.get('ngram', {}).get('value')
+            ngram = obj.get('ngram', {}).get('value', '')
             if ngram not in o['matches']:
                 o['matches'].append(ngram)
             for k, v in obj.items():
                 p = o.get('properties').get(k, None)
                 if p:
-                    p.append(v.get('value'))
+                    p.append(_get_value(v))
                 else:
-                    o['properties'][k] = [v.get('value')]
+                    o['properties'][k] = [_get_value(v)]
 
     res = {'results': res}
 

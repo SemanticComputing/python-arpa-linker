@@ -1186,12 +1186,12 @@ class TestPost(TestCase):
 
 class TestMapResults(TestCase):
     def setUp(self):
-        self.ranks = ['Kenraaliluutnantti', 'Kenraalimajuri', 'Ratsuväenkenraali',
-                'Sotamarsalkka', 'Suomen Marsalkka', 'Kenraaliluutnantti',
-                'Kenraalimajuri', 'Ratsuväenkenraali', 'Sotamarsalkka',
-                'Suomen Marsalkka']
-        self.ranks2 = ['luutnantti', 'kapteeni', 'kapteeni']
-        self.ranks_missing = ['kapteeni', 'kapteeni']
+        self.ranks = ['"Kenraaliluutnantti"', '"Kenraalimajuri"', '"Ratsuväenkenraali"',
+                '"Sotamarsalkka"', '"Suomen Marsalkka"', '"Kenraaliluutnantti"',
+                '"Kenraalimajuri"', '"Ratsuväenkenraali"', '"Sotamarsalkka"',
+                '"Suomen Marsalkka"']
+        self.ranks2 = ['"luutnantti"', '"kapteeni"', '"kapteeni"']
+        self.ranks_missing = ['"kapteeni"', '"kapteeni"']
         self.ngrams = ['Gustaf Mannerheim', 'Carl Gustaf Mannerheim']
         self.ngrams2 = ['Joku Toinen', 'kapteeni Joku Toinen']
         self.sparql_result = sparql_result
