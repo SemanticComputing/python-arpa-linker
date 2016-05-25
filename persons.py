@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from arpa_linker.arpa import Arpa, ArpaMimic, process, log_to_file, parse_args
 from rdflib import URIRef
@@ -8,17 +9,43 @@ import sys
 
 logger = logging.getLogger('arpa_linker.arpa')
 
-dataset = ''
+RANK_CLASSES = (
+    'Aliupseeri',
+    'Esiupseeri',
+    'Jääkäriarvo',
+    'Kenraalikunta',
+    'Komppaniaupseeri',
+    'Miehistö',
+    'Muu arvo',
+    'Päällystö',
+    'Saksalaisarvo',
+    'Upseeri',
+    'eläinlääkintähenkilöstö',
+    'kirkollinen henkilöstö',
+    'lottahenkilostö',
+    'lääkintähenkilöstö',
+    'musiikkihenkilöstö',
+    'tekninen henkilöstö',
+    'virkahenkilostö',
+)
+
+LOW_RANKS = (
+    'Aliupseeri',
+    'Miehistö',
+)
 
 
-def validator(graph, s):
+class Validator:
+    def __init__(self, graph, dataset):
+        self.graph = graph
+        self.dataset = dataset
 
-    def get_s_start_date():
+    def get_s_start_date(self, s):
         def parse_date_as_list(d):
             return datetime.strptime('-'.join(d[0:3]), "%Y-%m-%d").date()
 
         def get_event_date():
-            date_uri = graph.value(s, URIRef('http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span'))
+            date_uri = self.graph.value(s, URIRef('http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span'))
             try:
                 d = str(date_uri).split('time_')[1].split('-')
                 return parse_date_as_list(d)
@@ -27,20 +54,77 @@ def validator(graph, s):
                 return None
 
         def get_photo_date():
-            date_value = graph.value(s, URIRef('http://purl.org/dc/terms/created'))
+            date_value = self.graph.value(s, URIRef('http://purl.org/dc/terms/created'))
             d = str(date_value).split('-')
             try:
                 return parse_date_as_list(d)
             except ValueError:
-                logger.warning("Invalid date: {}".format(date_value))
+                logger.warning("Invalid date for {}: {}".format(s, date_value))
                 return None
 
-        if dataset == 'event':
+        if self.dataset == 'event':
             return get_event_date()
-        elif dataset == 'photo':
+        elif self.dataset == 'photo':
             return get_photo_date()
         else:
             raise Exception('Dataset not defined or invalid')
+
+    def get_ranked_matches(self, results):
+        d = {x.get('id'): set(x.get('matches')) for x in results}
+        dd = defaultdict(set)
+        for k, v in d:
+            dd[v].add(k)
+        rd = {}
+        for k in dd.keys():
+            l = [s for s in dd.keys() if k in s and k != s]
+            rd[k] = {'rank': len(l) * -10, 'uris': dd[k]}
+            for r in l:
+                st = dd[k] - dd[r]
+                rd[k]['uris'] = st
+        return rd
+
+    def get_death_date(self, person):
+        try:
+            death_date = datetime.strptime(
+                person['properties']['death_date'][0].split('^')[0],
+                '"%Y-%m-%d"').date()
+        except (KeyError, ValueError):
+            logger.info("No death date found for {}".format(person.get('id')))
+            return None
+        return death_date
+
+    def calculate_rank_score(self, person):
+        rank_classes = [r.replace('"') for r in person.get('')]
+
+    def validate(self, s, text, results):
+        if not results:
+            return results
+        res = []
+        ranked = self.get_ranked_matches(results)
+        s_date = self.get_s_start_date(s)
+        for person in results:
+            score = ranked.get(person.get('id')).get('rank')
+            death_date = self.get_death_date(person)
+            try:
+                diff = s_date - death_date
+            except:
+                pass
+            else:
+                if diff.days > 30:
+                    logger.info(
+                        "DEAD PERSON: {} ({}) died ({}) more than a month before start ({}) of event {} ({})".format(
+                            person.get('label'), person.get('id'),
+                            death_date, s_date, s, text))
+                    score -= 10
+
+
+            if score > 1:
+                res.append(person)
+
+        return res
+
+
+def validator(graph, s):
 
     def get_ranks(person):
         props = person.get('properties', {})
@@ -50,86 +134,12 @@ def validator(graph, s):
         if not results:
             return results
         l = graph.value(s, SKOS.prefLabel)
-        start = get_s_start_date()
-        longest_matches = {}
-        filtered = []
-        for person in results:
-            if person['id'] == 'http://ldf.fi/warsa/actors/person_p10276':
-                logger.info("FAILURE: Filtering out person {}".format(person.get('id')))
-                continue
-            try:
-                death_date = datetime.strptime(
-                    person['properties']['death_date'][0].split('^')[0],
-                    '"%Y-%m-%d"').date()
-            except (KeyError, ValueError):
-                logger.info("No death date found for {}".format(person.get('id')))
-            else:
-                if start and start > death_date:
-                    logger.warning(
-                        "DEAD PERSON: {} ({}) died ({}) before start ({}) of event {} ({})".format(
-                            person.get('label'), person.get('id'),
-                            death_date, start, s, l))
-            # The person either died after the event or the date of death is unknown
-            match_len = len(person.get('matches'))
-            count = 0
-            match = True
-            for i, m in enumerate(person.get('matches'), 1):
-                if match_len >= longest_matches.get(m, 0):
-                    longest_matches[m] = match_len
-                    count = count + 1
-
-                if count > 0 and i != count:
-                    logger.warning("Partial longest match for {} ({}): {}".format(
-                        person.get('label'), person.get('id'),
-                        person.get('matches'), l))
-
-                if match_len < longest_matches.get(m, 0):
-                    match = False
-                    break
-            if match:
-                logger.info("{} ({}) preliminarily accepted".format(
-                    person.get('label'),
-                    person.get('id')))
-                filtered.append(person)
-            else:
-                logger.info("FAILURE: {} {} ({}) failed validation after matching {} in {} (in preliminary step)".format(
-                    get_ranks(person),
-                    person.get('label'),
-                    person.get('id'),
-                    person.get('matches'),
-                    l))
-
-        res = []
-        for p in filtered:
-            match_len = len(p.get('matches'))
-            ranks = get_ranks(p)
-            if ('"Sotamies"' in ranks) and not re.findall(r"([Ss]otamie|[Ss]tm\b)", text):
-                logger.info("FAILURE: Filterin out private {} {} ({}), matched {} in {}".format(
-                    ranks,
-                    p.get('label'),
-                    p.get('id'),
-                    p.get('matches'),
-                    l))
-            elif match_len >= longest_matches[p.get('matches')[0]]:
-                logger.info("SUCCESS: {} {} ({}) passed validation, matching {} in {}".format(
-                    ranks,
-                    p.get('label'),
-                    p.get('id'),
-                    p.get('matches'),
-                    l))
-                res.append(p)
-            else:
-                logger.info("FAILURE: {} {} ({}) failed validation after matching {} in {}".format(
-                    ranks,
-                    p.get('label'),
-                    p.get('id'),
-                    p.get('matches'),
-                    l))
 
         logger.info("PASSED VALIDATION: {}".format(res))
         return res
 
     return validate
+
 
 list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
