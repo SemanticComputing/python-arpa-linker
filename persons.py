@@ -9,25 +9,25 @@ import sys
 
 logger = logging.getLogger('arpa_linker.arpa')
 
-RANK_CLASSES = (
-    'Aliupseeri',
-    'Esiupseeri',
-    'Jääkäriarvo',
-    'Kenraalikunta',
-    'Komppaniaupseeri',
-    'Miehistö',
-    'Muu arvo',
-    'Päällystö',
-    'Saksalaisarvo',
-    'Upseeri',
-    'eläinlääkintähenkilöstö',
-    'kirkollinen henkilöstö',
-    'lottahenkilostö',
-    'lääkintähenkilöstö',
-    'musiikkihenkilöstö',
-    'tekninen henkilöstö',
-    'virkahenkilostö',
-)
+RANK_CLASS_SCORES = {
+    'Kenraalikunta': 15,
+    'Esiupseeri': 10,
+    'Komppaniaupseeri': 5,
+    'Upseeri': 5,
+    'Aliupseeri': -5,
+    'Miehistö': -10,
+    'Jääkäriarvo': 0,
+    'Muu arvo': 0,
+    'Päällystö': 0,
+    'Saksalaisarvo': 0,
+    'eläinlääkintähenkilöstö': 0,
+    'kirkollinen henkilöstö': 0,
+    'lottahenkilostö': 0,
+    'lääkintähenkilöstö': 0,
+    'musiikkihenkilöstö': 0,
+    'tekninen henkilöstö': 0,
+    'virkahenkilostö': 0
+}
 
 LOW_RANKS = (
     'Aliupseeri',
@@ -40,24 +40,26 @@ class Validator:
         self.graph = graph
         self.dataset = dataset
 
+    def parse_date(self, d):
+        str_date = '-'.join(d.replace('"', '').split('^')[0].split('-')[0:3])
+        return datetime.strptime(str_date, "%Y-%m-%d").date()
+
     def get_s_start_date(self, s):
-        def parse_date_as_list(d):
-            return datetime.strptime('-'.join(d[0:3]), "%Y-%m-%d").date()
 
         def get_event_date():
             date_uri = self.graph.value(s, URIRef('http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span'))
             try:
-                d = str(date_uri).split('time_')[1].split('-')
-                return parse_date_as_list(d)
+                d = str(date_uri).split('time_')[1]
+                return self.parse_date(d)
             except ValueError:
                 logger.warning("Invalid time-span URI: {}".format(date_uri))
                 return None
 
         def get_photo_date():
             date_value = self.graph.value(s, URIRef('http://purl.org/dc/terms/created'))
-            d = str(date_value).split('-')
+            d = str(date_value)
             try:
-                return parse_date_as_list(d)
+                return self.parse_date(d)
             except ValueError:
                 logger.warning("Invalid date for {}: {}".format(s, date_value))
                 return None
@@ -85,16 +87,51 @@ class Validator:
 
     def get_death_date(self, person):
         try:
-            death_date = datetime.strptime(
-                person['properties']['death_date'][0].split('^')[0],
-                '"%Y-%m-%d"').date()
+            death_date = self.parse_date(person['properties']['death_date'][0])
         except (KeyError, ValueError):
             logger.info("No death date found for {}".format(person.get('id')))
             return None
         return death_date
 
+    def get_current_ranks(self, person, max_date):
+        """
+        >>> v = Validator(None, 'photo')
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"']}
+        >>> person = {'properties': ranks}
+        >>> date = datetime.strptime('1940-02-05', "%Y-%m-%d").date()
+        >>> v.get_current_ranks(person, date)
+        ['Sotamies']
+        """
+        props = person['properties']
+        ranks = []
+        for i, rank in enumerate(props.get('rank')):
+            try:
+                date = self.parse_date(props.get('promotion_date')[i])
+            except:
+                # Include ranks if date is not available
+                pass
+            else:
+                if date > max_date:
+                    # Not a current rank
+                    continue
+            ranks.append(rank.replace('"', ''))
+
+        return ranks
+
     def calculate_rank_score(self, person):
-        rank_classes = [r.replace('"') for r in person.get('')]
+        """
+        >>> v = Validator(None, 'photo')
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
+        ...    'hierarchy': ['"Miehistö"', '"Kenraalikunta"']}
+        >>> person = {'properties': ranks}
+        >>> v.calculate_rank_score(person)
+        15
+        """
+        props = person['properties']
+        rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
+        class_score = max([RANK_CLASS_SCORES.get(s) for s in rank_classes])
+        return class_score
 
     def validate(self, s, text, results):
         if not results:
@@ -116,7 +153,6 @@ class Validator:
                             person.get('label'), person.get('id'),
                             death_date, s_date, s, text))
                     score -= 10
-
 
             if score > 1:
                 res.append(person)
@@ -405,6 +441,11 @@ def set_dataset(args):
 
 
 if __name__ == '__main__':
+    if sys.argv[1] == 'test':
+        import doctest
+        doctest.testmod()
+        exit()
+
     if sys.argv[1] == 'prune':
         log_to_file('persons_prune.log', 'INFO')
         args = parse_args(sys.argv[2:])

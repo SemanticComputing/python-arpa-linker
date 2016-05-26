@@ -9,7 +9,9 @@ PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX cas: <http://ldf.fi/schema/narc-menehtyneet1939-45/>
 
-SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?etunimet ?sukunimi ?promotion_rank ?earliest_promotion_time ?death_date WHERE {
+SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?etunimet ?sukunimi (COALESCE(?hierarchy_label, 'NA') AS ?hierarchy)
+(COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date
+WHERE {
   VALUES ?ngram {
     <VALUES>
   }
@@ -34,6 +36,9 @@ SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?etunimet ?suk
             crm:P11_had_participant ?id ;
             actors:hasRank ?promotion_rank_id .
     ?promotion_rank_id skos:prefLabel ?promotion_rank .
+    OPTIONAL {
+      ?promotion_rank_id dct:isPartOf/skos:prefLabel ?hierarchy_label .
+    }
     OPTIONAL {
         ?promotion_id crm:P4_has_time-span ?timespan_id .
         ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
