@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 from arpa_linker.arpa import Arpa, ArpaMimic, process, log_to_file, parse_args
 from rdflib import URIRef
-from rdflib.namespace import SKOS
+# from rdflib.namespace import SKOS
 import logging
 import re
 import sys
@@ -74,18 +74,26 @@ class Validator:
     def get_ranked_matches(self, results):
         d = {x.get('id'): set(x.get('matches')) for x in results}
         dd = defaultdict(set)
-        for k, v in d:
-            dd[v].add(k)
+        for k, v in d.items():
+            for match in v:
+                dd[match].add(k)
         rd = {}
         for k in dd.keys():
             l = [s for s in dd.keys() if k in s and k != s]
-            rd[k] = {'rank': len(l) * -10, 'uris': dd[k]}
+            rd[k] = {'score': len(l) * -50, 'uris': dd[k]}
             for r in l:
                 st = dd[k] - dd[r]
                 rd[k]['uris'] = st
         return rd
 
     def get_death_date(self, person):
+        """
+        >>> v = Validator(None, 'photo')
+        >>> ranks = {'death_date': ['"1940-02-01"^^xsd:date']}
+        >>> person = {'properties': ranks}
+        >>> v.get_death_date(person)
+        datetime.date(1940, 2, 1)
+        """
         try:
             death_date = self.parse_date(person['properties']['death_date'][0])
         except (KeyError, ValueError):
@@ -93,45 +101,108 @@ class Validator:
             return None
         return death_date
 
-    def get_current_ranks(self, person, max_date):
+    def get_current_rank(self, person, event_date):
         """
+        Get the latest rank the person had attained by the date given.
+        If dates are unknown, return None.
         >>> v = Validator(None, 'photo')
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"']}
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-01"^^xsd:date'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
         >>> person = {'properties': ranks}
-        >>> date = datetime.strptime('1940-02-05', "%Y-%m-%d").date()
-        >>> v.get_current_ranks(person, date)
-        ['Sotamies']
+        >>> date = datetime.strptime('1940-03-05', "%Y-%m-%d").date()
+        >>> v.get_current_rank(person, date)
+        'Korpraali'
         """
         props = person['properties']
-        ranks = []
+        res = None
+        latest_date = None
         for i, rank in enumerate(props.get('rank')):
             try:
-                date = self.parse_date(props.get('promotion_date')[i])
+                promotion_date = self.parse_date(props.get('promotion_date')[i])
             except:
-                # Include ranks if date is not available
-                pass
-            else:
-                if date > max_date:
-                    # Not a current rank
-                    continue
-            ranks.append(rank.replace('"', ''))
+                # Unknown date
+                continue
 
-        return ranks
+            if promotion_date > event_date or latest_date and promotion_date < latest_date:
+                # Not a current rank
+                continue
 
-    def calculate_rank_score(self, person):
+            latest_date = promotion_date
+            res = rank.replace('"', '')
+
+        return res
+
+    def get_rank_score(self, person, s_date):
         """
         >>> v = Validator(None, 'photo')
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Kenraalikunta"']}
-        >>> person = {'properties': ranks}
-        >>> v.calculate_rank_score(person)
-        15
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
+        ...    'hierarchy': ['"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
+        >>> v.get_rank_score(person, datetime.strptime('1941-03-05', '%Y-%m-%d').date())
+        25
         """
         props = person['properties']
         rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
-        class_score = max([RANK_CLASS_SCORES.get(s) for s in rank_classes])
-        return class_score
+        score = max([RANK_CLASS_SCORES.get(s) for s in rank_classes])
+        matches = set(person.get('matches'))
+        current_rank = self.get_current_rank(person, s_date)
+        cur_rank_re = r'\b{}\b'.format(current_rank.lower())
+        if current_rank and any([m for m in matches if re.match(cur_rank_re, m.lower())]):
+            score += 10
+        return score
+
+    def get_date_score(self, person, s_date, s, e_label):
+        """
+        >>> v = Validator(None, 'photo')
+        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date']}
+        >>> person = {'properties': props}
+        >>> v.get_date_score(person, datetime.strptime('1941-03-05', '%Y-%m-%d').date(), None, None)
+        -10
+        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date']}
+        >>> person = {'properties': props}
+        >>> v.get_date_score(person, datetime.strptime('1939-03-05', '%Y-%m-%d').date(), None, None)
+        0
+        """
+        score = 0
+        death_date = self.get_death_date(person)
+        try:
+            diff = s_date - death_date
+        except:
+            pass
+        else:
+            if diff.days > 30:
+                logger.info(
+                    "DEAD PERSON: {p_label} ({p_uri}) died ({death_date}) more than a month"
+                    "({diff} days) before start ({s_date}) of event {e_label} ({e_uri})"
+                    .format(p_label=person.get('label'), p_uri=person.get('id'), diff=diff,
+                        death_date=death_date, s_date=s_date, e_uri=s, e_label=e_label))
+                score -= 10
+            elif diff.days >= 0:
+                logger.info(
+                    "RECENTLY DEAD PERSON: {p_label} ({p_uri}) died {diff} days ({death_date}) before start "
+                    "({s_date}) of event {e_label} ({e_uri})".format(p_lable=person.get('label'), p_uri=person.get('id'),
+                        diff=diff.days, death_date=death_date, s_date=s_date, e_uri=s, e_label=e_label))
+        return score
+
+    def get_score(self, person, s, s_date, text, results, ranked_matches):
+        """
+        >>> v = Validator(None, 'photo')
+        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
+        ...    'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
+        ...    'hierarchy': ['"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
+        >>> results = [person]
+        >>> ranked_matches = v.get_ranked_matches(results)
+        >>> v.get_score(person, None, datetime.strptime('1941-03-05', '%Y-%m-%d').date(), None, results, ranked_matches)
+        15
+        """
+        rms = ranked_matches.get(person.get('id'), {}).get('score', 0)
+        ds = self.get_date_score(person, s_date, s, text)
+        rs = self.get_rank_score(person, s_date)
+
+        return rms + ds + rs
 
     def validate(self, s, text, results):
         if not results:
@@ -140,41 +211,14 @@ class Validator:
         ranked = self.get_ranked_matches(results)
         s_date = self.get_s_start_date(s)
         for person in results:
-            score = ranked.get(person.get('id')).get('rank')
-            death_date = self.get_death_date(person)
-            try:
-                diff = s_date - death_date
-            except:
-                pass
-            else:
-                if diff.days > 30:
-                    logger.info(
-                        "DEAD PERSON: {} ({}) died ({}) more than a month before start ({}) of event {} ({})".format(
-                            person.get('label'), person.get('id'),
-                            death_date, s_date, s, text))
-                    score -= 10
+            score = self.get_score(person, s, s_date, text, results, ranked)
 
             if score > 1:
                 res.append(person)
 
         return res
 
-
-def validator(graph, s):
-
-    def get_ranks(person):
-        props = person.get('properties', {})
-        return props.get('rank_label', []) + props.get('promotion_rank', [])
-
-    def validate(text, results):
-        if not results:
-            return results
-        l = graph.value(s, SKOS.prefLabel)
-
-        logger.info("PASSED VALIDATION: {}".format(res))
-        return res
-
-    return validate
+        # l = graph.value(s, SKOS.prefLabel)
 
 
 list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
@@ -384,18 +428,18 @@ def preprocessor(text, *args):
     if 'JR 8' in text:
         text = re.sub('majuri Laaksonen', '# everstiluutnantti Sulo Laaksonen #', text)
     # Needs tweaking for photos
-    #text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
+    # text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
     text = text.replace('Ribbentrop', '## Joachim von_Ribbentrop')
-    #text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
-    #text = text.replace('Kuusisen hallituksen', '## O. W. Kuusinen')
-    #text = text.replace('Molotov', '## V. Molotov')  # not for photos
-    #text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '## Kyösti Kallio', text)
-    #text = text.replace('E. Mäkinen', '## kenraalimajuri Mäkinen')
-    #text = text.replace('Ryti', '## Risto Ryti')
-    #text = text.replace('Tanner', '## Väinö Tanner')
+    # text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
+    # text = text.replace('Kuusisen hallituksen', '## O. W. Kuusinen')
+    # text = text.replace('Molotov', '## V. Molotov')  # not for photos
+    # text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '## Kyösti Kallio', text)
+    # text = text.replace('E. Mäkinen', '## kenraalimajuri Mäkinen')
+    # text = text.replace('Ryti', '## Risto Ryti')
+    # text = text.replace('Tanner', '## Väinö Tanner')
     text = re.sub(r'(?<!Aimo )(?<!Aukusti )(?<!Y\.)Tanner', '# Väinö Tanner #', text)
-    #text = text.replace('Niukkanen', '## Juho Niukkanen')
-    #text = text.replace('Söderhjelm', '## Johan Otto Söderhjelm')
+    # text = text.replace('Niukkanen', '## Juho Niukkanen')
+    # text = text.replace('Söderhjelm', '## Johan Otto Söderhjelm')
     text = re.sub(r'(?<![Ee]verstiluutnantti )Paasikivi', '## Juho Kusti Paasikivi', text)
     text = re.sub(r'[Mm]inisteri Walden', '## kenraaliluutnantti Walden #', text)
     text = re.sub(r'(?<!eversti )(?<!kenraaliluutnantti )Walden', '## kenraaliluutnantti Walden #', text)
