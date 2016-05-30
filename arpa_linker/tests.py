@@ -744,17 +744,16 @@ class TestArpafy(TestCase):
     @responses.activate
     def test_validation(self):
 
-        def validator(graph, s):
-            self.assertEqual(graph, self.graph)
+        class Validator:
+            def __init__(self, *args):
+                pass
 
-            def validate(text, results):
+            def validate(self, results, text, *args, **kwargs):
                 res = []
                 for r in results:
                     if r['label'] != 'Hanko':
                         res.append(r)
                 return res
-
-            return validate
 
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
@@ -763,8 +762,7 @@ class TestArpafy(TestCase):
         arpa = Arpa('http://url')
         res = arpafy(self.graph, self.tprop, arpa,
                 source_prop=self.prop,
-                output_graph=output_graph,
-                validator=validator)
+                output_graph=output_graph, validator_class=Validator)
 
         self.assertEqual(res['graph'], output_graph)
 

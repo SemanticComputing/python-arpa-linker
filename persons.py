@@ -26,19 +26,16 @@ RANK_CLASS_SCORES = {
     'lääkintähenkilöstö': 0,
     'musiikkihenkilöstö': 0,
     'tekninen henkilöstö': 0,
-    'virkahenkilostö': 0
+    'virkahenkilostö': 0,
+    'NA': 1
 }
-
-LOW_RANKS = (
-    'Aliupseeri',
-    'Miehistö',
-)
 
 
 class Validator:
-    def __init__(self, graph, dataset):
+    dataset = ''
+
+    def __init__(self, graph, *args, **kwargs):
         self.graph = graph
-        self.dataset = dataset
 
     def parse_date(self, d):
         str_date = '-'.join(d.replace('"', '').split('^')[0].split('-')[0:3])
@@ -72,6 +69,30 @@ class Validator:
             raise Exception('Dataset not defined or invalid')
 
     def get_ranked_matches(self, results):
+        """
+        >>> v = Validator(None)
+        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Komppaniaupseeri"'],
+        ...    'rank': ['"Vänrikki"']}
+        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'lieutenant'}
+        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
+        ...    'hierarchy': ['"Kenraalikunta"'],
+        ...    'rank': ['"Kenraalimajuri"']}
+        >>> person2 = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general'}
+        >>> results = [person, person2]
+        >>> rd = v.get_ranked_matches(results)
+        >>> rd['A. Snellman']['uris']
+        {'lieutenant'}
+        >>> rd['A. Snellman']['score']
+        -50
+        >>> rd['Kenraalimajuri A. Snellman']['uris']
+        {'general'}
+        >>> rd['Kenraalimajuri A. Snellman']['score']
+        0
+        """
+
         d = {x.get('id'): set(x.get('matches')) for x in results}
         dd = defaultdict(set)
         for k, v in d.items():
@@ -79,16 +100,44 @@ class Validator:
                 dd[match].add(k)
         rd = {}
         for k in dd.keys():
-            l = [s for s in dd.keys() if k in s and k != s]
-            rd[k] = {'score': len(l) * -50, 'uris': dd[k]}
-            for r in l:
+            match_list = [s for s in dd.keys() if k in s and k != s]
+            rd[k] = {'score': len(match_list) * -50, 'uris': dd[k]}
+            for r in match_list:
                 st = dd[k] - dd[r]
                 rd[k]['uris'] = st
         return rd
 
+    def get_match_scores(self, results):
+        """
+        >>> v = Validator(None)
+        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Komppaniaupseeri"'],
+        ...    'rank': ['"Vänrikki"']}
+        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'lieutenant'}
+        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
+        ...    'hierarchy': ['"Kenraalikunta"'],
+        ...    'rank': ['"Kenraalimajuri"']}
+        >>> person2 = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general'}
+        >>> results = [person, person2]
+        >>> scores = v.get_match_scores(results)
+        >>> scores['general']
+        0
+        >>> scores['lieutenant']
+        -50
+        """
+        rd = self.get_ranked_matches(results)
+        scores = {}
+        for k, v in rd.items():
+            for uri in v['uris']:
+                scores[uri] = v['score']
+
+        return scores
+
     def get_death_date(self, person):
         """
-        >>> v = Validator(None, 'photo')
+        >>> v = Validator(None)
         >>> ranks = {'death_date': ['"1940-02-01"^^xsd:date']}
         >>> person = {'properties': ranks}
         >>> v.get_death_date(person)
@@ -105,13 +154,20 @@ class Validator:
         """
         Get the latest rank the person had attained by the date given.
         If dates are unknown, return None.
-        >>> v = Validator(None, 'photo')
+        >>> from datetime import date
+        >>> v = Validator(None)
         >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-01"^^xsd:date'],
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
         >>> person = {'properties': ranks}
-        >>> date = datetime.strptime('1940-03-05', "%Y-%m-%d").date()
-        >>> v.get_current_rank(person, date)
+        >>> d = date(1940, 3, 5)
+        >>> v.get_current_rank(person, d)
         'Korpraali'
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-01"^^xsd:date'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
+        >>> person = {'properties': ranks}
+        >>> d = date(1940, 4, 5)
+        >>> v.get_current_rank(person, d)
+        'Luutnantti'
         """
         props = person['properties']
         res = None
@@ -134,34 +190,39 @@ class Validator:
 
     def get_rank_score(self, person, s_date):
         """
-        >>> v = Validator(None, 'photo')
+        >>> from datetime import date
+        >>> v = Validator(None)
         >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Kenraalikunta"'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
-        >>> v.get_rank_score(person, datetime.strptime('1941-03-05', '%Y-%m-%d').date())
+        >>> v.get_rank_score(person, date(1941, 3, 5))
         25
         """
         props = person['properties']
         rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
-        score = max([RANK_CLASS_SCORES.get(s) for s in rank_classes])
+        score = max([RANK_CLASS_SCORES.get(s, 0) for s in rank_classes])
         matches = set(person.get('matches'))
         current_rank = self.get_current_rank(person, s_date)
-        cur_rank_re = r'\b{}\b'.format(current_rank.lower())
-        if current_rank and any([m for m in matches if re.match(cur_rank_re, m.lower())]):
-            score += 10
+        if current_rank:
+            cur_rank_re = r'\b{}\b'.format(current_rank.lower())
+            if any([m for m in matches if re.match(cur_rank_re, m.lower())]):
+                score += 10
         return score
 
     def get_date_score(self, person, s_date, s, e_label):
         """
-        >>> v = Validator(None, 'photo')
-        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date']}
+        >>> from datetime import date
+        >>> v = Validator(None)
+        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
+        ...    '"1940-03-01"^^xsd:date']}
         >>> person = {'properties': props}
-        >>> v.get_date_score(person, datetime.strptime('1941-03-05', '%Y-%m-%d').date(), None, None)
+        >>> v.get_date_score(person, date(1941, 3, 5), None, None)
         -10
-        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date']}
+        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
+        ...    '"1940-03-01"^^xsd:date']}
         >>> person = {'properties': props}
-        >>> v.get_date_score(person, datetime.strptime('1939-03-05', '%Y-%m-%d').date(), None, None)
+        >>> v.get_date_score(person, date(1939, 3, 5), None, None)
         0
         """
         score = 0
@@ -169,6 +230,7 @@ class Validator:
         try:
             diff = s_date - death_date
         except:
+            # Either date is unknown, no score adjustment
             pass
         else:
             if diff.days > 30:
@@ -181,30 +243,56 @@ class Validator:
             elif diff.days >= 0:
                 logger.info(
                     "RECENTLY DEAD PERSON: {p_label} ({p_uri}) died {diff} days ({death_date}) before start "
-                    "({s_date}) of event {e_label} ({e_uri})".format(p_lable=person.get('label'), p_uri=person.get('id'),
+                    "({s_date}) of event {e_label} ({e_uri})".format(p_label=person.get('label'), p_uri=person.get('id'),
                         diff=diff.days, death_date=death_date, s_date=s_date, e_uri=s, e_label=e_label))
         return score
 
     def get_score(self, person, s, s_date, text, results, ranked_matches):
         """
-        >>> v = Validator(None, 'photo')
+        >>> from datetime import date
+        >>> v = Validator(None)
         >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
         ...    'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Kenraalikunta"'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         >>> results = [person]
-        >>> ranked_matches = v.get_ranked_matches(results)
-        >>> v.get_score(person, None, datetime.strptime('1941-03-05', '%Y-%m-%d').date(), None, results, ranked_matches)
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1941, 3, 5), None, results, ranked_matches)
         15
+        >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
+        ...    'promotion_date': ['"NA"', '"NA"', '"NA"'],
+        ...    'hierarchy': ['"NA"', '"NA"', '"NA"'],
+        ...    'rank': ['"NA"', '"NA"', '"NA"']}
+        >>> person = {'properties': props, 'matches': ['Adolf Hitler'], 'id': 'id'}
+        >>> results = [person]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1941, 3, 5), None, results, ranked_matches)
+        1
+        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Komppaniaupseeri"'],
+        ...    'rank': ['"Vänrikki"']}
+        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
+        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
+        ...    'hierarchy': ['"Kenraalikunta"'],
+        ...    'rank': ['"Kenraalimajuri"']}
+        >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id2'}
+        >>> results = [person, person2]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1942, 4, 27), None, results, ranked_matches)
+        -45
+        >>> v.get_score(person2, None, date(1942, 4, 27), None, results, ranked_matches)
+        25
         """
-        rms = ranked_matches.get(person.get('id'), {}).get('score', 0)
+        rms = ranked_matches.get(person.get('id'), 0)
         ds = self.get_date_score(person, s_date, s, text)
         rs = self.get_rank_score(person, s_date)
 
         return rms + ds + rs
 
-    def validate(self, s, text, results):
+    def validate(self, results, text, s):
         if not results:
             return results
         res = []
@@ -212,9 +300,21 @@ class Validator:
         s_date = self.get_s_start_date(s)
         for person in results:
             score = self.get_score(person, s, s_date, text, results, ranked)
+            log_msg = "{} {} ({}) scored {}".format(
+                person.get('properties', {}).get('rank', []).join(', '),
+                person.get('label'),
+                person.get('id'),
+                score)
 
-            if score > 1:
+            if score > 0:
+                log_msg = "PASS: " + log_msg
                 res.append(person)
+            else:
+                log_msg = "FAIL: " + log_msg
+
+            logger.info(log_msg)
+
+        logger.info("{}/{} passed validation".format(len(res), len(results)))
 
         return res
 
@@ -351,6 +451,8 @@ def preprocessor(text, *args):
         return text
     if text in snellman_list:
         logger.info('Snellman list: {}'.format(text))
+        if text == "Piirros Aarne Nopsanen: Eversti Snellman.":
+            return "Aarne Nopsanen # kenraalimajuri Snellman"
         return 'kenraalimajuri Snellman'
     if text == 'Eversti Snellman ja Eversti Vaala.':
         logger.info('Snellman and Vaala: {}'.format(text))
@@ -421,14 +523,11 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<!patterin päällikkö )[Kk]apteeni (Joppe )?Karhu(nen|sen)', '# kapteeni Jorma Karhunen #', text)
     text = text.replace(r'Wind', '# luutnantti Wind #')
     text = re.sub(r'(?<!3\. )(?<!III )(luutnantti|[Vv]änrikki|Lauri Wilhelm) Nissi(nen|sen)\b', '# vänrikki Lauri Nissinen #', text)
-    # Hack because of duplicate person
-    text = re.sub(r'((G\.)|([Ee]versti)) Snellman', '## everstiluutnantti G. Snellman', text)
     text = text.replace('Cajander', '## Aimo Kaarlo Cajander')
     text = re.sub('eversti(luutnantti)? Laaksonen', '# everstiluutnantti Sulo Laaksonen #', text)
     if 'JR 8' in text:
         text = re.sub('majuri Laaksonen', '# everstiluutnantti Sulo Laaksonen #', text)
     # Needs tweaking for photos
-    # text = text.replace('G. Snellman', '## everstiluutnantti G. Snellman')
     text = text.replace('Ribbentrop', '## Joachim von_Ribbentrop')
     # text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
     # text = text.replace('Kuusisen hallituksen', '## O. W. Kuusinen')
@@ -475,13 +574,12 @@ def pruner(candidate):
 
 
 def set_dataset(args):
-    global dataset
     if str(args.tprop) == 'http://purl.org/dc/terms/subject':
         logger.info('Handling as photos')
-        dataset = 'photo'
+        Validator.dataset = 'photo'
     else:
         logger.info('Handling as events')
-        dataset = 'event'
+        Validator.dataset = 'event'
 
 
 if __name__ == '__main__':
@@ -512,12 +610,12 @@ if __name__ == '__main__':
         arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore)
         if sys.argv[1] == 'disambiguate_validate':
             log_to_file('persons_validate.log', 'INFO')
-            val = validator
+            val = Validator
         else:
             log_to_file('persons_disambiguate.log', 'INFO')
             val = None
 
-        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa, validator=val,
+        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa, validator_class=val,
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
                 progress=True)
     else:
@@ -528,5 +626,5 @@ if __name__ == '__main__':
         # Query the ARPA service, add the matches and serialize the graph to disk.
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-                preprocessor=preprocessor, validator=validator, progress=True,
+                preprocessor=preprocessor, validator_class=Validator, progress=True,
                 candidates_only=args.candidates_only)

@@ -374,6 +374,8 @@ class Arpa:
         """
         Query the ARPA service and return the response results as JSON
 
+        Results will be filtered if a filter was specified at init.
+
         `text` is the text used in the query.
 
         `url_params` is any URL parameters to be added to the ARPA URL, e.g. '?cgen'.
@@ -392,34 +394,42 @@ class Arpa:
 
         res = post(url, data, retries=self._retries, wait=self._wait)
 
-        return res.get('results', None)
+        return self._filter(res.get('results', []))
 
-    def get_uri_matches(self, text, validator=None):
+    def extract_uris(self, results):
         """
-        Query ARPA and return a list of uris for resources that match the text.
+        Get the URIs from results.
+
+        `results` is the results as returned by `arpa.query`.
+        """
+        return [URIRef(x['id']) for x in results]
+
+    def get_uri_matches(self, text, *args, validator=None, **kwargs):
+        """
+        Query ARPA and return a list of uris of resources that match the text.
 
         `text` is the text to use in the query.
 
-        `validator` is a function that takes the ARPA results as parameter and returns
-        validated results.
+        `validator` is an object that implements a `validate` method that takes
+        the results and `text` (and any other parameters passed to this method)
+        as parameters, and returns a subset of the results.
         """
 
         logger.debug('Get URI matches for text {}'.format(text))
 
-        results = self._filter(self.query(text))
+        results = self.query(text)
 
         if validator and results:
             logger.debug('Validating results: {}'.format(results))
-            results = validator(text, results)
+            results = validator.validate(results, text, *args, **kwargs)
 
         if results:
             logger.info('Found matches {}'.format(results))
-            res = [URIRef(x['id']) for x in results]
+            results = self.extract_uris(results)
         else:
             logger.info('No matches for {}'.format(text))
-            res = []
 
-        return res
+        return results
 
     def get_candidates(self, text, *args, **kwargs):
         """
@@ -485,7 +495,7 @@ class ArpaMimic(Arpa):
 
         res = map_results(res)
 
-        return res.get('results', None)
+        return self._filter(res.get('results', []))
 
 
 class Bar:
@@ -537,7 +547,7 @@ def _get_subgraph(graph, source_prop, rdf_class=None):
 
 
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
-            output_graph=None, preprocessor=None, validator=None,
+            output_graph=None, preprocessor=None, validator_class=None,
             candidates_only=False, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place,
@@ -562,10 +572,9 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
     It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.
 
-    `validator` is a function that takes a graph and a subject as parameter and returns a function
-    that takes the query text and the ARPA results as parameter and returns a subset of those results
-    (that have been validated based on the subject, graph and results). Optional.
-    This is a function and not an object because of reasons.
+    `validator_class` is a class that takes a graph as its instantiation parameter and implements a `validate` method
+    that takes the ARPA results, query text, and the processed subject as parameters, and returns a subset of the
+    results (that have been validated based on the subject, graph and results). Optional.
 
     If `candidates_only` is set, get candidates (n-grams) only from ARPA.
 
@@ -589,11 +598,12 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     bar = get_bar(len(subgraph), progress)
 
+    validator = validator_class(graph) if validator_class else None
+
     for s, o in subgraph.subject_objects():
         o = preprocessor(o, s, graph) if preprocessor else o
-        args = (o, validator(graph, s)) if validator else (o,)
         try:
-            results = get_results(*args)
+            results = get_results(o, s, validator=validator)
         except (HTTPError, ValueError) as e:
             logger.exception('Error getting matches from ARPA')
             errors.append(e)

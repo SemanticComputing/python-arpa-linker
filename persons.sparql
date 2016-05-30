@@ -9,7 +9,7 @@ PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX cas: <http://ldf.fi/schema/narc-menehtyneet1939-45/>
 
-SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?etunimet ?sukunimi (COALESCE(?hierarchy_label, 'NA') AS ?hierarchy)
+SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?first_names ?family_name (COALESCE(?hierarchy_label, 'NA') AS ?hierarchy)
 (COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date
 WHERE {
   VALUES ?ngram {
@@ -17,20 +17,20 @@ WHERE {
   }
   FILTER(STRLEN(?ngram)>2)
   BIND("^((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$" AS ?nimiregex)
-  BIND(UCASE(REPLACE(REPLACE(?ngram, ?nimiregex, "$4"), "_", " ")) AS ?sukunimi)
+  BIND(UCASE(REPLACE(REPLACE(?ngram, ?nimiregex, "$4"), "_", " ")) AS ?family_name)
   BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
   BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
   BIND(UCASE(?ngrametu) AS ?etu)
   FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
   BIND(UCASE(?ngramkeski) AS ?keski)
-  BIND(CONCAT('"',?sukunimi,'"') AS ?qstring)
+  BIND(CONCAT('"',?family_name,'"') AS ?qstring)
 
   GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
   ?id foaf:familyName ?familyName .
-  FILTER(?sukunimi = UCASE(?familyName))
+  FILTER(?family_name = UCASE(?familyName))
   ?id skos:prefLabel ?plabel .
-  OPTIONAL { ?id foaf:firstName ?etunimet . }
-  BIND(CONCAT(?etunimet, ' ', ?familyName) AS ?nlabel)
+  OPTIONAL { ?id foaf:firstName ?first_names . }
+  BIND(CONCAT(?first_names, ' ', ?familyName) AS ?nlabel)
   OPTIONAL {
     ?promotion_id a etype:Promotion ;
             crm:P11_had_participant ?id ;
@@ -59,11 +59,11 @@ WHERE {
   BIND((REGEX(?promotion_rank, ?longrankre, "i") || REGEX(?rank_label, ?longrankre, "i")) AS ?long_rank_test)
   FILTER(
     IF(STRENDS(?etu, "."),
-      REGEX(?etunimet, ?etukirjainre) && REGEX(?etunimet, ?keskire),
-      (REGEX(?etunimet, ?keskire, "i") && (REGEX(?etunimet, ?eture, "i"))) ||
+      REGEX(?first_names, ?etukirjainre) && REGEX(?first_names, ?keskire),
+      (REGEX(?first_names, ?keskire, "i") && (REGEX(?first_names, ?eture, "i"))) ||
       IF(?keski != "",
-        ?rank_test && REGEX(?etunimet, ?keskire, "i")
-        || ?long_rank_test || (?minister_test && REGEX(?etunimet, ?keskire, "i")),
+        ?rank_test && REGEX(?first_names, ?keskire, "i")
+        || ?long_rank_test || (?minister_test && REGEX(?first_names, ?keskire, "i")),
         ?minister_test || ?rank_test || ?long_rank_test
       )
     )
