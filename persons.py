@@ -189,12 +189,22 @@ class Validator:
         return res
 
     def get_ranks_with_unknown_date(self, person):
+        """
+        >>> v = Validator(None)
+        >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Aliupseeri"'],
+        ...    'rank': ['"Lentomestari"']}
+        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
+        >>> v.get_ranks_with_unknown_date(person)
+        ['Lentomestari']
+        """
         res = []
         props = person['properties']
         for i, rank in enumerate(props.get('rank')):
             promotion_date = props.get('promotion_date')[i].replace('"', '')
             if promotion_date == 'NA':
-                res.append(rank)
+                res.append(rank.replace('"', ''))
 
         return res
 
@@ -326,6 +336,29 @@ class Validator:
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1941, 11, 20), None, results, ranked_matches)
         15
+        >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Aliupseeri"'],
+        ...    'rank': ['"Lentomestari"']}
+        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
+        >>> props2 = {'death_date': ['"1944-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'rank': ['"Korpraali"']}
+        >>> person2 = {'properties': props2, 'matches': ['Oiva Tuominen'], 'id': 'id2'}
+        >>> props3 = {'death_date': ['"1940-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'rank': ['"Sotamies"']}
+        >>> person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
+        >>> results = [person, person2, person3]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1942, 4, 27), None, results, ranked_matches)
+        5
+        >>> v.get_score(person2, None, date(1942, 4, 27), None, results, ranked_matches)
+        -30
+        >>> v.get_score(person3, None, date(1942, 4, 27), None, results, ranked_matches)
+        -40
         """
         rms = ranked_matches.get(person.get('id'), 0)
         ds = self.get_date_score(person, s_date, s, text)
