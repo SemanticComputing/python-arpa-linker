@@ -8,6 +8,7 @@ PREFIX etype: <http://ldf.fi/warsa/events/event_types/>
 PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX cas: <http://ldf.fi/schema/narc-menehtyneet1939-45/>
+PREFIX dct: <http://purl.org/dc/terms/>
 
 SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?first_names ?family_name (COALESCE(?hierarchy_label, 'NA') AS ?hierarchy)
 (COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date

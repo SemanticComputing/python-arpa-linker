@@ -14,6 +14,9 @@ RANK_CLASS_SCORES = {
     'Esiupseeri': 10,
     'Komppaniaupseeri': 5,
     'Upseeri': 5,
+    'kirkollinen henkilöstö': 1,
+    'lottahenkilostö': 1,
+    'virkahenkilostö': 1,
     'Aliupseeri': -5,
     'Miehistö': -10,
     'Jääkäriarvo': 0,
@@ -21,12 +24,9 @@ RANK_CLASS_SCORES = {
     'Päällystö': 0,
     'Saksalaisarvo': 0,
     'eläinlääkintähenkilöstö': 0,
-    'kirkollinen henkilöstö': 0,
-    'lottahenkilostö': 0,
     'lääkintähenkilöstö': 0,
     'musiikkihenkilöstö': 0,
     'tekninen henkilöstö': 0,
-    'virkahenkilostö': 0,
     'NA': 1
 }
 
@@ -86,7 +86,7 @@ class Validator:
         >>> rd['A. Snellman']['uris']
         {'lieutenant'}
         >>> rd['A. Snellman']['score']
-        -50
+        -20
         >>> rd['Kenraalimajuri A. Snellman']['uris']
         {'general'}
         >>> rd['Kenraalimajuri A. Snellman']['score']
@@ -101,7 +101,7 @@ class Validator:
         rd = {}
         for k in dd.keys():
             match_list = [s for s in dd.keys() if k in s and k != s]
-            rd[k] = {'score': len(match_list) * -50, 'uris': dd[k]}
+            rd[k] = {'score': len(match_list) * -20, 'uris': dd[k]}
             for r in match_list:
                 st = dd[k] - dd[r]
                 rd[k]['uris'] = st
@@ -125,7 +125,7 @@ class Validator:
         >>> scores['general']
         0
         >>> scores['lieutenant']
-        -50
+        -20
         """
         rd = self.get_ranked_matches(results)
         scores = {}
@@ -188,6 +188,26 @@ class Validator:
 
         return res
 
+    def get_ranks_with_unknown_date(self, person):
+        """
+        >>> v = Validator(None)
+        >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Aliupseeri"'],
+        ...    'rank': ['"Lentomestari"']}
+        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
+        >>> v.get_ranks_with_unknown_date(person)
+        ['Lentomestari']
+        """
+        res = []
+        props = person['properties']
+        for i, rank in enumerate(props.get('rank')):
+            promotion_date = props.get('promotion_date')[i].replace('"', '')
+            if promotion_date == 'NA':
+                res.append(rank.replace('"', ''))
+
+        return res
+
     def get_rank_score(self, person, s_date):
         """
         >>> from datetime import date
@@ -197,17 +217,33 @@ class Validator:
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
         >>> v.get_rank_score(person, date(1941, 3, 5))
-        25
+        35
         """
         props = person['properties']
         rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
         score = max([RANK_CLASS_SCORES.get(s, 0) for s in rank_classes])
         matches = set(person.get('matches'))
-        current_rank = self.get_current_rank(person, s_date)
+        if s_date:
+            # Event has a date
+            current_rank = self.get_current_rank(person, s_date)
+            if current_rank:
+                additional_score = 20
+            else:
+                # Current rank not found, match ranks with unknown promotion dates
+                ranks = self.get_ranks_with_unknown_date(person)
+                if ranks:
+                    current_rank = r'({})'.format(r'|'.join(ranks))
+                    additional_score = 10
+        else:
+            # Unknown event date, match any rank
+            ranks = props.get('ranks', ['NA'])
+            current_rank = r'({})'.format(r'|'.join(ranks))
+            additional_score = 10
         if current_rank:
             cur_rank_re = r'\b{}\b'.format(current_rank.lower())
             if any([m for m in matches if re.match(cur_rank_re, m.lower())]):
-                score += 10
+                score += additional_score
+
         return score
 
     def get_date_score(self, person, s_date, s, e_label):
@@ -221,6 +257,12 @@ class Validator:
         -10
         >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
         ...    '"1940-03-01"^^xsd:date']}
+        >>> person = {'properties': props}
+        >>> v.get_date_score(person, date(1939, 3, 5), None, None)
+        0
+        >>> v.get_date_score(person, None, None, None)
+        0
+        >>> props = {'death_date': ['"NA"']}
         >>> person = {'properties': props}
         >>> v.get_date_score(person, date(1939, 3, 5), None, None)
         0
@@ -259,7 +301,7 @@ class Validator:
         >>> results = [person]
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1941, 3, 5), None, results, ranked_matches)
-        15
+        25
         >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
         ...    'promotion_date': ['"NA"', '"NA"', '"NA"'],
         ...    'hierarchy': ['"NA"', '"NA"', '"NA"'],
@@ -282,9 +324,41 @@ class Validator:
         >>> results = [person, person2]
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1942, 4, 27), None, results, ranked_matches)
-        -45
+        -15
         >>> v.get_score(person2, None, date(1942, 4, 27), None, results, ranked_matches)
-        25
+        35
+        >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
+        ...    'hierarchy': ['"Kenraalikunta"'],
+        ...    'rank': ['"Kenraalimajuri"']}
+        >>> person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id'}
+        >>> results = [person]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1941, 11, 20), None, results, ranked_matches)
+        15
+        >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Aliupseeri"'],
+        ...    'rank': ['"Lentomestari"']}
+        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
+        >>> props2 = {'death_date': ['"1944-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'rank': ['"Korpraali"']}
+        >>> person2 = {'properties': props2, 'matches': ['Oiva Tuominen'], 'id': 'id2'}
+        >>> props3 = {'death_date': ['"1940-04-28"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'rank': ['"Sotamies"']}
+        >>> person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
+        >>> results = [person, person2, person3]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1942, 4, 27), None, results, ranked_matches)
+        5
+        >>> v.get_score(person2, None, date(1942, 4, 27), None, results, ranked_matches)
+        -30
+        >>> v.get_score(person3, None, date(1942, 4, 27), None, results, ranked_matches)
+        -40
         """
         rms = ranked_matches.get(person.get('id'), 0)
         ds = self.get_date_score(person, s_date, s, text)
@@ -301,7 +375,7 @@ class Validator:
         for person in results:
             score = self.get_score(person, s, s_date, text, results, ranked)
             log_msg = "{} {} ({}) scored {}".format(
-                person.get('properties', {}).get('rank', []).join(', '),
+                ', '.join(person.get('properties', {}).get('rank', [])),
                 person.get('label'),
                 person.get('id'),
                 score)
@@ -321,22 +395,25 @@ class Validator:
         # l = graph.value(s, SKOS.prefLabel)
 
 
-list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
+list_regex = r'(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + r'(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
-_g_re = '(?:[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+)' + list_regex
+_g_re = r'(?:[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+)' + list_regex
 g_regex = re.compile(_g_re)
 
-_el_re = '[Ee]verstiluutnantit(?:)?\W+' + list_regex
+_el_re = r'[Ee]verstiluutnantit(?:)?\W+' + list_regex
 el_regex = re.compile(_el_re)
 
-_ma_re = '[Mm]ajurit(?:)?\W+' + list_regex
+_ma_re = r'[Mm]ajurit(?:)?\W+' + list_regex
 ma_regex = re.compile(_ma_re)
 
-_m_re = '[Mm]inisterit(?:)?\W+' + list_regex
+_m_re = r'[Mm]inisterit(?:)?\W+' + list_regex
 m_regex = re.compile(_m_re)
 
-_c_re = '[Kk]apteenit\W+' + list_regex
+_c_re = r'[Kk]apteenit\W+' + list_regex
 c_regex = re.compile(_c_re)
+
+_sv_re = r'[Ss]ot(?:(?:ilasvirk(?:\.\s*)|(?:ailija[t]?\s+))|(?:\.\s*virk\.\s*))' + list_regex
+sv_regex = re.compile(_sv_re)
 
 
 def repl(groups):
@@ -385,6 +462,16 @@ def replace_major_list(text):
 
 def replace_captain_list(text):
     return add_titles(c_regex, 'kapteeni', text)
+
+
+def replace_sv_list(text):
+    """
+    >>> replace_sv_list("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
+    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  # sotilasvirkamies Kapra # sotilasvirkamies Jalkanen # vänr. Rahikainen).'
+    >>> replace_sv_list("Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
+    'Komentajasta oikealla: Björnsson Mehlem,  # sotilasvirkamies Zenker # sotilasvirkamies Farr # luutnantti Miettinen,etualalla oikealla Scott.'
+    """
+    return add_titles(sv_regex, 'sotilasvirkamies', text)
 
 
 snellman_list = (
@@ -439,6 +526,20 @@ def preprocessor(text, *args):
     ' # kapteeni Palolampi # kapteeni Juutilainen #  ratsailla Levinassa.'
     >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
     'kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväen # kenraaliluutnantti Heinrichs # # kenraalimajuri Vaala #.'
+    >>> preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund).")
+    'Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva,  # sotilasvirkamies Kumminen # sotilasvirkamies Westerlund # ).'
+    >>> preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
+    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  # sotilasvirkamies Kapra # sotilasvirkamies Jalkanen # vänrikki  Rahikainen).'
+    >>> preprocessor("Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
+    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem,  # sotilasvirkamies Zenker # sotilasvirkamies Farr # luutnantti Miettinen,etualalla oikealla Scott.'
+    >>> preprocessor("Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sot.virk. Halonen, alikersantti Rosenberg, vänrikki Lindblad, sot.virk. Österman, alikersantti Salenius.")
+    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola,  # sotilasvirkamies Halonen # alikersantti Rosenberg, vänrikki Lindblad,  # sotilasvirkamies Österman # alikersantti Salenius.'
+    >>> preprocessor("Ev. luutn.Paasonen ja saks. Amiraali keskuselevat")
+    'everstiluutnantti Paasonen ja saks. Amiraali keskuselevat'
+    >>> preprocessor("Ev. luutnantti Vänttinen")
+    'everstiluutnantti Vänttinen'
+    >>> preprocessor("Ev. luutn. Rauramo")
+    'everstiluutnantti  Rauramo'
     """
 
     text = str(text).replace('"', '')
@@ -476,13 +577,17 @@ def preprocessor(text, *args):
     text = replace_el_list(text)
     text = replace_major_list(text)
     text = replace_captain_list(text)
+    text = replace_sv_list(text)
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
     text = re.sub(r'\b[Kk]enr\.\b', 'kenraali§', text)
-    text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti§', text)
-    text = re.sub(r'\b[Ll]uu(tn|nt)\.', 'luutnantti', text)
-    text = re.sub(r'\b[Mm]aj\.', 'majuri', text)
+    text = re.sub(r'\b[Ee]v\.\s*([a-z])', r'eversti§\1', text)
+    text = re.sub(r'\b[Ee]v\.', 'eversti ', text)
+    text = re.sub(r'\b[Ll]uu(tn|nt)\.', 'luutnantti ', text)
+    text = re.sub(r'\b[Mm]aj\.', 'majuri ', text)
     text = re.sub(r'\b[Kk]apt\.', 'kapteeni', text)
     text = text.replace('§', '')
+    text = re.sub(r'\b[Vv]änr\.', 'vänrikki ', text)
+    text = re.sub(r'\b[Ss]ot\.\s*[Vv]irk\.', 'sotilasvirkamies ', text)
     text = re.sub(r'[Ll]entomies', 'lentomestari', text)
     text = re.sub(r'[Gg]eneralmajor(s)?', 'kenraalimajuri', text)
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
@@ -517,8 +622,8 @@ def preprocessor(text, *args):
     text = re.sub(r'[RB]osenbröijer(in|ille|ia)?\b', '# Edvin Rosenbröijer #', text)
     text = re.sub(r'Turo Kart(on|olle|toa)\b', '# Turo Kartto #', text)
 
-    text = text.replace(r'Saharan kauhu', '# kapteeni Juutilainen #')
-    text = text.replace(r'luutnantti Juutilainen', '# kapteeni Juutilainen #')
+    text = re.sub(r'(Saharan|Marokon) kauhu', '# kapteeni Juutilainen #', text)
+    text = re.sub(r'luutnantti\s+Juutilainen', '# kapteeni Juutilainen #', text)
 
     text = re.sub(r'(?<!patterin päällikkö )[Kk]apteeni (Joppe )?Karhu(nen|sen)', '# kapteeni Jorma Karhunen #', text)
     text = text.replace(r'Wind', '# luutnantti Wind #')
