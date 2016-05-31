@@ -14,6 +14,9 @@ RANK_CLASS_SCORES = {
     'Esiupseeri': 10,
     'Komppaniaupseeri': 5,
     'Upseeri': 5,
+    'kirkollinen henkilöstö': 1,
+    'lottahenkilostö': 1,
+    'virkahenkilostö': 1,
     'Aliupseeri': -5,
     'Miehistö': -10,
     'Jääkäriarvo': 0,
@@ -21,12 +24,9 @@ RANK_CLASS_SCORES = {
     'Päällystö': 0,
     'Saksalaisarvo': 0,
     'eläinlääkintähenkilöstö': 0,
-    'kirkollinen henkilöstö': 0,
-    'lottahenkilostö': 0,
     'lääkintähenkilöstö': 0,
     'musiikkihenkilöstö': 0,
     'tekninen henkilöstö': 0,
-    'virkahenkilostö': 0,
     'NA': 1
 }
 
@@ -250,6 +250,12 @@ class Validator:
         >>> person = {'properties': props}
         >>> v.get_date_score(person, date(1939, 3, 5), None, None)
         0
+        >>> v.get_date_score(person, None, None, None)
+        0
+        >>> props = {'death_date': ['"NA"']}
+        >>> person = {'properties': props}
+        >>> v.get_date_score(person, date(1939, 3, 5), None, None)
+        0
         """
         score = 0
         death_date = self.get_death_date(person)
@@ -356,22 +362,25 @@ class Validator:
         # l = graph.value(s, SKOS.prefLabel)
 
 
-list_regex = '(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + '(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
+list_regex = r'(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + r'(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
-_g_re = '(?:[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+)' + list_regex
+_g_re = r'(?:[Kk]enraali(?:majurit)?(?:t)?(?:)?\W+)' + list_regex
 g_regex = re.compile(_g_re)
 
-_el_re = '[Ee]verstiluutnantit(?:)?\W+' + list_regex
+_el_re = r'[Ee]verstiluutnantit(?:)?\W+' + list_regex
 el_regex = re.compile(_el_re)
 
-_ma_re = '[Mm]ajurit(?:)?\W+' + list_regex
+_ma_re = r'[Mm]ajurit(?:)?\W+' + list_regex
 ma_regex = re.compile(_ma_re)
 
-_m_re = '[Mm]inisterit(?:)?\W+' + list_regex
+_m_re = r'[Mm]inisterit(?:)?\W+' + list_regex
 m_regex = re.compile(_m_re)
 
-_c_re = '[Kk]apteenit\W+' + list_regex
+_c_re = r'[Kk]apteenit\W+' + list_regex
 c_regex = re.compile(_c_re)
+
+_sv_re = r'[Ss]ot(?:(?:ilasvirk(?:\.\s*)|(?:ailija[t]?\s+))|(?:\.\s*virk\.\s*))' + list_regex
+sv_regex = re.compile(_sv_re)
 
 
 def repl(groups):
@@ -420,6 +429,16 @@ def replace_major_list(text):
 
 def replace_captain_list(text):
     return add_titles(c_regex, 'kapteeni', text)
+
+
+def replace_sv_list(text):
+    """
+    >>> replace_sv_list("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
+    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  # sotilasvirkamies Kapra # sotilasvirkamies Jalkanen # vänr. Rahikainen).'
+    >>> replace_sv_list("Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
+    'Komentajasta oikealla: Björnsson Mehlem,  # sotilasvirkamies Zenker # sotilasvirkamies Farr # luutnantti Miettinen,etualalla oikealla Scott.'
+    """
+    return add_titles(sv_regex, 'sotilasvirkamies', text)
 
 
 snellman_list = (
@@ -474,6 +493,20 @@ def preprocessor(text, *args):
     ' # kapteeni Palolampi # kapteeni Juutilainen #  ratsailla Levinassa.'
     >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
     'kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväen # kenraaliluutnantti Heinrichs # # kenraalimajuri Vaala #.'
+    >>> preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund).")
+    'Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva,  # sotilasvirkamies Kumminen # sotilasvirkamies Westerlund # ).'
+    >>> preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
+    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  # sotilasvirkamies Kapra # sotilasvirkamies Jalkanen # vänrikki  Rahikainen).'
+    >>> preprocessor("Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
+    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem,  # sotilasvirkamies Zenker # sotilasvirkamies Farr # luutnantti Miettinen,etualalla oikealla Scott.'
+    >>> preprocessor("Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sot.virk. Halonen, alikersantti Rosenberg, vänrikki Lindblad, sot.virk. Österman, alikersantti Salenius.")
+    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola,  # sotilasvirkamies Halonen # alikersantti Rosenberg, vänrikki Lindblad,  # sotilasvirkamies Österman # alikersantti Salenius.'
+    >>> preprocessor("Ev. luutn.Paasonen ja saks. Amiraali keskuselevat")
+    'everstiluutnantti Paasonen ja saks. Amiraali keskuselevat'
+    >>> preprocessor("Ev. luutnantti Vänttinen")
+    'everstiluutnantti Vänttinen'
+    >>> preprocessor("Ev. luutn. Rauramo")
+    'everstiluutnantti  Rauramo'
     """
 
     text = str(text).replace('"', '')
@@ -511,13 +544,17 @@ def preprocessor(text, *args):
     text = replace_el_list(text)
     text = replace_major_list(text)
     text = replace_captain_list(text)
+    text = replace_sv_list(text)
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraaliluutnantti ', text)
     text = re.sub(r'\b[Kk]enr\.\b', 'kenraali§', text)
-    text = re.sub(r'\b[Ee]v\.(?=(\b| ))', 'eversti§', text)
-    text = re.sub(r'\b[Ll]uu(tn|nt)\.', 'luutnantti', text)
-    text = re.sub(r'\b[Mm]aj\.', 'majuri', text)
+    text = re.sub(r'\b[Ee]v\.\s*([a-z])', r'eversti§\1', text)
+    text = re.sub(r'\b[Ee]v\.', 'eversti ', text)
+    text = re.sub(r'\b[Ll]uu(tn|nt)\.', 'luutnantti ', text)
+    text = re.sub(r'\b[Mm]aj\.', 'majuri ', text)
     text = re.sub(r'\b[Kk]apt\.', 'kapteeni', text)
     text = text.replace('§', '')
+    text = re.sub(r'\b[Vv]änr\.', 'vänrikki ', text)
+    text = re.sub(r'\b[Ss]ot\.\s*[Vv]irk\.', 'sotilasvirkamies ', text)
     text = re.sub(r'[Ll]entomies', 'lentomestari', text)
     text = re.sub(r'[Gg]eneralmajor(s)?', 'kenraalimajuri', text)
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
@@ -553,7 +590,7 @@ def preprocessor(text, *args):
     text = re.sub(r'Turo Kart(on|olle|toa)\b', '# Turo Kartto #', text)
 
     text = text.replace(r'Saharan kauhu', '# kapteeni Juutilainen #')
-    text = text.replace(r'luutnantti Juutilainen', '# kapteeni Juutilainen #')
+    text = re.sub(r'luutnantti\s+Juutilainen', '# kapteeni Juutilainen #', text)
 
     text = re.sub(r'(?<!patterin päällikkö )[Kk]apteeni (Joppe )?Karhu(nen|sen)', '# kapteeni Jorma Karhunen #', text)
     text = text.replace(r'Wind', '# luutnantti Wind #')
