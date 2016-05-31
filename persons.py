@@ -622,7 +622,7 @@ def preprocessor(text, *args):
     text = re.sub(r'[RB]osenbröijer(in|ille|ia)?\b', '# Edvin Rosenbröijer #', text)
     text = re.sub(r'Turo Kart(on|olle|toa)\b', '# Turo Kartto #', text)
 
-    text = text.replace(r'Saharan kauhu', '# kapteeni Juutilainen #')
+    text = re.sub(r'(Saharan|Marokon) kauhu', '# kapteeni Juutilainen #', text)
     text = re.sub(r'luutnantti\s+Juutilainen', '# kapteeni Juutilainen #', text)
 
     text = re.sub(r'(?<!patterin päällikkö )[Kk]apteeni (Joppe )?Karhu(nen|sen)', '# kapteeni Jorma Karhunen #', text)
