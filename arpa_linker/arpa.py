@@ -370,7 +370,7 @@ class Arpa:
             return text
         return text.replace('"', '').replace('(', '').replace(')', '')
 
-    def query(self, text, url_params=''):
+    def query(self, text, candidates=False):
         """
         Query the ARPA service and return the response results as JSON
 
@@ -378,7 +378,7 @@ class Arpa:
 
         `text` is the text used in the query.
 
-        `url_params` is any URL parameters to be added to the ARPA URL, e.g. '?cgen'.
+        If `candidates` is set, query for candidates only.
         """
 
         logger.debug('Query ARPA at {} with text {}'.format(self._url, text))
@@ -387,14 +387,14 @@ class Arpa:
         if not text:
             raise ValueError('Empty ARPA query text')
 
-        url = self._url + url_params
+        url = self._url + ('?cgen' if candidates else '')
 
         # Query the ARPA service with the text
         data = {'text': text}
 
         res = post(url, data, retries=self._retries, wait=self._wait)
 
-        return self._filter(res.get('results', []))
+        return self._filter(res.get('results', []), candidates)
 
     def extract_uris(self, results):
         """
@@ -443,7 +443,7 @@ class Arpa:
         if not text:
             raise ValueError('Empty ARPA query text')
 
-        res = self._filter(self.query(text, '?cgen'), candidates=True)
+        res = self.query(text, candidates=True)
 
         logger.debug('Received candidates: {}'.format(res))
 
