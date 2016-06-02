@@ -728,7 +728,7 @@ def preprocessor(text, *args):
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
     text = re.sub(r'[Tk][Kk]-([A-ZÄÖÅ])', r'sotilasvirkamies \1', text)
 
-    text = re.sub(r'[Ll]ääkintäkenraali\b', 'kenraalikunta')
+    text = re.sub(r'[Ll]ääkintäkenraali\b', 'kenraalikunta', text)
 
     text = text.replace('Paavo Nurmi', '#')
     text = text.replace('Heinrichsin', 'Heinrichs')
