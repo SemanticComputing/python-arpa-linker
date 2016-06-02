@@ -710,7 +710,7 @@ def preprocessor(text, *args):
     text = replace_major_list(text)
     text = replace_captain_list(text)
     text = replace_sv_list(text)
-    # Replace "general" with a more specific rank that all generals have had
+
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraalikunta ', text)
     text = re.sub(r'\b[Kk]enr\.\s*([a-z])', r'kenraali§\1', text)
     text = re.sub(r'\b[Ee]v\.\s*([a-z])', r'eversti§\1', text)
@@ -727,6 +727,8 @@ def preprocessor(text, *args):
     text = re.sub(r'\b[Ee]verstil\.', 'everstiluutnantti', text)
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
     text = re.sub(r'[Tk][Kk]-([A-ZÄÖÅ])', r'sotilasvirkamies \1', text)
+
+    text = re.sub(r'[Ll]ääkintäkenraali\b', 'kenraalikunta')
 
     text = text.replace('Paavo Nurmi', '#')
     text = text.replace('Heinrichsin', 'Heinrichs')
