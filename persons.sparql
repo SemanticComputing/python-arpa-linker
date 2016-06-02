@@ -56,7 +56,7 @@ WHERE {
   FILTER(IF(?minister_test,
       NOT EXISTS { ?id a <http://ldf.fi/warsa/actors/actor_types/MilitaryPerson> . },TRUE)
   )
-  BIND(REGEX(?promotion_rank, ?eture, "i") AS ?rank_test)
+  BIND((REGEX(?promotion_rank, ?eture, "i") || REGEX(?hierarchy_label, ?eture, "i")) AS ?rank_test)
   BIND((REGEX(?promotion_rank, ?longrankre, "i") || REGEX(?rank_label, ?longrankre, "i")) AS ?long_rank_test)
   FILTER(
     IF(STRENDS(?etu, "."),
