@@ -13,62 +13,82 @@ PREFIX dct: <http://purl.org/dc/terms/>
 SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?first_names ?family_name (COALESCE(?hierarchy_label, 'NA') AS ?hierarchy)
 (COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date
 WHERE {
-  VALUES ?ngram {
-    <VALUES>
-  }
-  FILTER(STRLEN(?ngram)>2)
-  BIND("^((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$" AS ?nimiregex)
-  BIND(UCASE(REPLACE(REPLACE(?ngram, ?nimiregex, "$4"), "_", " ")) AS ?family_name)
-  BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
-  BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
-  BIND(UCASE(?ngrametu) AS ?etu)
-  FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
-  BIND(UCASE(?ngramkeski) AS ?keski)
-  BIND(CONCAT('"',?family_name,'"') AS ?qstring)
+  {
+    SELECT DISTINCT ?id ?ngram ?family_name {
+      VALUES ?ngram {
+        <VALUES>
+      }
+      FILTER(STRLEN(?ngram)>2)
+      BIND("^((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$" AS ?nimiregex)
+      BIND(UCASE(REPLACE(REPLACE(?ngram, ?nimiregex, "$4"), "_", " ")) AS ?family_name)
+      BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
+      BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
+      BIND(UCASE(?ngrametu) AS ?etu)
+      FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
+      BIND(UCASE(?ngramkeski) AS ?keski)
+      BIND(CONCAT('"',?family_name,'"') AS ?qstring)
 
-  GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
+      GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
+      ?id foaf:familyName ?familyName .
+      FILTER((?family_name = UCASE(?familyName)) || CONTAINS(?familyName, "(") && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
+
+      OPTIONAL { ?id foaf:firstName ?first_names . }
+      OPTIONAL {
+        ?promotion_id a etype:Promotion ;
+                      crm:P11_had_participant ?id ;
+                      actors:hasRank ?promotion_rank_id .
+        ?promotion_rank_id skos:prefLabel ?promotion_rank .
+        OPTIONAL {
+          ?promotion_rank_id dct:isPartOf/skos:prefLabel ?hierarchy_label .
+        }
+        OPTIONAL {
+          ?promotion_id crm:P4_has_time-span ?timespan_id .
+          ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
+        }
+      }
+      BIND(CONCAT("(^|[ ])", substr(?etu, 1, 1)) as ?etukirjainre)
+      BIND(CONCAT("(^|[ ])", substr(?keski, 1, 1)) as ?keskikirjainre)
+      BIND(CONCAT("(^|[ ])", ?etu, "($|[ ])") AS ?etunimire)
+      BIND(CONCAT("(^|[ ])", ?keski, "($|[ ])") AS ?toinennimire)
+      BIND(IF(STRLEN(?keski)=2, ?keskikirjainre, IF(?keski="", ".", ?toinennimire)) AS ?keskire)
+      BIND(IF(STRLEN(?etu)=2, ?etukirjainre, ?etunimire) AS ?eture)
+      BIND(CONCAT("(^|[ ])", ?etu, " ", ?keski, "($|[ ])") AS ?longrankre)
+      BIND(REGEX(?etu, "MINISTERI$") AS ?minister_test)
+      FILTER(IF(?minister_test,
+          NOT EXISTS { ?id a <http://ldf.fi/warsa/actors/actor_types/MilitaryPerson> . },TRUE)
+      )
+      BIND((REGEX(?promotion_rank, ?eture, "i") || REGEX(?hierarchy_label, ?eture, "i")) AS ?rank_test)
+      BIND((REGEX(?promotion_rank, ?longrankre, "i") || REGEX(?rank_label, ?longrankre, "i")) AS ?long_rank_test)
+      FILTER(
+        IF(STRENDS(?etu, "."),
+          REGEX(?first_names, ?etukirjainre) && REGEX(?first_names, ?keskire),
+          (REGEX(?first_names, ?keskire, "i") && (REGEX(?first_names, ?eture, "i"))) ||
+          IF(?keski != "",
+            ?rank_test && REGEX(?first_names, ?keskire, "i")
+            || ?long_rank_test || (?minister_test && REGEX(?first_names, ?keskire, "i")),
+            ?minister_test || ?rank_test || ?long_rank_test
+          )
+        )
+      )
+    }
+  }
   ?id foaf:familyName ?familyName .
-  FILTER((?family_name = UCASE(?familyName)) || CONTAINS(?familyName, "(") && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
   ?id skos:prefLabel ?plabel .
   OPTIONAL { ?id foaf:firstName ?first_names . }
   BIND(CONCAT(?first_names, ' ', ?familyName) AS ?nlabel)
   OPTIONAL {
     ?promotion_id a etype:Promotion ;
-            crm:P11_had_participant ?id ;
-            actors:hasRank ?promotion_rank_id .
+                  crm:P11_had_participant ?id ;
+                  actors:hasRank ?promotion_rank_id .
     ?promotion_rank_id skos:prefLabel ?promotion_rank .
     OPTIONAL {
       ?promotion_rank_id dct:isPartOf/skos:prefLabel ?hierarchy_label .
     }
     OPTIONAL {
-        ?promotion_id crm:P4_has_time-span ?timespan_id .
-        ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
+      ?promotion_id crm:P4_has_time-span ?timespan_id .
+      ?timespan_id crm:P82a_begin_of_the_begin ?earliest_promotion_time .
     }
   }
-  BIND(CONCAT("(^|[ ])", substr(?etu, 1, 1)) as ?etukirjainre)
-  BIND(CONCAT("(^|[ ])", substr(?keski, 1, 1)) as ?keskikirjainre)
-  BIND(CONCAT("(^|[ ])", ?etu, "($|[ ])") AS ?etunimire)
-  BIND(CONCAT("(^|[ ])", ?keski, "($|[ ])") AS ?toinennimire)
-  BIND(IF(STRLEN(?keski)=2, ?keskikirjainre, IF(?keski="", ".", ?toinennimire)) AS ?keskire)
-  BIND(IF(STRLEN(?etu)=2, ?etukirjainre, ?etunimire) AS ?eture)
-  BIND(CONCAT("(^|[ ])", ?etu, " ", ?keski, "($|[ ])") AS ?longrankre)
-  BIND(REGEX(?etu, "MINISTERI$") AS ?minister_test)
-  FILTER(IF(?minister_test,
-      NOT EXISTS { ?id a <http://ldf.fi/warsa/actors/actor_types/MilitaryPerson> . },TRUE)
-  )
-  BIND(REGEX(?promotion_rank, ?eture, "i") AS ?rank_test)
-  BIND((REGEX(?promotion_rank, ?longrankre, "i") || REGEX(?rank_label, ?longrankre, "i")) AS ?long_rank_test)
-  FILTER(
-    IF(STRENDS(?etu, "."),
-      REGEX(?first_names, ?etukirjainre) && REGEX(?first_names, ?keskire),
-      (REGEX(?first_names, ?keskire, "i") && (REGEX(?first_names, ?eture, "i"))) ||
-      IF(?keski != "",
-        ?rank_test && REGEX(?first_names, ?keskire, "i")
-        || ?long_rank_test || (?minister_test && REGEX(?first_names, ?keskire, "i")),
-        ?minister_test || ?rank_test || ?long_rank_test
-      )
-    )
-  )
   OPTIONAL {
     ?death crm:P100_was_death_of ?id .
     ?death crm:P4_has_time-span ?death_date_id .
