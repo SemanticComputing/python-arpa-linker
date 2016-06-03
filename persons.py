@@ -513,13 +513,13 @@ class Validator:
             # Event has a date
             ranks = self.get_fuzzy_current_ranks(person, s_date, rank_type)
             if ranks:
-                current_rank = r'({})'.format(r'|'.join(ranks))
+                current_rank = r'({})'.format(r'\b|\b'.join(ranks))
                 additional_score = 20
             else:
                 # Current rank not found, match ranks with unknown promotion dates
                 ranks = self.get_ranks_with_unknown_date(person)
                 if ranks:
-                    current_rank = r'({})'.format(r'|'.join(ranks))
+                    current_rank = r'({})'.format(r'\b|\b'.join(ranks))
                     additional_score = 11
                 else:
                     # No current ranks or ranks with unknown promotion dates
@@ -527,7 +527,7 @@ class Validator:
         else:
             # Unknown event date, match any rank
             ranks = self.filter_promotions_after_wars(person, rank_type) or ['NA']
-            current_rank = r'({})'.format(r'|'.join(ranks))
+            current_rank = r'({})'.format(r'\b|\b'.join(ranks))
             additional_score = 11
 
         cur_rank_re = r'\b{}\b'.format(current_rank.lower())
@@ -552,7 +552,7 @@ class Validator:
         ...    '"1940-03-01"^^xsd:date']}
         >>> person = {'properties': props}
         >>> v.get_date_score(person, date(1941, 3, 5), None, None)
-        -10
+        -20
         >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
         ...    '"1940-03-01"^^xsd:date']}
         >>> person = {'properties': props}
@@ -579,7 +579,7 @@ class Validator:
                     "({diff} days) before start ({s_date}) of event {e_label} ({e_uri})"
                     .format(p_label=person.get('label'), p_uri=person.get('id'), diff=diff,
                         death_date=death_date, s_date=s_date, e_uri=s, e_label=e_label))
-                score -= 10
+                score -= 20
             elif diff.days >= 0:
                 logger.info(
                     "RECENTLY DEAD PERSON: {p_label} ({p_uri}) died {diff} days ({death_date}) before start "
@@ -587,11 +587,39 @@ class Validator:
                         diff=diff.days, death_date=death_date, s_date=s_date, e_uri=s, e_label=e_label))
         return score
 
+    def get_name_score(self, person):
+        """
+        >>> v = Validator(None)
+        >>> person = {'properties': {'first_names': ['Turo Tero']}, 'matches': ['kenraali Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        0
+        >>> person = {'properties': {'first_names': ['Turo Tero']}, 'matches': ['Tero Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        5
+        >>> person = {'properties': {'first_names': ['Turo Tero']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        10
+        """
+        first_names = person['properties'].get('first_names', [None])[0]
+        if not first_names:
+            return 0
+
+        score = 0
+        very_first_name = re.sub(r'^(\S+)\b.*$', r'\\b\1\\b', first_names)
+        first_names = r'(\b{}\b)'.format(re.sub(r'\s+', r'\\b|\\b', first_names.strip()))
+        matches = ' '.join(set(person.get('matches')))
+        if re.search(first_names, matches):
+            score += 5
+            if re.search(very_first_name, matches):
+                score += 5
+
+        return score
+
     def get_score(self, person, s, s_date, text, results, ranked_matches):
         """
         >>> from datetime import date
         >>> v = Validator(None)
-        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
+        >>> props = {'death_date': ['"1942-02-01"^^xsd:date', '"1942-02-01"^^xsd:date', '"1942-03-01"^^xsd:date'],
         ...    'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
         ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
@@ -599,7 +627,7 @@ class Validator:
         >>> results = [person]
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1941, 3, 5), None, results, ranked_matches)
-        20
+        30
         >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
         ...    'promotion_date': ['"NA"', '"NA"', '"NA"'],
         ...    'hierarchy': ['"NA"', '"NA"', '"NA"'],
@@ -656,30 +684,33 @@ class Validator:
         >>> v.get_score(person2, None, date(1942, 4, 27), None, results, ranked_matches)
         -30
         >>> v.get_score(person3, None, date(1942, 4, 27), None, results, ranked_matches)
-        -40
+        -50
         >>> props = {'death_date': ['"1944-06-30"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
+        ...    'first_names': ['Arvi Petteri'],
         ...    'rank': ['"Sotamies"']}
         >>> person = {'properties': props, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id1'}
         >>> props2 = {'death_date': ['"1943-09-22"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
+        ...    'first_names': ['Petteri'],
         ...    'rank': ['"Sotamies"']}
         >>> person2 = {'properties': props2, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id2'}
         >>> props3 = {'death_date': ['"1940-02-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
+        ...    'first_names': ['Petteri Arvi'],
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1944, 5, 31), None, results, ranked_matches)
-        1
+        11
         >>> v.get_score(person2, None, date(1944, 5, 31), None, results, ranked_matches)
-        -9
+        -19
         >>> v.get_score(person3, None, date(1944, 5, 31), None, results, ranked_matches)
-        -9
+        -14
         """
         person_id = person.get('id')
         if person_id == 'http://ldf.fi/warsa/actors/person_1':
@@ -689,8 +720,9 @@ class Validator:
         rms = ranked_matches.get(person.get('id'), 0)
         ds = self.get_date_score(person, s_date, s, text)
         rs = self.get_rank_score(person, s_date)
+        ns = self.get_name_score(person)
 
-        return rms + ds + rs
+        return rms + ds + rs + ns
 
     def validate(self, results, text, s):
         if not results:
