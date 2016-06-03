@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from arpa_linker.arpa import Arpa, ArpaMimic, process, log_to_file, parse_args
 from rdflib import URIRef
 # from rdflib.namespace import SKOS
@@ -29,6 +29,159 @@ RANK_CLASS_SCORES = {
     'tekninen henkilöstö': 0,
     'NA': 1
 }
+
+ALL_RANKS = (
+    'alikersantti',
+    'aliluutnantti',
+    'alisotilasohjaaja',
+    'alisotilasvirkamies',
+    'aliupseeri',
+    'aliupseerioppilas',
+    'alokas',
+    'apusisar',
+    'asemestari',
+    'eläinlääketieteen everstiluutnantti',
+    'eläinlääketieteen kapteeni',
+    'eläinlääketieteen luutnantti',
+    'eläinlääketieteen majuri',
+    'eläinlääkintäeversti',
+    'eläinlääkintäeverstiluutnantti',
+    'eläinlääkintäkapteeni',
+    'eläinlääkintäkenraalimajuri',
+    'eläinlääkintäluutnantti',
+    'eläinlääkintämajuri',
+    'erikoismestari',
+    'eversti',
+    'everstiluutnantti',
+    'gewehrführer',
+    'gruppenführer',
+    'hauptzugführer',
+    'hilfsgewehrführer',
+    'hilfsgruppenführer',
+    'ilmasuojelumies',
+    'ilmasuojelusotamies',
+    'insinöörikapteeni',
+    'insinöörikapteeniluutnantti',
+    'insinöörikenraalimajuri',
+    'insinööriluutnantti',
+    'insinöörimajuri',
+    'jalkaväenkenraali',
+    'jefreitteri',
+    'jääkäri',
+    'kadetti',
+    'kansiupseeri',
+    'kanslialotta',
+    'kapteeni',
+    'kapteeniluutnantti',
+    'kenraali',
+    'kenraaliluutnantti',
+    'kenraalimajuri',
+    'kenttäpiispa',
+    'kersantti',
+    'komentaja',
+    'komentajakapteeni',
+    'kommodori',
+    'kontra-amiraali',
+    'kornetti',
+    'korpraali',
+    'lentomekaanikko',
+    'lentomestari',
+    'linnoitustyönjohtaja',
+    'lotta',
+    'luotsi',
+    'luutnantti',
+    'lähetti',
+    'lääkintäalikersantti',
+    'lääkintäamiraali',
+    'lääkintäeversti',
+    'lääkintäeverstiluutnantti',
+    'lääkintäkapteeni',
+    'lääkintäkenraaliluutnantti',
+    'lääkintäkenraalimajuri',
+    'lääkintäkersantti',
+    'lääkintäkorpraali',
+    'lääkintälotta',
+    'lääkintäluutnantti',
+    'lääkintämajuri',
+    'lääkintäsotamies',
+    'lääkintävirkamies',
+    'lääkintävääpeli',
+    'majuri',
+    'matruusi',
+    'merivartija',
+    'musiikkiluutnantti',
+    'obersturmführer',
+    'oberzugführer',
+    'offizierstellvertreter',
+    'oppilas',
+    'paikallispäällikkö',
+    'panssarijääkäri',
+    'pioneeri',
+    'pursimies',
+    'rajajääkäri',
+    'rajavääpeli',
+    'rakuuna',
+    'ratsumestari',
+    'ratsumies',
+    'ratsuväenkenraali',
+    'ratsuvääpeli',
+    'reservin aliluutnantti',
+    'reservin kapteeni',
+    'reservin kornetti',
+    'reservin luutnantti',
+    'reservin vänrikki',
+    'rottenführer',
+    'sairaanhoitaja',
+    'sairaanhoitajaoppilas',
+    'schütze',
+    'siviili',
+    'soitto-oppilas',
+    'sotainvalidi',
+    'sotakirjeenvaihtaja',
+    'sotamarsalkka',
+    'sotamies',
+    'sotaylituomari',
+    'sotilasalivirkamies',
+    'sotilaskotisisar',
+    'sotilasmestari',
+    'sotilaspastori',
+    'sotilaspoika',
+    'sotilaspoliisi',
+    'sotilasvirkamies',
+    'sturmmann',
+    'suojeluskunta-alokas',
+    'suojeluskuntakorpraali',
+    'suojeluskuntasotamies',
+    'suojeluskuntaupseeri',
+    'suojeluskuntavääpeli',
+    'suomen marsalkka',
+    'toisen luokan nostomies',
+    'tuntematon',
+    'tykistönkenraali',
+    'tykkimies',
+    'työvelvollinen',
+    'unterscharführer',
+    'untersturmführer',
+    'upseerikokelas',
+    'upseerioppilas',
+    'vahtimestari',
+    'vara-amiraali',
+    'varavahtimestari',
+    'varavääpeli',
+    'vizefeldwebel',
+    'vänrikki',
+    'vääpeli',
+    'yleisesikuntaupseeri',
+    'ylihoitaja',
+    'ylikersantti',
+    'yliluutnantti',
+    'ylimatruusi',
+    'ylivääpeli',
+    'zugführer',
+)
+
+all_rank_classes_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(RANK_CLASS_SCORES.keys())), re.I)
+all_ranks_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(ALL_RANKS)), re.I)
 
 
 class Validator:
@@ -187,7 +340,6 @@ class Validator:
     def get_current_rank(self, person, event_date):
         """
         Get the latest rank the person had attained by the date given.
-        If dates are unknown, return None.
         >>> from datetime import date
         >>> v = Validator(None)
         >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-01"^^xsd:date'],
@@ -222,7 +374,7 @@ class Validator:
 
         return res
 
-    def get_fuzzy_current_ranks(self, person, event_date, date_range=30):
+    def get_fuzzy_current_ranks(self, person, event_date, rank_type, date_range=30):
         """
         >>> from datetime import date
         >>> v = Validator(None)
@@ -230,20 +382,25 @@ class Validator:
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
         >>> person = {'properties': ranks}
         >>> d = date(1940, 3, 5)
-        >>> v.get_fuzzy_current_ranks(person, d)
-        ['Korpraali', 'Sotamies']
+        >>> r = v.get_fuzzy_current_ranks(person, d, 'rank')
+        >>> len(r)
+        2
+        >>> 'Korpraali' in r
+        True
+        >>> 'Sotamies' in r
+        True
         >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
         >>> person = {'properties': ranks}
         >>> d = date(1943, 4, 5)
-        >>> v.get_fuzzy_current_ranks(person, d)
-        ['Luutnantti']
+        >>> v.get_fuzzy_current_ranks(person, d, 'rank')
+        {'Luutnantti'}
         """
         props = person['properties']
-        res = []
+        res = set()
         latest_date = None
         lowest_rank = None
-        for i, rank in enumerate(props.get('rank')):
+        for i, rank in enumerate(props.get(rank_type)):
             try:
                 promotion_date = self.parse_date(props.get('promotion_date')[i])
             except:
@@ -260,7 +417,7 @@ class Validator:
 
             if promotion_date > event_date - delta:
                 # lower boundary < promotion_date < upper boundary
-                res.append(rank)
+                res.add(rank)
                 continue
 
             if not latest_date or latest_date < promotion_date:
@@ -271,7 +428,22 @@ class Validator:
             # event_date < lower boundary
 
         if lowest_rank:
-            res.append(lowest_rank)
+            res.add(lowest_rank)
+
+        return res
+
+    def filter_promotions_after_wars(self, person, rank_type):
+        props = person['properties']
+        res = set()
+        for i, rank in enumerate(props.get(rank_type)):
+            try:
+                promotion_date = self.parse_date(props.get('promotion_date')[i])
+            except:
+                # Unknown date
+                res.add(rank.replace('"', ''))
+                continue
+            if promotion_date < date(1946, 1, 1):
+                res.add(rank.replace('"', ''))
 
         return res
 
@@ -305,15 +477,41 @@ class Validator:
         >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
         >>> v.get_rank_score(person, date(1941, 3, 5))
         30
+        >>> v.get_rank_score(person, date(1940, 3, 5))
+        0
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1946-03-01"^^xsd:date'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
+        >>> v.get_rank_score(person, None)
+        0
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
+        >>> v.get_rank_score(person, date(1941, 3, 5))
+        30
+        >>> v.get_rank_score(person, None)
+        21
         """
         props = person['properties']
         rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
         score = max([RANK_CLASS_SCORES.get(s, 0) for s in rank_classes])
         matches = set(person.get('matches'))
+        rank_type = None
+
+        if any([m for m in matches if all_ranks_regex.match(m.lower())]):
+            rank_type = 'rank'
+        elif any([m for m in matches if all_rank_classes_regex.match(m.lower())]):
+            rank_type = 'hierarchy'
+        else:
+            # No rank found in matches
+            return score
+
         current_rank = None
         if s_date:
             # Event has a date
-            ranks = self.get_fuzzy_current_ranks(person, s_date)
+            ranks = self.get_fuzzy_current_ranks(person, s_date, rank_type)
             if ranks:
                 current_rank = r'({})'.format(r'|'.join(ranks))
                 additional_score = 20
@@ -323,17 +521,21 @@ class Validator:
                 if ranks:
                     current_rank = r'({})'.format(r'|'.join(ranks))
                     additional_score = 11
+                else:
+                    # No current ranks or ranks with unknown promotion dates
+                    current_rank = 'NA'
         else:
             # Unknown event date, match any rank
-            ranks = props.get('ranks', ['NA'])
+            ranks = self.filter_promotions_after_wars(person, rank_type) or ['NA']
             current_rank = r'({})'.format(r'|'.join(ranks))
             additional_score = 11
-        if current_rank:
-            cur_rank_re = r'\b{}\b'.format(current_rank.lower())
-            if any([m for m in matches if re.match(cur_rank_re, m.lower())]):
-                score += additional_score
+
+        cur_rank_re = r'\b{}\b'.format(current_rank.lower())
+
+        if any([m for m in matches if re.match(cur_rank_re, m, re.I)]):
+            score += additional_score
         else:
-            # This person did not have this rank at this time
+            # This person did not have the matched rank at this time
             logger.info('Reducing score because of inconsistent rank from {} {} ({})'.format(
                 ', '.join(person.get('rank', [])),
                 person.get('label'),
@@ -803,11 +1005,24 @@ ignore = [
 name_re = "^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([A-ZÄÖÅÜ][_a-zA-ZäÄöÖåÅèü-]{2,})$"
 name_re_compiled = re.compile(name_re)
 
-name_re_exclude = "[a-zäåö]+\W[a-zäåö]+"
+name_re_exclude = r"((\b[a-zäåö]+|\W+)$)|#"
 name_re_exclude_compiled = re.compile(name_re_exclude)
 
 
 def pruner(candidate):
+    """
+    >>> pruner('Kenraali Engelbrecht')
+    'Kenraali Engelbrecht'
+    >>> pruner('Kenraali Engelbrecht retkellä')
+    >>> pruner('höpö höpö Engelbrecht')
+    'höpö höpö Engelbrecht'
+    >>> pruner('höpö höpö Engelbrecht:')
+    >>> pruner('höpö höpö Engelbrecht ')
+    >>> pruner('kapteeni kissa')
+    >>> pruner('höpö')
+    >>> pruner('Engelbrecht')
+    >>> pruner('#retkellä Engelbrecht')
+    """
     if name_re_compiled.fullmatch(candidate):
         if not name_re_exclude_compiled.search(candidate):
             return candidate
