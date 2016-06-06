@@ -1077,6 +1077,7 @@ if __name__ == '__main__':
         exit()
 
     if sys.argv[1] == 'prune':
+        # Remove ngrams that will not match anything for sure
         log_to_file('persons_prune.log', 'INFO')
         args = parse_args(sys.argv[2:])
         set_dataset(args)
@@ -1084,12 +1085,14 @@ if __name__ == '__main__':
                 pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, run_arpafy=False, progress=True)
     elif sys.argv[1] == 'join':
+        # Merge ngrams into a single value
         args = parse_args(sys.argv[2:])
         process(args.input, args.fi, args.output, args.fo, args.tprop, source_prop=args.prop,
                 rdf_class=args.rdf_class, new_graph=args.new_graph, join_candidates=True,
                 run_arpafy=False, progress=True)
 
     elif 'disambiguate' in sys.argv[1]:
+        # Link with disambiguating and/or validation
         args = parse_args(sys.argv[3:])
         set_dataset(args)
         f = open(sys.argv[2])
@@ -1106,6 +1109,18 @@ if __name__ == '__main__':
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa, validator_class=val,
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
                 progress=True)
+    elif 'raw' in sys.argv[1]:
+        # No preprocessing or validation
+
+        log_to_file('persons_raw.log', 'INFO')
+        args = parse_args(sys.argv[2:])
+        arpa = Arpa(args.arpa, retries=args.retries)
+
+        # Query the ARPA service, add the matches and serialize the graph to disk.
+        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
+                progress=True, candidates_only=args.candidates_only)
+
     else:
         log_to_file('persons.log', 'INFO')
         args = parse_args(sys.argv[1:])
