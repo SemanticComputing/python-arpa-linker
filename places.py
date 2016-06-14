@@ -45,12 +45,8 @@ def preprocessor(text, *args):
     text = re.sub('[()]', ' ', text)
     # Add a space after commas if they're followed by a word
     text = re.sub(r'(\w),(\w)', r'\1, \2', text)
-    # Baseforming doesn't work for "Salla" so baseform that manually.
-    text = re.sub(r'Salla(a?n?|s[st]a)?\b', 'Salla', text)
-    # Ditto for Sommee.
+    # Baseforming doesn't work for "Sommee" so baseform that manually.
     text = re.sub(r'Sommee(n?|s[st]a)?\b', 'Sommee', text)
-    # Current bug in ARPA causes Uuras to not baseform correctly.
-    text = re.sub(r'Uuraa(n?|s[st]a)?\b', 'Uuras', text)
     # Detach names connected by hyphens to match places better.
     # Skip Yl[äi]-, Al[ia]-, Iso-. and Pitkä-
     text = text.replace('Pitkä-', 'Pitkä#')
@@ -178,12 +174,13 @@ if __name__ == '__main__':
         'http://ldf.fi/warsa/places/place_types/Vesimuodostuma',
         'http://ldf.fi/warsa/places/place_types/Maastokohde',
         'http://ldf.fi/pnr-schema#place_type_540',
+        'http://ldf.fi/pnr-schema#place_type_550',
         'http://ldf.fi/pnr-schema#place_type_560',
     ]
 
     log_to_file('places_test.log', 'DEBUG')
 
-    arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-eventplace',
+    arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-event-place',
             remove_duplicates=no_duplicates, ignore=ignore, retries=2)
 
     rdf_format = 'turtle'

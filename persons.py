@@ -1048,6 +1048,8 @@ def pruner(candidate):
     >>> pruner('Kenraali Engelbrecht retkellä')
     >>> pruner('höpö höpö Engelbrecht')
     'höpö höpö Engelbrecht'
+    >>> pruner('Höpö höpö Engelbrecht')
+    'Höpö höpö Engelbrecht'
     >>> pruner('höpö höpö Engelbrecht:')
     >>> pruner('höpö höpö Engelbrecht ')
     >>> pruner('kapteeni kissa')
@@ -1098,7 +1100,8 @@ if __name__ == '__main__':
         f = open(sys.argv[2])
         qry = f.read()
         f.close()
-        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore)
+        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore,
+                retries=args.retries, wait_between_tries=args.wait)
         if sys.argv[1] == 'disambiguate_validate':
             log_to_file('persons_validate.log', 'INFO')
             val = Validator
@@ -1106,15 +1109,15 @@ if __name__ == '__main__':
             log_to_file('persons_disambiguate.log', 'INFO')
             val = None
 
-        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa, validator_class=val,
-                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-                progress=True)
+        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
+                validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
+                new_graph=args.new_graph, progress=True)
     elif 'raw' in sys.argv[1]:
         # No preprocessing or validation
 
         log_to_file('persons_raw.log', 'INFO')
         args = parse_args(sys.argv[2:])
-        arpa = Arpa(args.arpa, retries=args.retries)
+        arpa = Arpa(args.arpa, retries=args.retries, wait_between_tries=args.wait)
 
         # Query the ARPA service, add the matches and serialize the graph to disk.
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
@@ -1124,7 +1127,8 @@ if __name__ == '__main__':
     else:
         log_to_file('persons.log', 'INFO')
         args = parse_args(sys.argv[1:])
-        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore)
+        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore,
+                retries=args.retries, wait_between_tries=args.wait)
 
         # Query the ARPA service, add the matches and serialize the graph to disk.
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,

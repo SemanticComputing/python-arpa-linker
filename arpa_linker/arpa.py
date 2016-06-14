@@ -742,6 +742,9 @@ def parse_args(args):
         for this to work.""")
     argparser.add_argument("-r", "--retries", default=0, metavar="N", type=int,
         help="The amount of retries per query if a HTTP error is received. Default is 0.")
+    argparser.add_argument("-w", "--wait", default=1, metavar="N", type=int,
+        help="""The number of seconds to wait between retries. Only has an effect if number
+        of retries is set. Default is 1 second.""")
     argparser.add_argument("--log_level", default="INFO",
         choices=["NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging level, default is INFO. The log file is arpa_linker.log.")
