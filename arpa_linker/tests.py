@@ -524,8 +524,8 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
 
-        arpa = Arpa('http://url', remove_duplicates=True,
-                min_ngram_length=2, ignore=['Hanko'], retries=1)
+        arpa = Arpa('http://url', remove_duplicates=True, min_ngram_length=2,
+                ignore=['Hanko'], retries=1, wait_between_tries=0)
         res = arpa.get_uri_matches('Hanko')
 
         self.assertEqual(len(responses.calls), 1)
@@ -933,6 +933,7 @@ class TestParseArgs(TestCase):
         self.assertEqual(args.no_duplicates, False)
         self.assertEqual(args.new_graph, False)
         self.assertEqual(args.retries, 0)
+        self.assertEqual(args.wait, 1)
         self.assertEqual(args.log_level, 'INFO')
 
         self.assertEqual(args.prop, None)
@@ -1007,6 +1008,18 @@ class TestParseArgs(TestCase):
         args = parse_args(params)
 
         self.assertEqual(args.retries, 3)
+
+    def test_wait(self):
+        params = self.base_params + ['--retries', '2']
+        params_long = params + ['--wait', '3']
+        args = parse_args(params_long)
+
+        self.assertEqual(args.wait, 3)
+
+        params_short = params + ['-w', '4']
+        args = parse_args(params_short)
+
+        self.assertEqual(args.wait, 4)
 
     def test_log_level(self):
         params = self.base_params + ['--log_level', 'DEBUG']
