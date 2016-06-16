@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from arpa_linker.arpa import Arpa, ArpaMimic, process, log_to_file, parse_args
+from link_helper import process_stage
 from rdflib import URIRef
 # from rdflib.namespace import SKOS
 import logging
@@ -1078,60 +1078,63 @@ if __name__ == '__main__':
         doctest.testmod()
         exit()
 
-    if sys.argv[1] == 'prune':
-        # Remove ngrams that will not match anything for sure
-        log_to_file('persons_prune.log', 'INFO')
-        args = parse_args(sys.argv[2:])
-        set_dataset(args)
-        process(args.input, args.fi, args.output, args.fo, args.tprop, prune=True,
-                pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
-                new_graph=args.new_graph, run_arpafy=False, progress=True)
-    elif sys.argv[1] == 'join':
-        # Merge ngrams into a single value
-        args = parse_args(sys.argv[2:])
-        process(args.input, args.fi, args.output, args.fo, args.tprop, source_prop=args.prop,
-                rdf_class=args.rdf_class, new_graph=args.new_graph, join_candidates=True,
-                run_arpafy=False, progress=True)
+    process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
+            pruner=pruner, set_dataset=set_dataset)
 
-    elif 'disambiguate' in sys.argv[1]:
-        # Link with disambiguating and/or validation
-        args = parse_args(sys.argv[3:])
-        set_dataset(args)
-        f = open(sys.argv[2])
-        qry = f.read()
-        f.close()
-        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore,
-                retries=args.retries, wait_between_tries=args.wait)
-        if sys.argv[1] == 'disambiguate_validate':
-            log_to_file('persons_validate.log', 'INFO')
-            val = Validator
-        else:
-            log_to_file('persons_disambiguate.log', 'INFO')
-            val = None
-
-        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
-                validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
-                new_graph=args.new_graph, progress=True)
-    elif 'raw' in sys.argv[1]:
-        # No preprocessing or validation
-
-        log_to_file('persons_raw.log', 'INFO')
-        args = parse_args(sys.argv[2:])
-        arpa = Arpa(args.arpa, retries=args.retries, wait_between_tries=args.wait)
-
-        # Query the ARPA service, add the matches and serialize the graph to disk.
-        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-                progress=True, candidates_only=args.candidates_only)
-
-    else:
-        log_to_file('persons.log', 'INFO')
-        args = parse_args(sys.argv[1:])
-        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore,
-                retries=args.retries, wait_between_tries=args.wait)
-
-        # Query the ARPA service, add the matches and serialize the graph to disk.
-        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-                preprocessor=preprocessor, validator_class=Validator, progress=True,
-                candidates_only=args.candidates_only)
+#    if sys.argv[1] == 'prune':
+#        # Remove ngrams that will not match anything for sure
+#        log_to_file('persons_prune.log', 'INFO')
+#        args = parse_args(sys.argv[2:])
+#        set_dataset(args)
+#        process(args.input, args.fi, args.output, args.fo, args.tprop, prune=True,
+#                pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
+#                new_graph=args.new_graph, run_arpafy=False, progress=True)
+#    elif sys.argv[1] == 'join':
+#        # Merge ngrams into a single value
+#        args = parse_args(sys.argv[2:])
+#        process(args.input, args.fi, args.output, args.fo, args.tprop, source_prop=args.prop,
+#                rdf_class=args.rdf_class, new_graph=args.new_graph, join_candidates=True,
+#                run_arpafy=False, progress=True)
+#
+#    elif 'disambiguate' in sys.argv[1]:
+#        # Link with disambiguating and/or validation
+#        args = parse_args(sys.argv[3:])
+#        set_dataset(args)
+#        f = open(sys.argv[2])
+#        qry = f.read()
+#        f.close()
+#        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore,
+#                retries=args.retries, wait_between_tries=args.wait)
+#        if sys.argv[1] == 'disambiguate_validate':
+#            log_to_file('persons_validate.log', 'INFO')
+#            val = Validator
+#        else:
+#            log_to_file('persons_disambiguate.log', 'INFO')
+#            val = None
+#
+#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
+#                validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
+#                new_graph=args.new_graph, progress=True)
+#    elif 'raw' in sys.argv[1]:
+#        # No preprocessing or validation
+#
+#        log_to_file('persons_raw.log', 'INFO')
+#        args = parse_args(sys.argv[2:])
+#        arpa = Arpa(args.arpa, retries=args.retries, wait_between_tries=args.wait)
+#
+#        # Query the ARPA service, add the matches and serialize the graph to disk.
+#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+#                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
+#                progress=True, candidates_only=args.candidates_only)
+#
+#    else:
+#        log_to_file('persons.log', 'INFO')
+#        args = parse_args(sys.argv[1:])
+#        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore,
+#                retries=args.retries, wait_between_tries=args.wait)
+#
+#        # Query the ARPA service, add the matches and serialize the graph to disk.
+#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
+#                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
+#                preprocessor=preprocessor, validator_class=Validator, progress=True,
+#                candidates_only=args.candidates_only)

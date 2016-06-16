@@ -28,12 +28,6 @@ SELECT ?id ?label ?ngram ?type
           a ?type ;
           rdfs:label|skos:prefLabel ?label .
       FILTER(str(?label) = ?ngram)
-      MINUS {
-        ?id a ptype:Rakennettu_kohde .
-      }
-      MINUS {
-        ?id a ptype:Symboli .
-      }
     }
   } UNION {
     SERVICE <http://localhost:3030/pnr/sparql> {
@@ -43,9 +37,6 @@ SELECT ?id ?label ?ngram ?type
       BIND(CONCAT('"',?ngram,'"') AS ?qstring)
       ?id text:query ?qstring .
       ?id a ?type .
-      FILTER(?type = <http://ldf.fi/pnr-schema#place_type_560> ||
-        ?type = <http://ldf.fi/pnr-schema#place_type_550> ||
-        ?type = <http://ldf.fi/pnr-schema#place_type_540>)
       ?id rdfs:label|skos:prefLabel ?label .
       FILTER(STR(?label)=STR(?ngram))
     }
