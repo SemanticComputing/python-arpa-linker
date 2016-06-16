@@ -1,10 +1,13 @@
 import re
-from arpa_linker.arpa import Arpa, process, log_to_file
-from rdflib import URIRef
+import sys
+from link_helper import process_stage
 
 
-def validator(graph, s):
-    def validate(text, results):
+class Validator:
+    def __init__(self, graph, *args, **kwargs):
+        self.graph = graph
+
+    def validate(self, results, text, s):
         if not results:
             return results
         for i, place in enumerate(results):
@@ -33,7 +36,6 @@ def validator(graph, s):
                 results[i]['id'] = 'http://ldf.fi/pnr/P_10530797'
 
         return results
-    return validate
 
 
 def preprocessor(text, *args):
@@ -160,11 +162,12 @@ if __name__ == '__main__':
         'olli',
         'motti',
         'valko',
+        'martti',
         'maaselkä',  # the proper one does not exist yet
         'kalajoki',  # the proper one does not exist yet
-        #'turtola', # only for events!
-        #'pajari'  # only for events, remove for photos
-        #'karsikko'?
+        # 'turtola', # only for events!
+        # 'pajari'  # only for events, remove for photos
+        # 'karsikko'?
     ]
 
     no_duplicates = [
@@ -178,19 +181,5 @@ if __name__ == '__main__':
         'http://ldf.fi/pnr-schema#place_type_560',
     ]
 
-    log_to_file('places_test.log', 'DEBUG')
-
-    arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-event-place',
-            remove_duplicates=no_duplicates, ignore=ignore, retries=2)
-
-    rdf_format = 'turtle'
-
-    # Query the ARPA service, add the matches, and serialize the graph to disk.
-    process('test.ttl', rdf_format, 'test_output.ttl', rdf_format,
-            #URIRef('http://purl.org/dc/terms/spatial'),
-            URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
-            arpa,
-            #URIRef('http://ldf.fi/warsa/photographs/place_string'),
-            candidates_only=True,
-            new_graph=True,
-            preprocessor=preprocessor, validator=validator, progress=True)
+    process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
+            remove_duplicates=no_duplicates)
