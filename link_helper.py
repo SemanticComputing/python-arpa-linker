@@ -49,8 +49,8 @@ def process_stage(argv, ignore=None, validator=None, preprocessor=None, pruner=N
             val = None
             dupl = False
 
-        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore,
-                retries=args.retries, wait_between_tries=args.wait, remove_duplicates=dupl)
+        arpa = ArpaMimic(qry, args.arpa, dupl, args.min_ngram, ignore,
+                retries=args.retries, wait_between_tries=args.wait)
 
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
                 validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
