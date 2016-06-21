@@ -711,6 +711,17 @@ class Validator:
         -19
         >>> v.get_score(person3, None, date(1944, 5, 31), None, results, ranked_matches)
         -14
+        >>> props = {'death_date': ['"1944-06-15"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'first_names': ['"Tuomas"'],
+        ...    'family_name': ['"Noponen"'],
+        ...    'rank': ['"Korpraali"']}
+        >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
+        >>> results = [person]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1941, 8, 4), None, results, ranked_matches)
+        -10
         """
         person_id = person.get('id')
         if person_id == 'http://ldf.fi/warsa/actors/person_1':
@@ -753,25 +764,42 @@ class Validator:
         # l = graph.value(s, SKOS.prefLabel)
 
 
-list_regex = r'(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + r'(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
+_name_part = r'[A-ZÄÖÅ]' + r'(?:(?:\.\s*|\w+\s+)?[A-ZÄÖÅ])?' * 2
+list_regex = r'\b(?::)?\s*' + (r'(?:(' + _name_part + r'\w+,)(?:\s*))?') * 10 + \
+    r'(?:(' + _name_part + r'\w+)?(?:\s+ja\s+)?([A-ZÄÖÅ](?:(?:\w|\.\s*|\w+\s+)?[A-ZÄÖÅ])?\w+)?)?'
 
-_g_re = r'(?:\b[Kk]enraali(?:t)?(?:)?\W+)' + list_regex
+_g_re = r'\b[Kk]enraali(?:t)?' + list_regex
 g_regex = re.compile(_g_re)
 
-_mg_re = r'(?:\b[Kk]enraalimajurit(?:t)?(?:)?\W+)' + list_regex
+_mg_re = r'\b[Kk]enraalimajuri(?:t)?' + list_regex
 mg_regex = re.compile(_mg_re)
 
-_el_re = r'\b[Ee]verstiluutnantit(?:)?\W+' + list_regex
+_e_re = r'\b[Ee]verstit' + list_regex
+e_regex = re.compile(_e_re)
+
+_el_re = r'\b[Ee]verstiluutnantit' + list_regex
 el_regex = re.compile(_el_re)
 
-_ma_re = r'\b[Mm]ajurit(?:)?\W+' + list_regex
+_ma_re = r'\b[Mm]ajurit' + list_regex
 ma_regex = re.compile(_ma_re)
 
-_m_re = r'[Mm]inisterit(?:)?\W+' + list_regex
+_m_re = r'[Mm]inisterit' + list_regex
 m_regex = re.compile(_m_re)
 
-_c_re = r'\b[Kk]apteenit\W+' + list_regex
+_c_re = r'\b[Kk]apteenit' + list_regex
 c_regex = re.compile(_c_re)
+
+_l_re = r'\b[Ll]uutnantit' + list_regex
+l_regex = re.compile(_l_re)
+
+_v_re = r'\b[Vv]änrikit' + list_regex
+v_regex = re.compile(_v_re)
+
+_k_re = r'\b[Kk]ersantit' + list_regex
+k_regex = re.compile(_k_re)
+
+_ak_re = r'\b[Aa]likersantit' + list_regex
+ak_regex = re.compile(_ak_re)
 
 _sv_re = r'[Ss]ot(?:(?:ilasvirk(?:\.\s*)|(?:ailija[t]?\s+))|(?:\.\s*virk\.\s*))' + list_regex
 sv_regex = re.compile(_sv_re)
@@ -783,8 +811,9 @@ def repl(groups):
         res = r''
         for i in groups:
             if m.group(i):
-                res = res + ' # § {}'.format(m.group(i))
-        return '{} # '.format(res) if res else m.group(0)
+                res = res + ' § {}'.format(m.group(i))
+        res = '{}'.format(res) if res else m.group(0)
+        return res
 
     return rep
 
@@ -806,11 +835,22 @@ def add_titles(regex, title, text):
 
 
 def replace_general_list(text):
+    """
+    >>> replace_general_list('kenraali Walden  # kenraalikunta Mannerheim # junassa aterialla.')
+    ' kenraali Walden  # kenraalikunta Mannerheim # junassa aterialla.'
+    # This is unfortunate, but whatcha gonna do.
+    >>> replace_general_list("Kenraali Weckman, Saksan Sota-akatemian komentaja vierailulla Suomessa: Saksan sotilasasiamiehen eversti Kitschmannin seurassa.")
+    ' kenraali Weckman, kenraali Saksan Sota-akatemian komentaja vierailulla Suomessa: Saksan sotilasasiamiehen eversti Kitschmannin seurassa.'
+    """
     return add_titles(g_regex, 'kenraali', text)
 
 
 def replace_major_general_list(text):
     return add_titles(g_regex, 'kenraalimajuri', text)
+
+
+def replace_e_list(text):
+    return add_titles(e_regex, 'eversti', text)
 
 
 def replace_el_list(text):
@@ -822,6 +862,12 @@ def replace_minister_list(text):
 
 
 def replace_major_list(text):
+    """
+    >>> replace_major_list("Vas: insinööri L.Jyväskorpi, Tampella, insinööri E.Ilmonen, Tampella, eversti A.Salovirta, Tväl.os/PM, insinööri Donner, Tampella, majuri A.Vara, Tväl.os/PM.")
+    'Vas: insinööri L.Jyväskorpi, Tampella, insinööri E.Ilmonen, Tampella, eversti A.Salovirta, Tväl.os/PM, insinööri Donner, Tampella, majuri A.Vara, Tväl.os/PM.'
+    >>> replace_major_general_list("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
+    'Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.'
+    """
     return add_titles(ma_regex, 'majuri', text)
 
 
@@ -829,12 +875,32 @@ def replace_captain_list(text):
     return add_titles(c_regex, 'kapteeni', text)
 
 
+def replace_lieutenant_list(text):
+    """
+    >>> replace_lieutenant_list("Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta.")
+    'Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä,  luutnantti K. Sarva luutnantti U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta.'
+    """
+    return add_titles(l_regex, 'luutnantti', text)
+
+
+def replace_v_list(text):
+    return add_titles(v_regex, 'vänrikki', text)
+
+
+def replace_k_list(text):
+    return add_titles(k_regex, 'kersantti', text)
+
+
+def replace_ak_list(text):
+    return add_titles(ak_regex, 'alikersantti', text)
+
+
 def replace_sv_list(text):
     """
     >>> replace_sv_list("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
-    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  # sotilasvirkamies Kapra # sotilasvirkamies Jalkanen # vänr. Rahikainen).'
+    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  sotilasvirkamies Kapra, sotilasvirkamies Jalkanen,vänr. Rahikainen).'
     >>> replace_sv_list("Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
-    'Komentajasta oikealla: Björnsson Mehlem,  # sotilasvirkamies Zenker # sotilasvirkamies Farr # luutnantti Miettinen,etualalla oikealla Scott.'
+    'Komentajasta oikealla: Björnsson Mehlem,  sotilasvirkamies Zenker, sotilasvirkamies Farr,luutnantti Miettinen,etualalla oikealla Scott.'
     """
     return add_titles(sv_regex, 'sotilasvirkamies', text)
 
@@ -852,26 +918,32 @@ snellman_list = (
 to_be_lowercased = (
     "Eversti",
     "Luutnantti",
-    "Kenraali"
+    "Kenraali",
+    "Kapteeni",
+    "Kersantti",
+    "Vänrikki"
 )
 
 
 def preprocessor(text, *args):
     """
-    >>> preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
-    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arola # ministeri Honka #  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström #  # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko # .'
+    >>> preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka," \
+            " everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
+    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  Juho Koivisto, ministeri Salovaara, ministeri Horelli, ministeri Arola, ministeri Honka, everstiluutnantti Varis, everstiluutnantti Ehnrooth, everstiluutnantti Juva, everstiluutnantti Heimolainen, everstiluutnantti Björnström, majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.'
     >>> preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.")
-    ' # kenraalikunta Hägglund #  seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    ' kenraalikunta Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    >>> preprocessor("Kenraali Karl Oesch seuraa maastoammuntaa.")
+    ' kenraalikunta Karl Oesch seuraa maastoammuntaa.'
     >>> preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.")
     'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit  Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
-    '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri,  # kenraalikunta Neuvonen # kenraalikunta Walden # kenraalikunta Mäkinen # eversti Sihvo,  # kenraalikunta Airo # kenraalikunta Oesch # eversti Hersalo ym. klo 12.45.'
+    '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri,  kenraalikunta Neuvonen, kenraalikunta Walden, kenraalikunta Mäkinen, eversti Sihvo,  kenraalikunta Airo, kenraalikunta Oesch, eversti Hersalo ym. klo 12.45.'
     >>> preprocessor("Sotamarsalkka Raasulissa.")
     '# kenraalikunta Mannerheim # Raasulissa.'
     >>> preprocessor("Eräs Brewster-koneista, jotka seurasivat marsalkan seuruetta.")
     'Eräs Brewster-koneista, jotka seurasivat # kenraalikunta Mannerheim # seuruetta.'
     >>> preprocessor("Kenraali Walden Marsalkan junassa aterialla.")
-    ' # kenraalikunta Walden #  # kenraalikunta Mannerheim # junassa aterialla.'
+    ' kenraalikunta Walden # kenraalikunta Mannerheim # junassa aterialla.'
     >>> preprocessor('"Eläköön Sotamarsalkka"')
     'Eläköön # kenraalikunta Mannerheim #'
     >>> preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.")
@@ -881,23 +953,23 @@ def preprocessor(text, *args):
     >>> preprocessor("Everstiluutnantti Laaksonen")
     '# everstiluutnantti Sulo Laaksonen #'
     >>> preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.")
-    'Vas: # everstiluutnantti Sulo Laaksonen #, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.'
+    'Vas: # everstiluutnantti Sulo Laaksonen #, kapteeni Karu, ylikersantti Vorho, ja  alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.'
     >>> preprocessor("Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.")
     'Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.'
     >>> preprocessor("Luutn. Juutilainen Saharan kauhu jouluk. Alussa.")
     '# kapteeni Juutilainen # # kapteeni Juutilainen # jouluk. Alussa.'
     >>> preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa.")
-    ' # kapteeni Palolampi # kapteeni Juutilainen #  ratsailla Levinassa.'
+    ' kapteeni Palolampi kapteeni Juutilainen ratsailla Levinassa.'
     >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
     'kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.'
     >>> preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund).")
-    'Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva,  # sotilasvirkamies Kumminen # sotilasvirkamies Westerlund # ).'
+    'Radioryhmän toimintaa: Selostaja työssään ( vänrikki Seiva,  sotilasvirkamies Kumminen sotilasvirkamies Westerlund).'
     >>> preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
-    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  # sotilasvirkamies Kapra # sotilasvirkamies Jalkanen # vänrikki  Rahikainen).'
+    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  sotilasvirkamies Kapra, sotilasvirkamies Jalkanen, vänrikki  Rahikainen).'
     >>> preprocessor("Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
-    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem,  # sotilasvirkamies Zenker # sotilasvirkamies Farr # luutnantti Miettinen,etualalla oikealla Scott.'
+    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem,  sotilasvirkamies Zenker, sotilasvirkamies Farr, luutnantti Miettinen, etualalla oikealla Scott.'
     >>> preprocessor("Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sot.virk. Halonen, alikersantti Rosenberg, vänrikki Lindblad, sot.virk. Österman, alikersantti Salenius.")
-    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola,  # sotilasvirkamies Halonen # alikersantti Rosenberg, vänrikki Lindblad,  # sotilasvirkamies Österman # alikersantti Salenius.'
+    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola,  sotilasvirkamies Halonen, alikersantti Rosenberg, vänrikki Lindblad,  sotilasvirkamies Österman, alikersantti Salenius.'
     >>> preprocessor("Ev. luutn.Paasonen ja saks. Amiraali keskuselevat")
     'everstiluutnantti Paasonen ja saks. Amiraali keskuselevat'
     >>> preprocessor("Ev. luutnantti Vänttinen")
@@ -906,6 +978,10 @@ def preprocessor(text, *args):
     'everstiluutnantti  Rauramo'
     >>> preprocessor("TK-Pärttyli Virkki erään lennon jälkeen.")
     'sotilasvirkamies Pärttyli Virkki erään lennon jälkeen.'
+    >>> preprocessor("Virkki,erään lennon jälkeen.")
+    'Virkki, erään lennon jälkeen.'
+    >>> preprocessor("Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta.")
+    'Rautaristin saajat: eversti A. Puroma,  majuri A.G. Airimo majuri V. Lehvä,  luutnantti K. Sarva luutnantti U. Jalkanen,  vänrikki T. Laakso, vänrikki R. Kanto, vänrikki N. Vuolle vänrikki Y. Nuortio,  kersantti T. Aspegren kersantti H. Kalliaisenaho,  alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä korpraali R. Keihta.'
     """
 
     text = str(text).replace('"', '')
@@ -934,6 +1010,11 @@ def preprocessor(text, *args):
     text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', '# kenraalikunta Mannerheim #', text)
     text = re.sub(r'Marski(n|a|lle)?\b', '# kenraalikunta Mannerheim #', text)
 
+    # von Bonin -> von_Bonin
+    text = re.sub(r'\bvon\s+(?=[A-ZÄÅÖ])', 'von_', text)
+
+    text = text.replace('A.K Airimo', 'A.G. Airimo')
+
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
     text = text.replace('hal.neuv.', '')
@@ -944,6 +1025,10 @@ def preprocessor(text, *args):
     text = replace_major_list(text)
     text = replace_captain_list(text)
     text = replace_sv_list(text)
+    text = replace_v_list(text)
+    text = replace_k_list(text)
+    text = replace_ak_list(text)
+    text = replace_lieutenant_list(text)
 
     text = re.sub(r'\b[Kk]enr(\.|aali) ', 'kenraalikunta ', text)
     text = re.sub(r'\b[Kk]enr\.\s*([a-z])', r'kenraali§\1', text)
@@ -1020,6 +1105,10 @@ def preprocessor(text, *args):
     text = re.sub(r'[Pp]residentti\s+ja\s+rouva\s+Svinhufvud', 'Pehr Evind Svinhufvud # Ellen Svinhufvud #', text)
     text = re.sub(r'[Rr]ouva\s+Svinhufvud', 'Ellen Svinhufvud #', text)
     text = text.replace('Öhqvist', 'Öhquist')
+    text = re.sub(r'(?<=\S),(?=\S)', ', ', text)
+
+    # Pretty sure this is the guy
+    text = text.replace('Tuomas Noponen', 'korpraali Tuomas Noponen')
 
     if text != orig:
         logger.info('Preprocessed to: {}'.format(text))
@@ -1080,61 +1169,3 @@ if __name__ == '__main__':
 
     process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
             pruner=pruner, set_dataset=set_dataset)
-
-#    if sys.argv[1] == 'prune':
-#        # Remove ngrams that will not match anything for sure
-#        log_to_file('persons_prune.log', 'INFO')
-#        args = parse_args(sys.argv[2:])
-#        set_dataset(args)
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, prune=True,
-#                pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
-#                new_graph=args.new_graph, run_arpafy=False, progress=True)
-#    elif sys.argv[1] == 'join':
-#        # Merge ngrams into a single value
-#        args = parse_args(sys.argv[2:])
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, source_prop=args.prop,
-#                rdf_class=args.rdf_class, new_graph=args.new_graph, join_candidates=True,
-#                run_arpafy=False, progress=True)
-#
-#    elif 'disambiguate' in sys.argv[1]:
-#        # Link with disambiguating and/or validation
-#        args = parse_args(sys.argv[3:])
-#        set_dataset(args)
-#        f = open(sys.argv[2])
-#        qry = f.read()
-#        f.close()
-#        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore,
-#                retries=args.retries, wait_between_tries=args.wait)
-#        if sys.argv[1] == 'disambiguate_validate':
-#            log_to_file('persons_validate.log', 'INFO')
-#            val = Validator
-#        else:
-#            log_to_file('persons_disambiguate.log', 'INFO')
-#            val = None
-#
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
-#                validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
-#                new_graph=args.new_graph, progress=True)
-#    elif 'raw' in sys.argv[1]:
-#        # No preprocessing or validation
-#
-#        log_to_file('persons_raw.log', 'INFO')
-#        args = parse_args(sys.argv[2:])
-#        arpa = Arpa(args.arpa, retries=args.retries, wait_between_tries=args.wait)
-#
-#        # Query the ARPA service, add the matches and serialize the graph to disk.
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-#                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-#                progress=True, candidates_only=args.candidates_only)
-#
-#    else:
-#        log_to_file('persons.log', 'INFO')
-#        args = parse_args(sys.argv[1:])
-#        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore,
-#                retries=args.retries, wait_between_tries=args.wait)
-#
-#        # Query the ARPA service, add the matches and serialize the graph to disk.
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-#                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-#                preprocessor=preprocessor, validator_class=Validator, progress=True,
-#                candidates_only=args.candidates_only)
