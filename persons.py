@@ -753,18 +753,18 @@ class Validator:
         # l = graph.value(s, SKOS.prefLabel)
 
 
-list_regex = r'(?:([A-ZÄÖÅ]\w+)(?:,\W*))?' * 10 + r'(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
+list_regex = r'(?:([A-ZÄÖÅ]\w+,)(?:\W*))?' * 10 + r'(?:([A-ZÄÖÅ]\w+)?(?:\W+ja\W+)?([A-ZÄÖÅ]\w+)?)?'
 
 _g_re = r'(?:\b[Kk]enraali(?:t)?(?:)?\W+)' + list_regex
 g_regex = re.compile(_g_re)
 
-_mg_re = r'(?:\b[Kk]enraalimajurit(?:t)?(?:)?\W+)' + list_regex
+_mg_re = r'(?:\b[Kk]enraalimajuri(?:t)?(?:)?\W+)' + list_regex
 mg_regex = re.compile(_mg_re)
 
 _el_re = r'\b[Ee]verstiluutnantit(?:)?\W+' + list_regex
 el_regex = re.compile(_el_re)
 
-_ma_re = r'\b[Mm]ajurit(?:)?\W+' + list_regex
+_ma_re = r'\b[Mm]ajuri(?:t)(?:)?\W+' + list_regex
 ma_regex = re.compile(_ma_re)
 
 _m_re = r'[Mm]inisterit(?:)?\W+' + list_regex
@@ -783,8 +783,8 @@ def repl(groups):
         res = r''
         for i in groups:
             if m.group(i):
-                res = res + ' # § {}'.format(m.group(i))
-        return '{} # '.format(res) if res else m.group(0)
+                res = res + ' § {}'.format(m.group(i))
+        return '{} '.format(res) if res else m.group(0)
 
     return rep
 
@@ -822,6 +822,9 @@ def replace_minister_list(text):
 
 
 def replace_major_list(text):
+    """
+    >>> replace_major_list("Vas: insinööri L.Jyväskorpi, Tampella, insinööri E.Ilmonen, Tampella, eversti A.Salovirta, Tväl.os/PM, insinööri Donner, Tampella, majuri A.Vara, Tväl.os/PM.")
+    """
     return add_titles(ma_regex, 'majuri', text)
 
 
@@ -862,6 +865,8 @@ def preprocessor(text, *args):
     'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto # ministeri Salovaara # ministeri Horelli # ministeri Arola # ministeri Honka #  # everstiluutnantti Varis # everstiluutnantti Ehnrooth # everstiluutnantti Juva # everstiluutnantti Heimolainen # everstiluutnantti Björnström #  # majuri Müller # majuri Pennanen # majuri Kalpamaa # majuri Varko # .'
     >>> preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.")
     ' # kenraalikunta Hägglund #  seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    >>> preprocessor("Kenraali Karl Oesch seuraa maastoammuntaa.")
+    ' # kenraalikunta Karl Oesch seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.")
     'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit  Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
@@ -1020,6 +1025,7 @@ def preprocessor(text, *args):
     text = re.sub(r'[Pp]residentti\s+ja\s+rouva\s+Svinhufvud', 'Pehr Evind Svinhufvud # Ellen Svinhufvud #', text)
     text = re.sub(r'[Rr]ouva\s+Svinhufvud', 'Ellen Svinhufvud #', text)
     text = text.replace('Öhqvist', 'Öhquist')
+    text = re.sub(r'(?<=\S),(?=\S)', ', ', text)
 
     if text != orig:
         logger.info('Preprocessed to: {}'.format(text))
@@ -1080,61 +1086,3 @@ if __name__ == '__main__':
 
     process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
             pruner=pruner, set_dataset=set_dataset)
-
-#    if sys.argv[1] == 'prune':
-#        # Remove ngrams that will not match anything for sure
-#        log_to_file('persons_prune.log', 'INFO')
-#        args = parse_args(sys.argv[2:])
-#        set_dataset(args)
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, prune=True,
-#                pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
-#                new_graph=args.new_graph, run_arpafy=False, progress=True)
-#    elif sys.argv[1] == 'join':
-#        # Merge ngrams into a single value
-#        args = parse_args(sys.argv[2:])
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, source_prop=args.prop,
-#                rdf_class=args.rdf_class, new_graph=args.new_graph, join_candidates=True,
-#                run_arpafy=False, progress=True)
-#
-#    elif 'disambiguate' in sys.argv[1]:
-#        # Link with disambiguating and/or validation
-#        args = parse_args(sys.argv[3:])
-#        set_dataset(args)
-#        f = open(sys.argv[2])
-#        qry = f.read()
-#        f.close()
-#        arpa = ArpaMimic(qry, args.arpa, args.no_duplicates, args.min_ngram, ignore,
-#                retries=args.retries, wait_between_tries=args.wait)
-#        if sys.argv[1] == 'disambiguate_validate':
-#            log_to_file('persons_validate.log', 'INFO')
-#            val = Validator
-#        else:
-#            log_to_file('persons_disambiguate.log', 'INFO')
-#            val = None
-#
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
-#                validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
-#                new_graph=args.new_graph, progress=True)
-#    elif 'raw' in sys.argv[1]:
-#        # No preprocessing or validation
-#
-#        log_to_file('persons_raw.log', 'INFO')
-#        args = parse_args(sys.argv[2:])
-#        arpa = Arpa(args.arpa, retries=args.retries, wait_between_tries=args.wait)
-#
-#        # Query the ARPA service, add the matches and serialize the graph to disk.
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-#                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-#                progress=True, candidates_only=args.candidates_only)
-#
-#    else:
-#        log_to_file('persons.log', 'INFO')
-#        args = parse_args(sys.argv[1:])
-#        arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore,
-#                retries=args.retries, wait_between_tries=args.wait)
-#
-#        # Query the ARPA service, add the matches and serialize the graph to disk.
-#        process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-#                source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-#                preprocessor=preprocessor, validator_class=Validator, progress=True,
-#                candidates_only=args.candidates_only)
