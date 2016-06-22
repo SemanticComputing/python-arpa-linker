@@ -30,7 +30,7 @@ WHERE {
 
       GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
       ?id foaf:familyName ?familyName .
-      FILTER((?family_name = UCASE(?familyName)) || CONTAINS(?familyName, "(") && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
+      FILTER((?family_name = UCASE(?familyName)) || (CONTAINS(?familyName, "(") || CONTAINS(?familyName, ".")) && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
 
       OPTIONAL { ?id foaf:firstName ?first_names . }
       OPTIONAL {
