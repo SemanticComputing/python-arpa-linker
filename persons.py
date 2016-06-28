@@ -31,8 +31,8 @@ RANK_CLASS_SCORES = {
 }
 
 ALL_RANKS = {
-    'na': 1,
-    'sotilasvirkamies': 1,
+    'na': 0,
+    'sotilasvirkamies': 0,
     'tuntematon': -1,
     'alikersantti': 0,
     'aliluutnantti': 0,
@@ -183,6 +183,7 @@ ALL_RANKS = {
 
 all_rank_classes_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(RANK_CLASS_SCORES.keys())), re.I)
 all_ranks_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(ALL_RANKS)), re.I)
+
 
 class Validator:
     dataset = ''
@@ -475,9 +476,12 @@ class Validator:
 
     def has_consistent_rank(self, person, text):
         """
-        True/False is enough, because either there is a match with a consistent
-        rank, in which case mathes are already scored accordingly, or there is no
-        match with a rank.
+        Check if the mention of the person in `text` is preceded by a rank that
+        the person does not have, in which case return False. Otherwise return True.
+
+        True/False is enough (as opposed to scoring different results),
+        because either there is a match with a consistent rank, in which case
+        matches are already scored accordingly, or there is no match with a rank.
 
         >>> v = Validator(None)
         >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
@@ -492,7 +496,7 @@ class Validator:
         True
 
         This is a bit unfortunate, but it shouldn't be a problem.
-        >>> person = {'properties': props, 'matches': ['A. Snellman', 'A. Snellman'], 'id': 'id'}
+        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
         >>> v.has_consistent_rank(person, "upseeri A. Snellman")
         False
 
@@ -508,15 +512,15 @@ class Validator:
         text_rank_re = r'\b(\w+)\b\s+'
         text_ranks = []
 
-        for match in person['matches']:
+        for match in set(person['matches']):
             ranks_in_text = re.findall(text_rank_re + match, text)
             for r in ranks_in_text:
                 if all_ranks_regex.findall(r) or all_rank_classes_regex.findall(r):
                     text_ranks.append(r.lower())
         if text_ranks:
             props = person['properties']
-            ranks = [r.replace('"', '').lower() for r in props['rank']]
-            hierarchy = [r.replace('"', '').lower() for r in props['hierarchy']]
+            ranks = [r.replace('"', '').lower() for r in set(props['rank'])]
+            hierarchy = [r.replace('"', '').lower() for r in set(props['hierarchy'])]
             for t_rank in text_ranks:
                 if t_rank in ranks or t_rank in hierarchy:
                     # Consistent rank found in context.
@@ -557,15 +561,13 @@ class Validator:
         ...    'rank': ['"NA"']}
         >>> person = {'properties': ranks, 'matches': ['Adolf Hitler']}
         >>> v.get_rank_score(person, date(1941, 3, 5), "Adolf Hitler")
-        1
+        0
         >>> ranks = {'promotion_date': ['"NA"', '"NA"'],
         ...    'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
         ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         >>> person = {'properties': ranks, 'matches': ['Kari Suomalainen']}
         >>> v.get_rank_score(person, date(1941, 3, 5), "Piirros: Kari Suomalainen")
-        1
-        >>> v.get_rank_score(person, None, "Piirros: Kari Suomalainen")
-        1
+        0
         """
 
         if not self.has_consistent_rank(person, text):
@@ -669,19 +671,24 @@ class Validator:
     def get_name_score(self, person):
         """
         >>> v = Validator(None)
-        >>> person = {'properties': {'first_names': ['Turo Tero']}, 'matches': ['kenraali Karpalo'], 'id': 'id'}
+        >>> person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         >>> v.get_name_score(person)
         0
-        >>> person = {'properties': {'first_names': ['Turo Tero']}, 'matches': ['Tero Karpalo'], 'id': 'id'}
+        >>> person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['Tero Karpalo'], 'id': 'id'}
         >>> v.get_name_score(person)
         5
-        >>> person = {'properties': {'first_names': ['Turo Tero']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
+        >>> person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        10
+        >>> person = {'properties': {'first_names': ['"Turo"']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
         >>> v.get_name_score(person)
         10
         """
         first_names = person['properties'].get('first_names', [None])[0]
         if not first_names:
             return 0
+
+        first_names = first_names.replace('"', '')
 
         score = 0
         very_first_name = re.sub(r'^(\S+)\b.*$', r'\\b\1\\b', first_names)
@@ -708,6 +715,7 @@ class Validator:
         >>> v.get_score(person, None, date(1941, 3, 5), 'kenraali Karpalo', results, ranked_matches)
         30
         >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
+        ...    'first_names': ['"Adolf"', '"Adolf"'],
         ...    'promotion_date': ['"NA"', '"NA"', '"NA"'],
         ...    'hierarchy': ['"NA"', '"NA"', '"NA"'],
         ...    'rank': ['"NA"', '"NA"', '"NA"']}
@@ -715,7 +723,7 @@ class Validator:
         >>> results = [person]
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1941, 3, 5), 'Adolf Hitler', results, ranked_matches)
-        1
+        10
         >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Komppaniaupseeri"'],
@@ -800,7 +808,18 @@ class Validator:
         >>> results = [person]
         >>> ranked_matches = v.get_match_scores(results)
         >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', results, ranked_matches)
-        -10
+        0
+        >>> props = {'death_date': ['"1999-08-10"^^xsd:date', '"1999-08-10"^^xsd:date'],
+        ...    'promotion_date': ['"NA"', '"NA"'],
+        ...    'first_names': ['"Kari"', '"Kari"'],
+        ...    'family_name': ['"SUOMALAINEN"', '"SUOMALAINEN"'],
+        ...    'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
+        ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
+        >>> person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
+        >>> results = [person]
+        >>> ranked_matches = v.get_match_scores(results)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', results, ranked_matches)
+        10
         """
         person_id = person.get('id')
         if person_id == 'http://ldf.fi/warsa/actors/person_1':
@@ -1162,6 +1181,8 @@ def preprocessor(text, *args):
     # John Rosenbröijer is also a possibility, but photos were checked manually
     text = re.sub(r'[RB]osenbröijer(in|ille|ia)?\b', '# Edvin Rosenbröijer #', text)
     text = re.sub(r'Turo Kart(on|olle|toa)\b', '# Turo Kartto #', text)
+
+    text = text.replace('Hitler', '# Adolf Hitler')
 
     text = re.sub(r'(Saharan|Marokon) kauhu', '# kapteeni Juutilainen #', text)
     text = re.sub(r'luutnantti\s+Juutilainen', '# kapteeni Juutilainen #', text)
