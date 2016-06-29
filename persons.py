@@ -6,6 +6,7 @@ from rdflib import URIRef
 import logging
 import re
 import sys
+import os
 
 logger = logging.getLogger('arpa_linker.arpa')
 
@@ -690,20 +691,51 @@ class Validator:
         >>> person = {'properties': {'first_names': ['"Turo"']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
         >>> v.get_name_score(person)
         10
+        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['T. J. Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        5
+        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['T.J. Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        5
+        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['T.J.Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        5
+        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['Korpraali T.J.Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        5
+        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['Korpraali T.Karpalo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        0
+        >>> person = {'properties': {'first_names': ['"Viljo Wiljo Einar"']}, 'matches': ['W.E.Tuompo'], 'id': 'id'}
+        >>> v.get_name_score(person)
+        0
         """
         first_names = person['properties'].get('first_names', [None])[0]
         if not first_names:
             return 0
 
-        first_names = first_names.replace('"', '')
-
         score = 0
+
+        matches = set(person.get('matches'))
+        match_str = ' '.join(matches)
+
+        first_names = first_names.replace('"', '').strip()
+
+        if '.' in match_str:
+            longest_match_len = 0
+            initials = re.findall(r'\b\w', first_names)
+            for m in matches:
+                match_initials = re.findall(r'[A-ZÄÅÖÜ](?=\.)', m)
+                m_len = len(os.path.commonprefix([initials, match_initials]))
+                if m_len > longest_match_len:
+                    longest_match_len = m_len
+            score += max([(longest_match_len - 1) * 5, 0])
+
         very_first_name = re.sub(r'^(\S+)\b.*$', r'\\b\1\\b', first_names)
-        first_names = r'(\b{}\b)'.format(re.sub(r'\s+', r'\\b|\\b', first_names.strip()))
-        matches = ' '.join(set(person.get('matches')))
-        if re.search(first_names, matches):
+        first_names = r'(\b{}\b)'.format(re.sub(r'\s+', r'\\b|\\b', first_names))
+        if re.search(first_names, match_str):
             score += 5
-            if re.search(very_first_name, matches):
+            if re.search(very_first_name, match_str):
                 score += 5
 
         return score
