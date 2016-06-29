@@ -31,7 +31,6 @@ RANK_CLASS_SCORES = {
 }
 
 ALL_RANKS = (
-    'na',
     'sotilasvirkamies',
     'tuntematon',
     'alikersantti',
@@ -396,12 +395,24 @@ class Validator:
         >>> d = date(1943, 4, 5)
         >>> v.get_fuzzy_current_ranks(person, d, 'rank')
         {'Luutnantti'}
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Yleisesikuntaupseeri"']}
+        >>> person = {'properties': ranks}
+        >>> d = date(1943, 4, 5)
+        >>> v.get_fuzzy_current_ranks(person, d, 'rank')
+        {'Korpraali'}
         """
         props = person['properties']
         res = set()
         latest_date = None
         lowest_rank = None
         for i, rank in enumerate(props.get(rank_type)):
+
+            rank = rank.replace('"', '')
+            if rank == 'Yleisesikuntaupseeri':
+                # Yleisesikuntaupseeri is not an actual rank.
+                continue
+
             try:
                 promotion_date = self.parse_date(props.get('promotion_date')[i])
             except:
@@ -413,8 +424,6 @@ class Validator:
             if promotion_date > event_date + delta:
                 # promotion_date > upper boundary
                 continue
-
-            rank = rank.replace('"', '')
 
             if promotion_date > event_date - delta:
                 # lower boundary < promotion_date < upper boundary
@@ -616,7 +625,7 @@ class Validator:
         else:
             # This person did not have the matched rank at this time
             logger.info('Reducing score because of inconsistent rank from {} {} ({})'.format(
-                ', '.join(person.get('rank', [])),
+                ', '.join(props.get('rank', [])),
                 person.get('label'),
                 person.get('id')))
             score -= 10
