@@ -415,7 +415,7 @@ class Arpa:
         as parameters, and returns a subset of the results.
         """
 
-        logger.debug('Get URI matches for text {}'.format(text))
+        logger.info('Getting URI matches: {}'.format(text))
 
         results = self.query(text)
 
@@ -427,7 +427,7 @@ class Arpa:
             logger.info('Found matches {}'.format(results))
             results = self.extract_uris(results)
         else:
-            logger.info('No matches for {}'.format(text))
+            logger.info('No matches found'.format(text))
 
         return results
 
