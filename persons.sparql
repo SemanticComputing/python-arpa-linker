@@ -32,7 +32,7 @@ WHERE {
       ?id foaf:familyName ?familyName .
       FILTER((?family_name = UCASE(?familyName)) || (CONTAINS(?familyName, "(") || CONTAINS(?familyName, ".")) && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
 
-      OPTIONAL { ?id foaf:firstName ?first_names . }
+      OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(?fnames, "[)(]", "") AS ?first_names) }
       OPTIONAL {
         ?promotion_id a etype:Promotion ;
                       crm:P11_had_participant ?id ;
@@ -74,7 +74,7 @@ WHERE {
   }
   ?id foaf:familyName ?familyName .
   ?id skos:prefLabel ?plabel .
-  OPTIONAL { ?id foaf:firstName ?first_names . }
+  OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(?fnames, "[)(]", "") AS ?first_names) }
   BIND(CONCAT(?first_names, ' ', ?familyName) AS ?nlabel)
   OPTIONAL {
     ?promotion_id a etype:Promotion ;
