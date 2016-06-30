@@ -572,18 +572,38 @@ class Validator:
         >>> person = {'properties': ranks, 'matches': ['Adolf Hitler']}
         >>> v.get_rank_score(person, date(1941, 3, 5), "Adolf Hitler")
         0
+        >>> ranks = {'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"NA"'],
+        ...    'rank': ['"NA"']}
+        >>> person = {'properties': ranks, 'matches': ['Jorma Sarvanto']}
+        >>> v.get_rank_score(person, date(1941, 3, 5), "luutnantti Jorma Sarvanto")
+        0
         >>> ranks = {'promotion_date': ['"NA"', '"NA"'],
         ...    'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
         ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         >>> person = {'properties': ranks, 'matches': ['Kari Suomalainen']}
         >>> v.get_rank_score(person, date(1941, 3, 5), "Piirros: Kari Suomalainen")
         0
+        >>> ranks = {'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'rank': ['"Sotamies"']}
+        >>> person = {'properties': ranks, 'matches': ['Jorma Sarvanto']}
+        >>> v.get_rank_score(person, date(1941, 3, 5), "luutnantti Jorma Sarvanto")
+        -10
         """
 
-        if not self.has_consistent_rank(person, text):
+        props = person['properties']
+
+        rank_set = {r.replace('"', '').lower() for r in props.get('rank', [])}
+        if not (len(rank_set) == 1 and 'na' in rank_set) and not self.has_consistent_rank(
+                person, text):
+            logger.info(
+                'Reducing score because an inconsistent rank was found in context: {} {} ({})'.format(
+                    ', '.join(props.get('rank', [])),
+                    person.get('label'),
+                    person.get('id')))
             return -10
 
-        props = person['properties']
         rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
         score = max([RANK_CLASS_SCORES.get(s, 0) for s in rank_classes])
         matches = set(person.get('matches'))
@@ -625,7 +645,7 @@ class Validator:
             score += additional_score
         else:
             # This person did not have the matched rank at this time
-            logger.info('Reducing score because of inconsistent rank from {} {} ({})'.format(
+            logger.info('Reducing score because of inconsistent rank: {} {} ({})'.format(
                 ', '.join(props.get('rank', [])),
                 person.get('label'),
                 person.get('id')))
@@ -740,7 +760,7 @@ class Validator:
 
         return score
 
-    def get_score(self, person, s, s_date, text, results, ranked_matches):
+    def get_score(self, person, s, s_date, text, results):
         """
         >>> from datetime import date
         >>> v = Validator(None)
@@ -750,8 +770,7 @@ class Validator:
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         >>> results = [person]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1941, 3, 5), 'kenraali Karpalo', results, ranked_matches)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'kenraali Karpalo', results)
         30
         >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
         ...    'first_names': ['"Adolf"', '"Adolf"'],
@@ -760,8 +779,7 @@ class Validator:
         ...    'rank': ['"NA"', '"NA"', '"NA"']}
         >>> person = {'properties': props, 'matches': ['Adolf Hitler'], 'id': 'id'}
         >>> results = [person]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1941, 3, 5), 'Adolf Hitler', results, ranked_matches)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'Adolf Hitler', results)
         10
         >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
@@ -774,10 +792,9 @@ class Validator:
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id2'}
         >>> results = [person, person2]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', results, ranked_matches)
+        >>> v.get_score(person, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', results)
         -30
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', results, ranked_matches)
+        >>> v.get_score(person2, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', results)
         30
         >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
         ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
@@ -785,8 +802,7 @@ class Validator:
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id'}
         >>> results = [person]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1941, 11, 20), 'Kenraalimajuri A. Snellman', results, ranked_matches)
+        >>> v.get_score(person, None, date(1941, 11, 20), 'Kenraalimajuri A. Snellman', results)
         0
         >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
@@ -804,12 +820,11 @@ class Validator:
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', results, ranked_matches)
+        >>> v.get_score(person, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', results)
         6
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', results, ranked_matches)
+        >>> v.get_score(person2, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', results)
         -30
-        >>> v.get_score(person3, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', results, ranked_matches)
+        >>> v.get_score(person3, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', results)
         -50
         >>> props = {'death_date': ['"1944-06-30"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
@@ -830,12 +845,11 @@ class Validator:
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', results, ranked_matches)
+        >>> v.get_score(person, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', results)
         11
-        >>> v.get_score(person2, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', results, ranked_matches)
+        >>> v.get_score(person2, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', results)
         -19
-        >>> v.get_score(person3, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', results, ranked_matches)
+        >>> v.get_score(person3, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', results)
         -14
         >>> props = {'death_date': ['"1944-06-15"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
@@ -845,8 +859,7 @@ class Validator:
         ...    'rank': ['"Korpraali"']}
         >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
         >>> results = [person]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', results, ranked_matches)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', results)
         0
         >>> props = {'death_date': ['"1999-08-10"^^xsd:date', '"1999-08-10"^^xsd:date'],
         ...    'promotion_date': ['"NA"', '"NA"'],
@@ -856,8 +869,7 @@ class Validator:
         ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         >>> person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
         >>> results = [person]
-        >>> ranked_matches = v.get_match_scores(results)
-        >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', results, ranked_matches)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', results)
         10
         """
         person_id = person.get('id')
@@ -865,6 +877,7 @@ class Validator:
             # "Suomen marsalkka" is problematic as a rank so let's just always
             # score Mannerheim highly
             return 50
+        ranked_matches = self.get_match_scores(results)
         rms = ranked_matches.get(person.get('id'), 0)
         ds = self.get_date_score(person, s_date, s, text)
         rs = self.get_rank_score(person, s_date, text)
@@ -876,10 +889,9 @@ class Validator:
         if not results:
             return results
         res = []
-        ranked = self.get_ranked_matches(results)
         s_date = self.get_s_start_date(s)
         for person in results:
-            score = self.get_score(person, s, s_date, text, results, ranked)
+            score = self.get_score(person, s, s_date, text, results)
             log_msg = "{} {} ({}) scored {}".format(
                 ', '.join(person.get('properties', {}).get('rank', [])),
                 person.get('label'),
@@ -1258,10 +1270,10 @@ def preprocessor(text, *args):
     text = text.replace('Sotamies Pihlajamaa', 'sotamies Väinö Pihlajamaa')
 
     # Events only
-    # text = text.replace('Ryti', '## Risto Ryti')
-    # text = text.replace('Tanner', '## Väinö Tanner')
-    # text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '## Kyösti Kallio', text)
-    # text = text.replace('Molotov', '## V. Molotov')  # not for photos
+    # text = text.replace('Ryti', '# Risto Ryti')
+    # text = text.replace('Tanner', '# Väinö Tanner')
+    # text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '# Kyösti Kallio', text)
+    # text = text.replace('Molotov', '# V. Molotov')  # not for photos
     # text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
 
     if text != orig:

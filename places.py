@@ -55,9 +55,9 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<!\b(Yl[äi]|Al[ia]|Iso))-([A-ZÄÅÖ])', r' \2', text)
     text = text.replace('Pitkä#', 'Pitkä-')
 
-    text = text.replace('Inkilän kartano', '##')
-    text = text.replace('Norjan Kirkkoniem', '##')
-    text = text.replace('Pietari Autti', '##')
+    text = text.replace('Inkilän kartano', '#')
+    text = text.replace('Norjan Kirkkoniem', '#')
+    text = text.replace('Pietari Autti', '#')
 
     return text
 
@@ -163,6 +163,7 @@ if __name__ == '__main__':
         'motti',
         'valko',
         'martti',
+        'ilmarinen',
         'maaselkä',  # the proper one does not exist yet
         'kalajoki',  # the proper one does not exist yet
         # 'turtola', # only for events!
