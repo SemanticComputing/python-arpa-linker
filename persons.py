@@ -871,6 +871,15 @@ class Validator:
         >>> results = [person]
         >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', results)
         10
+        >>> props = {'promotion_date': ['"NA"', '"NA"'],
+        ...    'hierarchy': ['"NA"', '"NA"'],
+        ...    'family_name': ['"Hämäläinen"', '"Hämäläinen"'],
+        ...    'rank': ['"Reservin vänrikki"', '"Reservin vänrikki"']}
+        >>> person = {'properties': props, 'matches': ['Reservin vänrikki Hämäläinen', 'vänrikki Hämäläinen'],
+        ...        'id': 'id1'}
+        >>> results = [person]
+        >>> v.get_score(person, None, date(1941, 8, 4), 'Reservin vänrikki Hämäläinen', results)
+        11
         """
         person_id = person.get('id')
         if person_id == 'http://ldf.fi/warsa/actors/person_1':
@@ -1289,7 +1298,12 @@ ignore = [
 ]
 
 
-name_re = "^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([A-ZÄÖÅÜ][_a-zA-ZäÄöÖåÅèü-]{2,})$"
+ALLOWED_NAME_CHARS = 'a-zA-ZäÄöÖåÅÜüáàéèíìóòúùýỳ-'
+
+name_re = (r'^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
+    r']{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
+    r']{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
+    r']{3,}[ ]+))*([A-ZÄÖÅÜ][_' + ALLOWED_NAME_CHARS + r']{2,})$')
 name_re_compiled = re.compile(name_re)
 
 name_re_exclude = r"((\b[a-zäåö]+|\W+)$)|#"
@@ -1305,6 +1319,8 @@ def pruner(candidate):
     'höpö höpö Engelbrecht'
     >>> pruner('Höpö höpö Engelbrecht')
     'Höpö höpö Engelbrecht'
+    >>> pruner('Everstiluutnantti Berndt Eino Edvard Polón')
+    'Everstiluutnantti Berndt Eino Edvard Polón'
     >>> pruner('höpö höpö Engelbrecht:')
     >>> pruner('höpö höpö Engelbrecht ')
     >>> pruner('kapteeni kissa')
