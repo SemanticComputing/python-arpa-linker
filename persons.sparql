@@ -14,22 +14,24 @@ SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?first_names ?
 (COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date
 WHERE {
   {
-    SELECT DISTINCT ?id ?ngram ?family_name {
+    SELECT DISTINCT ?id ?ngram {
       VALUES ?ngram {
         <VALUES>
       }
       FILTER(STRLEN(?ngram)>2)
-      BIND("^((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅèü-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅèü-]{3,})$" AS ?nimiregex)
-      BIND(UCASE(REPLACE(REPLACE(?ngram, ?nimiregex, "$4"), "_", " ")) AS ?family_name)
-      BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
-      BIND(REPLACE(REPLACE(?ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
+      BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?ngram, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y') AS ?n_ngram)
+      BIND("^((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅüÜ-]{3,})$" AS ?nimiregex)
+      BIND(UCASE(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$4"), "_", " ")) AS ?family_name)
+      BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
+      BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
       BIND(UCASE(?ngrametu) AS ?etu)
       FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
       BIND(UCASE(?ngramkeski) AS ?keski)
-      BIND(CONCAT('"',?family_name,'"') AS ?qstring)
+      BIND(REPLACE(?family_name, '[AEIOUY]', '*') AS ?qstring)
 
       GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
-      ?id foaf:familyName ?familyName .
+      ?id foaf:familyName ?familyName_orig .
+      BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?familyName_orig, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y') AS ?familyName)
       FILTER((?family_name = UCASE(?familyName)) || (CONTAINS(?familyName, "(") || CONTAINS(?familyName, ".")) && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
 
       OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(?fnames, "[)(]", "") AS ?first_names) }
@@ -72,7 +74,7 @@ WHERE {
       )
     }
   }
-  ?id foaf:familyName ?familyName .
+  ?id foaf:familyName ?family_name .
   ?id skos:prefLabel ?plabel .
   OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(?fnames, "[)(]", "") AS ?first_names) }
   BIND(CONCAT(?first_names, ' ', ?familyName) AS ?nlabel)
