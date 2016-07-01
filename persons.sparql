@@ -9,9 +9,10 @@ PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX cas: <http://ldf.fi/schema/narc-menehtyneet1939-45/>
 PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
 
 SELECT DISTINCT ?id ?ngram (COALESCE(?nlabel, ?plabel) AS ?label) ?first_names ?family_name (COALESCE(?hierarchy_label, 'NA') AS ?hierarchy)
-(COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date
+(COALESCE(?promotion_rank, 'NA') AS ?rank) (COALESCE(?earliest_promotion_time, 'NA') AS ?promotion_date) ?death_date ?source
 WHERE {
   {
     SELECT DISTINCT ?id ?ngram {
@@ -21,18 +22,18 @@ WHERE {
       FILTER(STRLEN(?ngram)>2)
       BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?ngram, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y') AS ?n_ngram)
       BIND("^((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅüÜ-]{3,})$" AS ?nimiregex)
-      BIND(UCASE(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$4"), "_", " ")) AS ?family_name)
+      BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$4"), "_", " ") AS ?family_name)
       BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
       BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
       BIND(UCASE(?ngrametu) AS ?etu)
       FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
       BIND(UCASE(?ngramkeski) AS ?keski)
-      BIND(REPLACE(?family_name, '[AEIOUY]', '*') AS ?qstring)
+      BIND(CONCAT(?family_name, "~1") AS ?qstring)
 
       GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
       ?id foaf:familyName ?familyName_orig .
       BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?familyName_orig, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y') AS ?familyName)
-      FILTER((?family_name = UCASE(?familyName)) || (CONTAINS(?familyName, "(") || CONTAINS(?familyName, ".")) && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
+      FILTER((UCASE(?family_name) = UCASE(?familyName)) || (CONTAINS(?familyName, "(") || CONTAINS(?familyName, ".")) && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
 
       OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(?fnames, "[)(]", "") AS ?first_names) }
       OPTIONAL {
@@ -99,5 +100,8 @@ WHERE {
   OPTIONAL {
     ?id owl:sameAs ?cas .
     ?cas cas:kuolinaika ?death_date .
+  }
+  OPTIONAL {
+    ?id dc:source ?source .
   }
 }
