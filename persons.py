@@ -10,6 +10,22 @@ import os
 
 logger = logging.getLogger('arpa_linker.arpa')
 
+SOURCES = {
+    'http://ldf.fi/warsa/sources/source1': 0,
+    'http://ldf.fi/warsa/sources/source10': 1,  # Wikipedia
+    'http://ldf.fi/warsa/sources/source11': 0,
+    'http://ldf.fi/warsa/sources/source12': 0,
+    'http://ldf.fi/warsa/sources/source13': 0,
+    'http://ldf.fi/warsa/sources/source2': 0,
+    'http://ldf.fi/warsa/sources/source3': 0,
+    'http://ldf.fi/warsa/sources/source4': 0,
+    'http://ldf.fi/warsa/sources/source5': 1,  # Mannerheim-ristin ritarit
+    'http://ldf.fi/warsa/sources/source6': 0,
+    'http://ldf.fi/warsa/sources/source7': 0,
+    'http://ldf.fi/warsa/sources/source8': 0,
+    'http://ldf.fi/warsa/sources/source9': 0
+}
+
 RANK_CLASS_SCORES = {
     'Kenraalikunta': 10,
     'Esiupseeri': 10,
@@ -760,6 +776,34 @@ class Validator:
 
         return score
 
+    def get_source_score(self, person):
+        """
+        >>> v = Validator(None)
+        >>> props = {'source': ['http://ldf.fi/warsa/sources/source5']}
+        >>> person = {'properties': props, 'id': 'id'}
+        >>> v.get_source_score(person)
+        1
+        >>> props = {'source': ['http://ldf.fi/warsa/sources/source1']}
+        >>> person = {'properties': props, 'id': 'id'}
+        >>> v.get_source_score(person)
+        0
+        >>> props = {'source': ['na']}
+        >>> person = {'properties': props, 'id': 'id'}
+        >>> v.get_source_score(person)
+        0
+        >>> props = {}
+        >>> person = {'properties': props, 'id': 'id'}
+        >>> v.get_source_score(person)
+        0
+        """
+        sources = {r.replace('"', '') for r in person['properties'].get('source', [])}
+        if not sources:
+            return 0
+
+        score = max([SOURCES.get(s, 0) for s in sources])
+        score += len(sources) - 1
+        return score
+
     def get_score(self, person, s, s_date, text, results):
         """
         >>> from datetime import date
@@ -880,6 +924,27 @@ class Validator:
         >>> results = [person]
         >>> v.get_score(person, None, date(1941, 8, 4), 'Reservin vänrikki Hämäläinen', results)
         11
+        >>> props = {'death_date': ['"1971-10-10"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"NA"'],
+        ...    'first_names': ['"Yrjö"'],
+        ...    'family_name': ['"Pöyhönen"'],
+        ...    'source': ['http://ldf.fi/warsa/sources/source10'],
+        ...    'rank': ['"NA"']}
+        >>> person = {'properties': props, 'matches': ['Y. Pöyhönen'], 'id': 'id1'}
+        >>> results = [person]
+        >>> v.get_score(person, None, date(1941, 8, 4), 'everstiluutnantti Y. Pöyhönen', results)
+        1
+        >>> props = {'death_date': ['"1942-10-10"^^xsd:date'],
+        ...    'promotion_date': ['"NA"'],
+        ...    'hierarchy': ['"Miehistö"'],
+        ...    'first_names': ['"Kalle"'],
+        ...    'family_name': ['"Sukunimi"'],
+        ...    'rank': ['"Sotamies"']}
+        >>> person = {'properties': props, 'matches': ['sotamies Sukunimi'], 'id': 'id1'}
+        >>> results = [person]
+        >>> v.get_score(person, None, date(1941, 8, 4), 'sotamies Sukunimi', results)
+        1
         """
         person_id = person.get('id')
         if person_id == 'http://ldf.fi/warsa/actors/person_1':
@@ -891,8 +956,9 @@ class Validator:
         ds = self.get_date_score(person, s_date, s, text)
         rs = self.get_rank_score(person, s_date, text)
         ns = self.get_name_score(person)
+        ss = self.get_source_score(person)
 
-        return rms + ds + rs + ns
+        return rms + ds + rs + ns + ss
 
     def validate(self, results, text, s):
         if not results:

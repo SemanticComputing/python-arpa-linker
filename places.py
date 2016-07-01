@@ -166,8 +166,8 @@ if __name__ == '__main__':
         'ilmarinen',
         'maaselkä',  # the proper one does not exist yet
         'kalajoki',  # the proper one does not exist yet
-        # 'turtola', # only for events!
-        # 'pajari'  # only for events, remove for photos
+        'turtola',  # only for events!
+        'pajari'  # only for events, remove for photos
         # 'karsikko'?
     ]
 
