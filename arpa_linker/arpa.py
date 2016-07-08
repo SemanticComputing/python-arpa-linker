@@ -10,11 +10,11 @@ If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasb
 
 The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
-<pre>
+<pre style="padding:5px">
 usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT] [-n] [-c]
                [--rdf_class CLASS] [--prop PROPERTY]
                [--ignore [TERM [TERM ...]]] [--min_ngram N]
-               [--no_duplicates [TYPE [TYPE ...]]] [-r N]
+               [--no_duplicates [TYPE [TYPE ...]]] [-r N] [-w N]
                [--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}]
                input output target_property arpa
 
@@ -57,6 +57,9 @@ optional arguments:
                         include a 'type' variable for this to work.
   -r N, --retries N     The amount of retries per query if a HTTP error is
                         received. Default is 0.
+  -w N, --wait N        The number of seconds to wait between retries. Only
+                        has an effect if number of retries is set. Default is
+                        1 second.
   --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Logging level, default is INFO. The log file is
                         arpa_linker.log.
