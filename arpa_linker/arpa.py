@@ -10,67 +10,59 @@ If you want to see a progress bar, you'll need [PyPrind](https://github.com/rasb
 
 The module can be invoked as a script from the command line or by calling `arpa.arpafy` (or `arpa.process`) in your Python code.
 
-<pre>
-usage: arpa.py [-h] [--fi INPUT_FORMAT]
-            [--fo OUTPUT_FORMAT] [-n]
-            [--rdf_class CLASS] [--prop PROPERTY]
-            [--ignore [TERM [TERM ...]]] [--min_ngram N]
-            [--no_duplicates [TYPE [TYPE ...]]] [-r N]
-            [--log_level
-                {NOTSET,DEBUG,INFO,WARNING, ERROR,CRITICAL}]
-            input output target_property arpa
+<pre style="padding:5px">
+usage: arpa.py [-h] [--fi INPUT_FORMAT] [--fo OUTPUT_FORMAT] [-n] [-c]
+               [--rdf_class CLASS] [--prop PROPERTY]
+               [--ignore [TERM [TERM ...]]] [--min_ngram N]
+               [--no_duplicates [TYPE [TYPE ...]]] [-r N] [-w N]
+               [--log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+               input output target_property arpa
 
 Link resources to an RDF graph with ARPA.
 
 positional arguments:
-input                 Input rdf file
-output                Output file
-target_property       Target property for the matches
-arpa                  ARPA service URL
+  input                 Input rdf file
+  output                Output file
+  target_property       Target property for the matches
+  arpa                  ARPA service URL
 
 optional arguments:
--h, --help            show this help message and exit
---fi INPUT_FORMAT     Input file format (rdflib parser).
-                      Will be guessed if omitted.
---fo OUTPUT_FORMAT    Output file format (rdflib
-                      serializer). Default is turtle.
--n, --new_graph       Add the ARPA results to a new graph
-                      instead of the original. The output
-                      file contains all the triples of the
-                      original graph by default. With this
-                      argument set the output file will
-                      contain only the results.
---rdf_class CLASS     Process only subjects of the given
-                      type (goes through all subjects by
-                      default).
---prop PROPERTY       Property that's value is to be used
-                      in matching.
-                      Default is skos:prefLabel.
---ignore [TERM [TERM ...]]
-                      Terms that should be ignored even
-                      if matched
---min_ngram N         The minimum ngram length that is
-                      considered a match. Default is 1.
---no_duplicates [TYPE [TYPE ...]]
-                      Remove duplicate matches based on
-                      the 'label' returned by the ARPA
-                      service. Here 'duplicate' means a
-                      subject with the same label as
-                      another subject in the same result
-                      set. A list of types can be given
-                      with this argument. If given,
-                      prioritize matches based on it
-                      - the first given type will get the
-                      highest priority and so on. Note
-                      that the response from the service
-                      has to include a 'type' variable for
-                      this to work.
--r N, --retries N     The amount of retries per query if
-                      a HTTP error is received.
-                      Default is 0.
---log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                      Logging level, default is INFO.
-                      The log file is arpa_linker.log.
+  -h, --help            show this help message and exit
+  --fi INPUT_FORMAT     Input file format (rdflib parser). Will be guessed if
+                        omitted.
+  --fo OUTPUT_FORMAT    Output file format (rdflib serializer). Default is
+                        turtle.
+  -n, --new_graph       Add the ARPA results to a new graph instead of the
+                        original. The output file contains all the triples of
+                        the original graph by default. With this argument set
+                        the output file will contain only the results.
+  -c, --candidates_only
+                        Get candidates (n-grams) only from ARPA.
+  --rdf_class CLASS     Process only subjects of the given type (goes through
+                        all subjects by default).
+  --prop PROPERTY       Property that's value is to be used in matching.
+                        Default is skos:prefLabel.
+  --ignore [TERM [TERM ...]]
+                        Terms that should be ignored even if matched
+  --min_ngram N         The minimum ngram length that is considered a match.
+                        Default is 1.
+  --no_duplicates [TYPE [TYPE ...]]
+                        Remove duplicate matches based on the 'label' returned
+                        by the ARPA service. Here 'duplicate' means a subject
+                        with the same label as another subject in the same
+                        result set. A list of types can be given with this
+                        argument. If given, prioritize matches based on it -
+                        the first given type will get the highest priority and
+                        so on. Note that the response from the service has to
+                        include a 'type' variable for this to work.
+  -r N, --retries N     The amount of retries per query if a HTTP error is
+                        received. Default is 0.
+  -w N, --wait N        The number of seconds to wait between retries. Only
+                        has an effect if number of retries is set. Default is
+                        1 second.
+  --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        Logging level, default is INFO. The log file is
+                        arpa_linker.log.
 </pre>
 
 The arguments can also be read from a file using "@" (example arg file [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)):
@@ -95,7 +87,9 @@ from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'arpafy', 'process', 'log_to_file', 'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'ArpaMimic', 'arpafy', 'process', 'prune_candidates',
+            'combine_candidates', 'map_results', 'log_to_file', 'post',
+            'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
@@ -111,6 +105,63 @@ logger = logging.getLogger(__name__)
 # Hide requests INFO logging spam
 requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
+
+
+def _get_value(result):
+    type_ = result.get('type', None)
+    value = result.get('value', '')
+    if type_ == 'literal':
+        datatype = result.get('datatype', None)
+        if datatype:
+            return '"{}"^^{}'.format(value, datatype)
+        return '"{}"'.format(value)
+    if type_ == 'uri':
+        return '<{}>'.format(value)
+    return value
+
+
+def map_results(results):
+    """
+    Map general SPARQL results to the format ARPA returns.
+
+    Return the mapped results.
+
+    `results` is the SPARQL result as a dict. Each row has to include an 'id' variable.
+    """
+
+    logger.debug('Mapping results {} to ARPA format'.format(results))
+
+    res = []
+    for obj in results['results']['bindings']:
+        o_id = obj['id']['value']
+
+        idx = next((index for (index, d) in enumerate(res) if d['id'] == o_id), None)
+        if idx is None:
+            props = {key: [_get_value(value)] for key, value in obj.items()}
+            o = {
+                'id': o_id,
+                'label': obj.get('label', {}).get('value', ''),
+                'matches': [obj.get('ngram', {}).get('value', '')],
+                'properties': props
+            }
+            res.append(o)
+        else:
+            o = res[idx]
+            ngram = obj.get('ngram', {}).get('value', '')
+            if ngram not in o['matches']:
+                o['matches'].append(ngram)
+            for k, v in obj.items():
+                p = o.get('properties').get(k, None)
+                if p:
+                    p.append(_get_value(v))
+                else:
+                    o['properties'][k] = [_get_value(v)]
+
+    res = {'results': res}
+
+    logger.debug('Mapped to: {}'.format(res))
+
+    return res
 
 
 def post(url, data, retries=0, wait=1):
@@ -151,18 +202,19 @@ def post(url, data, retries=0, wait=1):
                 time.sleep(wait)
                 continue
             elif retries:
-                    logger.warning('Error {}, out of retries.'.format(e))
+                logger.warning('Error {}, out of retries.'.format(e))
             raise HTTPError('Error ({}) from {} with request data: {}.'.format(e, url, data))
         else:
             # Success
+            logger.debug('Success, received: {}'.format(res))
             return res
 
 
 class Arpa:
     """Class representing the ARPA service"""
 
-    def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None, retries=0,
-            wait_between_tries=1):
+    def __init__(self, url, remove_duplicates=False, min_ngram_length=1, ignore=None,
+            retries=0, wait_between_tries=1):
         """
         Initialize the Arpa service object.
 
@@ -302,11 +354,13 @@ class Arpa:
         """
 
         if candidates:
+            logger.debug('Filtering candidates')
             get_len = lambda x: len(x.split())
             get_label = lambda x: x.lower()
             # No use in removing literal duplicates
             skip_remove_duplicates = True
         else:
+            logger.debug('Filtering results')
             get_len = lambda x: len(x['properties']['ngram'][0].split())
             get_label = lambda x: x[LABEL_PROP].lower()
             skip_remove_duplicates = False
@@ -319,66 +373,80 @@ class Arpa:
             return text
         return text.replace('"', '').replace('(', '').replace(')', '')
 
-    def query(self, text, url_params=''):
+    def query(self, text, candidates=False):
         """
         Query the ARPA service and return the response results as JSON
 
+        Results will be filtered if a filter was specified at init.
+
         `text` is the text used in the query.
 
-        `url_params` is any URL parameters to be added to the ARPA URL, e.g. '?cgen'.
+        If `candidates` is set, query for candidates only.
         """
+
+        logger.debug('Query ARPA at {} with text {}'.format(self._url, text))
 
         text = self._sanitize(text)
         if not text:
             raise ValueError('Empty ARPA query text')
 
-        url = self._url + url_params
+        url = self._url + ('?cgen' if candidates else '')
 
         # Query the ARPA service with the text
         data = {'text': text}
 
         res = post(url, data, retries=self._retries, wait=self._wait)
 
-        return res.get('results', None)
+        return self._filter(res.get('results', []), candidates)
 
-    def get_uri_matches(self, text, validator=None):
+    def extract_uris(self, results):
         """
-        Query ARPA and return a list of uris for resources that match the text.
+        Get the URIs from results.
+
+        `results` is the results as returned by `arpa.query`.
+        """
+        return [URIRef(x['id']) for x in results]
+
+    def get_uri_matches(self, text, *args, validator=None, **kwargs):
+        """
+        Query ARPA and return a list of uris of resources that match the text.
 
         `text` is the text to use in the query.
 
-        `validator` is a function that takes the ARPA results as parameter and returns
-        validated results.
+        `validator` is an object that implements a `validate` method that takes
+        the results and `text` (and any other parameters passed to this method)
+        as parameters, and returns a subset of the results.
         """
 
-        results = self._filter(self.query(text))
+        logger.info('Getting URI matches: {}'.format(text))
+
+        results = self.query(text)
 
         if validator and results:
             logger.debug('Validating results: {}'.format(results))
-            results = validator(text, results)
+            results = validator.validate(results, text, *args, **kwargs)
 
         if results:
-            logger.debug('Found matches {}'.format(results))
-            res = [URIRef(x['id']) for x in results]
+            logger.info('Found matches {}'.format(results))
+            results = self.extract_uris(results)
         else:
-            logger.debug('No matches for {}'.format(text))
-            res = []
+            logger.info('No matches found'.format(text))
 
-        return res
+        return results
 
     def get_candidates(self, text, *args, **kwargs):
         """
         Get the candidates from `text` that would be used by the ARPA service
         to query for matches.
 
-        Return the candidates as JSON.
+        Return the candidates as a list of rdflib Literals.
         """
 
         text = self._sanitize(text)
         if not text:
             raise ValueError('Empty ARPA query text')
 
-        res = self._filter(self.query(text, '?cgen'), candidates=True)
+        res = self.query(text, candidates=True)
 
         logger.debug('Received candidates: {}'.format(res))
 
@@ -387,15 +455,61 @@ class Arpa:
         return result
 
 
+class ArpaMimic(Arpa):
+    """
+    Class that behaves like `arpa.Arpa` except that it queries a SPARQL endpoint
+    instead of an ARPA service.
+    """
+
+    def __init__(self, query_template, *args, **kwargs):
+        """
+        Initialize the ArpaMimic instance.
+
+        `query_template` is a SPARQL query template like ARPA uses.
+        """
+
+        self.query_template = query_template
+
+        super().__init__(*args, **kwargs)
+
+    def query(self, text, url_params=''):
+        """
+        Query a SPARQL endpoint and return the response results as JSON mapped
+        as if returned by ARPA.
+
+        `text` is the text used in the query.
+
+        `url_params` is any URL parameters to be added to the URL.
+        """
+
+        logger.debug('Querying {} with text {} using ArpaMimic'.format(self._url, text))
+
+        if not text:
+            raise ValueError('Empty query text')
+
+        query = self.query_template.replace('<VALUES>', text)
+
+        url = self._url + url_params
+
+        # Query the endpoint with the text
+        data = {'query': query}
+
+        res = post(url, data, retries=self._retries, wait=self._wait)
+
+        res = map_results(res)
+
+        return self._filter(res.get('results', []))
+
+
 class Bar:
     """
     Mock progress bar implementation
     """
 
-    def __init__(self, n):
+    def __init__(self, n, *args, **kwargs):
         self.n = n
 
-    def update(self):
+    def update(self, *args, **kwargs):
         pass
 
 
@@ -422,8 +536,21 @@ def get_bar(n, use_pyprind):
     return Bar(n)
 
 
+def _get_subgraph(graph, source_prop, rdf_class=None):
+    subgraph = Graph()
+
+    if rdf_class:
+        # Filter out subjects that are not of the given type
+        for s in graph.subjects(RDF.type, rdf_class):
+            subgraph += graph.triples((s, source_prop, None))
+    else:
+        subgraph += graph.triples((None, source_prop, None))
+
+    return subgraph
+
+
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
-            output_graph=None, preprocessor=None, validator=None,
+            output_graph=None, preprocessor=None, validator_class=None,
             candidates_only=False, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place,
@@ -448,10 +575,11 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
     It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.
 
-    `validator` is a function that takes a graph and a subject as parameter and returns a function
-    that takes the query text and the ARPA results as parameter and returns a subset of those results
-    (that have been validated based on the subject, graph and results). Optional.
-    This is a function and not an object because of reasons.
+    `validator_class` is a class that takes a graph as its instantiation parameter and implements a `validate` method
+    that takes the ARPA results, query text, and the processed subject as parameters, and returns a subset of the
+    results (that have been validated based on the subject, graph and results). Optional.
+
+    If `candidates_only` is set, get candidates (n-grams) only from ARPA.
 
     If `progress` is `True`, show a progress bar. Requires pyprind.
     """
@@ -465,14 +593,7 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     else:
         get_results = arpa.get_uri_matches
 
-    subgraph = Graph()
-
-    if rdf_class:
-        # Filter out subjects that are not of the given type
-        for s in graph.subjects(RDF.type, rdf_class):
-            subgraph += graph.triples((s, source_prop, None))
-    else:
-        subgraph += graph.triples((None, source_prop, None))
+    subgraph = _get_subgraph(graph, source_prop, rdf_class)
 
     triple_match_count = 0
     subject_match_count = 0
@@ -480,11 +601,12 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     bar = get_bar(len(subgraph), progress)
 
+    validator = validator_class(graph) if validator_class else None
+
     for s, o in subgraph.subject_objects():
         o = preprocessor(o, s, graph) if preprocessor else o
-        args = (o, validator(graph, s)) if validator else (o,)
         try:
-            results = get_results(*args)
+            results = get_results(o, s, validator=validator)
         except (HTTPError, ValueError) as e:
             logger.exception('Error getting matches from ARPA')
             errors.append(e)
@@ -507,6 +629,62 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     logger.info('Processed {} triples, found {} matches ({} errors)'
                 .format(res['processed'], res['matches'], len(res['errors'])))
+
+    return res
+
+
+def prune_candidates(graph, source_prop, pruner, rdf_class=None,
+            output_graph=None, progress=None):
+    """
+    Prune undesired candidates.
+
+    Return a dict with the amount of candidates left after pruning (result_count),
+    and the resulting graph (graph).
+
+    `graph` is the graph containing the candidates. Will be modified if `output_graph`
+    is not given.
+
+    `source_prop` is the property in the graph that has the candidates as its value.
+
+    `pruner` is a function that receives a single candidate as string and returns
+    a falsey value if the candidate should not be added to the output graph, and
+    otherwise a string (the candidate, possibly modified) that should be added
+    to the output graph.
+
+    If `rdf_class` is given, only go through instances of this type.
+
+    `output_graph` is the graph to which the results should be added.
+    If not given, the results will be added to the input `graph`,
+    and the old candidates removed.
+    """
+
+    logger.info('Pruning candidates')
+
+    if output_graph is None:
+        output_graph = graph
+
+    subgraph = _get_subgraph(graph, source_prop, rdf_class)
+
+    bar = get_bar(len(subgraph), progress)
+
+    result_count = 0
+
+    for s, o in subgraph.subject_objects():
+        result = pruner(str(o))
+        # Remove the original candidate
+        output_graph.remove((s, source_prop, o))
+        if result:
+            result_count += 1
+            # Add the pruned candidate to the output graph
+            output_graph.add((s, source_prop, Literal(result)))
+        bar.update()
+
+    res = {
+        'graph': output_graph,
+        'result_count': result_count
+    }
+
+    logger.info('Candidate pruning complete')
 
     return res
 
@@ -547,6 +725,8 @@ def parse_args(args):
         help="""Add the ARPA results to a new graph instead of the original. The output file
         contains all the triples of the original graph by default. With this argument set
         the output file will contain only the results.""")
+    argparser.add_argument("-c", "--candidates_only", action="store_true",
+        help="""Get candidates (n-grams) only from ARPA.""")
     argparser.add_argument("--rdf_class", metavar="CLASS",
         help="Process only subjects of the given type (goes through all subjects by default).")
     argparser.add_argument("--prop", metavar="PROPERTY",
@@ -565,6 +745,9 @@ def parse_args(args):
         for this to work.""")
     argparser.add_argument("-r", "--retries", default=0, metavar="N", type=int,
         help="The amount of retries per query if a HTTP error is received. Default is 0.")
+    argparser.add_argument("-w", "--wait", default=1, metavar="N", type=int,
+        help="""The number of seconds to wait between retries. Only has an effect if number
+        of retries is set. Default is 1 second.""")
     argparser.add_argument("--log_level", default="INFO",
         choices=["NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging level, default is INFO. The log file is arpa_linker.log.")
@@ -588,19 +771,71 @@ def parse_args(args):
     return args
 
 
+def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=None):
+    """
+    Combine each subject's candidates into a single string.
+
+    Return the resulting graph.
+
+    `graph` is the graph containing the candidates. Will be modified if `output_graph`
+    is not given.
+
+    `prop` is the URIRef of the property containing the candidates.
+
+    `output_graph` is the graph to which the results should be added.
+    If not given, `graph` will be modified.
+
+    If `rdf_class` is given, only go through instances of this type.
+
+    If `progress` is set, display a progress bar.
+    """
+
+    subgraph = _get_subgraph(graph, prop, rdf_class)
+
+    logger.info('Combining candidates')
+
+    if output_graph is None:
+        output_graph = graph
+
+    subjects = subgraph.subjects()
+    bar = get_bar(len(subgraph), progress)
+
+    for s in subjects:
+        objs = [str(o) for o in subgraph.objects(s)]
+        combined = '\"' + '\" \"'.join(objs) + '\"'
+        # Remove the original candidate
+        output_graph.remove((s, None, None))
+        output_graph.add((s, prop, Literal(combined)))
+        bar.update()
+
+    logger.info('Candidates combined succesfully')
+
+    return output_graph
+
+
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, **kwargs):
+        new_graph=False, prune=False, join_candidates=False, run_arpafy=True, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
 
     `input_file` is the name of the rdf file to be parsed.
 
+    `input_format` is the input file format.
+
     `output_file` is the output file name.
 
     `output_format` is the output file format.
 
     If `new_graph` is set, use a new empty graph for adding the results.
+
+    If `prune` is set, prune candidates using `arpa.prune_candidates`.
+
+    If `join_candidates` is set, combine candidates into a single value using
+    `arpa.combine_candidates`.
+
+    Setting `run_arpafy` to False will skip running `arpa.arpafy`.
+    Useful with `join_candidates`.
 
     All other arguments are passed to `arpa.arpafy`.
 
@@ -613,19 +848,37 @@ def process(input_file, input_format, output_file, output_format, *args,
     logger.info('Parsing complete')
 
     if new_graph:
+        logger.debug('Output to new graph')
         output_graph = Graph()
         output_graph.namespace_manager = g.namespace_manager
     else:
         output_graph = g
-    kwargs['output_graph'] = output_graph
 
     logger.info('Begin processing')
     start_time = time.monotonic()
 
-    res = arpafy(g, *args, **kwargs)
+    if prune:
+        logger.info('Prune candidates')
+        res = prune_candidates(g, kwargs.get('source_prop'), kwargs.get('pruner'),
+                rdf_class=kwargs.get('rdf_class'), output_graph=output_graph,
+                progress=kwargs.get('progress'))
+        g = res['graph']
+
+    if join_candidates:
+        logger.debug('Combine candidates')
+        output_graph = combine_candidates(g, kwargs.get('source_prop', SKOS['prefLabel']),
+                output_graph=output_graph, rdf_class=kwargs.get('rdf_class'),
+                progress=kwargs.get('progress'))
+        g = output_graph
+        res = {'graph': output_graph}
+
+    kwargs['output_graph'] = output_graph
+
+    if run_arpafy:
+        logger.info('Start arpafy')
+        res = arpafy(g, *args, **kwargs)
 
     end_time = time.monotonic()
-
     logger.info('Processing complete, runtime {}'.
             format(timedelta(seconds=(end_time - start_time))))
 
@@ -651,7 +904,8 @@ def main(args):
 
     # Query the ARPA service, add the matches and serialize graph to disk
     process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-            args.prop, args.rdf_class, new_graph=args.new_graph, progress=True)
+            args.prop, args.rdf_class, new_graph=args.new_graph, progress=True,
+            candidates_only=args.candidates_only)
 
     logging.shutdown()
 

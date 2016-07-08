@@ -1,10 +1,13 @@
 import re
-from arpa_linker.arpa import Arpa, process, log_to_file
-from rdflib import URIRef
+import sys
+from link_helper import process_stage
 
 
-def validator(graph, s):
-    def validate(text, results):
+class Validator:
+    def __init__(self, graph, *args, **kwargs):
+        self.graph = graph
+
+    def validate(self, results, text, s):
         if not results:
             return results
         for i, place in enumerate(results):
@@ -33,7 +36,6 @@ def validator(graph, s):
                 results[i]['id'] = 'http://ldf.fi/pnr/P_10530797'
 
         return results
-    return validate
 
 
 def preprocessor(text, *args):
@@ -45,21 +47,17 @@ def preprocessor(text, *args):
     text = re.sub('[()]', ' ', text)
     # Add a space after commas if they're followed by a word
     text = re.sub(r'(\w),(\w)', r'\1, \2', text)
-    # Baseforming doesn't work for "Salla" so baseform that manually.
-    text = re.sub(r'Salla(a?n?|s[st]a)?\b', 'Salla', text)
-    # Ditto for Sommee.
+    # Baseforming doesn't work for "Sommee" so baseform that manually.
     text = re.sub(r'Sommee(n?|s[st]a)?\b', 'Sommee', text)
-    # Current bug in ARPA causes Uuras to not baseform correctly.
-    text = re.sub(r'Uuraa(n?|s[st]a)?\b', 'Uuras', text)
     # Detach names connected by hyphens to match places better.
     # Skip Yl[äi]-, Al[ia]-, Iso-. and Pitkä-
     text = text.replace('Pitkä-', 'Pitkä#')
     text = re.sub(r'(?<!\b(Yl[äi]|Al[ia]|Iso))-([A-ZÄÅÖ])', r' \2', text)
     text = text.replace('Pitkä#', 'Pitkä-')
 
-    text = text.replace('Inkilän kartano', '##')
-    text = text.replace('Norjan Kirkkoniem', '##')
-    text = text.replace('Pietari Autti', '##')
+    text = text.replace('Inkilän kartano', '#')
+    text = text.replace('Norjan Kirkkoniem', '#')
+    text = text.replace('Pietari Autti', '#')
 
     return text
 
@@ -164,11 +162,13 @@ if __name__ == '__main__':
         'olli',
         'motti',
         'valko',
+        'martti',
+        'ilmarinen',
         'maaselkä',  # the proper one does not exist yet
         'kalajoki',  # the proper one does not exist yet
-        #'turtola', # only for events!
-        #'pajari'  # only for events, remove for photos
-        #'karsikko'?
+        'turtola',  # only for events!
+        'pajari'  # only for events, remove for photos
+        # 'karsikko'?
     ]
 
     no_duplicates = [
@@ -178,20 +178,9 @@ if __name__ == '__main__':
         'http://ldf.fi/warsa/places/place_types/Vesimuodostuma',
         'http://ldf.fi/warsa/places/place_types/Maastokohde',
         'http://ldf.fi/pnr-schema#place_type_540',
+        'http://ldf.fi/pnr-schema#place_type_550',
         'http://ldf.fi/pnr-schema#place_type_560',
     ]
 
-    log_to_file('places.log', 'INFO')
-
-    arpa = Arpa('http://demo.seco.tkk.fi/arpa/warsa-event-place',
-            remove_duplicates=no_duplicates, ignore=ignore)
-
-    rdf_format = 'turtle'
-
-    # Query the ARPA service, add the matches, and serialize the graph to disk.
-    process('input.ttl', rdf_format, 'output.ttl', rdf_format,
-            URIRef('http://purl.org/dc/terms/spatial'),
-            #URIRef('http://www.cidoc-crm.org/cidoc-crm/P7_took_place_at'),
-            arpa,
-            URIRef('http://ldf.fi/warsa/photographs/place_string'),
-            preprocessor=preprocessor, validator=validator, progress=True)
+    process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
+            remove_duplicates=no_duplicates)
