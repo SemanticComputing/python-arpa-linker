@@ -762,7 +762,7 @@ class TestArpafy(TestCase):
         arpa = Arpa('http://url')
         res = arpafy(self.graph, self.tprop, arpa,
                 source_prop=self.prop,
-                output_graph=output_graph, validator_class=Validator)
+                output_graph=output_graph, validator=Validator())
 
         self.assertEqual(res['graph'], output_graph)
 

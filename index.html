@@ -1726,7 +1726,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
 
 <span class="k">def</span> <span class="nf">arpafy</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">arpa</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">output_graph</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">preprocessor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">validator_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">output_graph</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">preprocessor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">candidates_only</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Link a property to resources using ARPA. Modify the graph in place,</span>
@@ -1751,9 +1751,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">    `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.</span>
 <span class="sd">    It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.</span>
 
-<span class="sd">    `validator_class` is a class that takes a graph as its instantiation parameter and implements a `validate` method</span>
-<span class="sd">    that takes the ARPA results, query text, and the processed subject as parameters, and returns a subset of the</span>
-<span class="sd">    results (that have been validated based on the subject, graph and results). Optional.</span>
+<span class="sd">    `validator` is an object with a `validate` method that takes the ARPA results, query text, and the processed</span>
+<span class="sd">    subject as parameters, and returns a subset of the results (that have been validated based on the subject,</span>
+<span class="sd">    graph and results). Optional.</span>
 
 <span class="sd">    If `candidates_only` is set, get candidates (n-grams) only from ARPA.</span>
 
@@ -1776,8 +1776,6 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">bar</span> <span class="o">=</span> <span class="n">get_bar</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="p">),</span> <span class="n">progress</span><span class="p">)</span>
-
-    <span class="n">validator</span> <span class="o">=</span> <span class="n">validator_class</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span> <span class="k">if</span> <span class="n">validator_class</span> <span class="k">else</span> <span class="bp">None</span>
 
     <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">subject_objects</span><span class="p">():</span>
         <span class="n">o</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span> <span class="k">if</span> <span class="n">preprocessor</span> <span class="k">else</span> <span class="n">o</span>
@@ -2120,7 +2118,7 @@ Only needed for prioritized duplicate removal.</p></div>
       
   <div class="item">
     <div class="name def" id="arpa.arpafy">
-    <p>def <span class="ident">arpafy</span>(</p><p>graph, target_prop, arpa, source_prop=None, rdf_class=None, output_graph=None, preprocessor=None, validator_class=None, candidates_only=False, progress=None)</p>
+    <p>def <span class="ident">arpafy</span>(</p><p>graph, target_prop, arpa, source_prop=None, rdf_class=None, output_graph=None, preprocessor=None, validator=None, candidates_only=False, progress=None)</p>
     </div>
     
 
@@ -2139,16 +2137,16 @@ match count (matches) and errors encountered (errors).</p>
 to the input <code>graph</code>.</p>
 <p><code>preprocessor</code> is an optional function that processes the query text before it is used in the ARPA query.
 It receives whatever is the value of <code>source_prop</code> for the current subject, the current subject, and the graph.</p>
-<p><code>validator_class</code> is a class that takes a graph as its instantiation parameter and implements a <code>validate</code> method
-that takes the ARPA results, query text, and the processed subject as parameters, and returns a subset of the
-results (that have been validated based on the subject, graph and results). Optional.</p>
+<p><code>validator</code> is an object with a <code>validate</code> method that takes the ARPA results, query text, and the processed
+subject as parameters, and returns a subset of the results (that have been validated based on the subject,
+graph and results). Optional.</p>
 <p>If <code>candidates_only</code> is set, get candidates (n-grams) only from ARPA.</p>
 <p>If <code>progress</code> is <code>True</code>, show a progress bar. Requires pyprind.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.arpafy', this);">Show source &equiv;</a></p>
   <div id="source-arpa.arpafy" class="source">
     <div class="codehilite"><pre><span class="k">def</span> <span class="nf">arpafy</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">arpa</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">output_graph</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">preprocessor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">validator_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">output_graph</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">preprocessor</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">candidates_only</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Link a property to resources using ARPA. Modify the graph in place,</span>
@@ -2173,9 +2171,9 @@ results (that have been validated based on the subject, graph and results). Opti
 <span class="sd">    `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.</span>
 <span class="sd">    It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.</span>
 
-<span class="sd">    `validator_class` is a class that takes a graph as its instantiation parameter and implements a `validate` method</span>
-<span class="sd">    that takes the ARPA results, query text, and the processed subject as parameters, and returns a subset of the</span>
-<span class="sd">    results (that have been validated based on the subject, graph and results). Optional.</span>
+<span class="sd">    `validator` is an object with a `validate` method that takes the ARPA results, query text, and the processed</span>
+<span class="sd">    subject as parameters, and returns a subset of the results (that have been validated based on the subject,</span>
+<span class="sd">    graph and results). Optional.</span>
 
 <span class="sd">    If `candidates_only` is set, get candidates (n-grams) only from ARPA.</span>
 
@@ -2198,8 +2196,6 @@ results (that have been validated based on the subject, graph and results). Opti
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">bar</span> <span class="o">=</span> <span class="n">get_bar</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="p">),</span> <span class="n">progress</span><span class="p">)</span>
-
-    <span class="n">validator</span> <span class="o">=</span> <span class="n">validator_class</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span> <span class="k">if</span> <span class="n">validator_class</span> <span class="k">else</span> <span class="bp">None</span>
 
     <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">subject_objects</span><span class="p">():</span>
         <span class="n">o</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span> <span class="k">if</span> <span class="n">preprocessor</span> <span class="k">else</span> <span class="n">o</span>

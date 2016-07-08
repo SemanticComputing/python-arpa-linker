@@ -550,7 +550,7 @@ def _get_subgraph(graph, source_prop, rdf_class=None):
 
 
 def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
-            output_graph=None, preprocessor=None, validator_class=None,
+            output_graph=None, preprocessor=None, validator=None,
             candidates_only=False, progress=None):
     """
     Link a property to resources using ARPA. Modify the graph in place,
@@ -575,9 +575,9 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     `preprocessor` is an optional function that processes the query text before it is used in the ARPA query.
     It receives whatever is the value of `source_prop` for the current subject, the current subject, and the graph.
 
-    `validator_class` is a class that takes a graph as its instantiation parameter and implements a `validate` method
-    that takes the ARPA results, query text, and the processed subject as parameters, and returns a subset of the
-    results (that have been validated based on the subject, graph and results). Optional.
+    `validator` is an object with a `validate` method that takes the ARPA results, query text, and the processed
+    subject as parameters, and returns a subset of the results (that have been validated based on the subject,
+    graph and results). Optional.
 
     If `candidates_only` is set, get candidates (n-grams) only from ARPA.
 
@@ -600,8 +600,6 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     errors = []
 
     bar = get_bar(len(subgraph), progress)
-
-    validator = validator_class(graph) if validator_class else None
 
     for s, o in subgraph.subject_objects():
         o = preprocessor(o, s, graph) if preprocessor else o

@@ -53,7 +53,7 @@ def process_stage(argv, ignore=None, validator=None, preprocessor=None, pruner=N
                 retries=args.retries, wait_between_tries=args.wait)
 
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa=arpa,
-                validator_class=val, source_prop=args.prop, rdf_class=args.rdf_class,
+                validator=val, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, progress=True)
 
     elif 'raw' in argv[1]:
@@ -77,5 +77,5 @@ def process_stage(argv, ignore=None, validator=None, preprocessor=None, pruner=N
         # Query the ARPA service, add the matches and serialize the graph to disk.
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-                preprocessor=preprocessor, validator_class=validator, progress=True,
+                preprocessor=preprocessor, validator=validator, progress=True,
                 candidates_only=args.candidates_only)
