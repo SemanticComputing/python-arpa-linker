@@ -9,7 +9,7 @@ def init_log(name, level):
     log_to_file('{}_{}.log'.format(name, time.time()), level)
 
 
-def process_stage(argv, ignore=None, validator=None, preprocessor=None, pruner=None,
+def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pruner=None,
         remove_duplicates=False, set_dataset=None, log_level='INFO'):
 
     if argv[1] == 'prune':
@@ -42,7 +42,7 @@ def process_stage(argv, ignore=None, validator=None, preprocessor=None, pruner=N
 
         if argv[1] == 'disambiguate_validate':
             init_log('validate', log_level)
-            val = validator
+            val = validator_class
             dupl = remove_duplicates
         else:
             init_log('disambiguate', log_level)
@@ -77,5 +77,5 @@ def process_stage(argv, ignore=None, validator=None, preprocessor=None, pruner=N
         # Query the ARPA service, add the matches and serialize the graph to disk.
         process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
-                preprocessor=preprocessor, validator_class=validator, progress=True,
+                preprocessor=preprocessor, validator_class=validator_class, progress=True,
                 candidates_only=args.candidates_only)

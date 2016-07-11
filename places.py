@@ -182,5 +182,5 @@ if __name__ == '__main__':
         'http://ldf.fi/pnr-schema#place_type_560',
     ]
 
-    process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
+    process_stage(sys.argv, ignore=ignore, validator_class=Validator, preprocessor=preprocessor,
             remove_duplicates=no_duplicates)
