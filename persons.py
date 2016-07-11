@@ -1415,5 +1415,5 @@ if __name__ == '__main__':
         doctest.testmod()
         exit()
 
-    process_stage(sys.argv, ignore=ignore, validator=Validator, preprocessor=preprocessor,
+    process_stage(sys.argv, ignore=ignore, validator_class=Validator, preprocessor=preprocessor,
             pruner=pruner, set_dataset=set_dataset)

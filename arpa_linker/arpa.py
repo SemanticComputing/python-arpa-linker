@@ -812,7 +812,8 @@ def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=
 
 
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, prune=False, join_candidates=False, run_arpafy=True, **kwargs):
+        new_graph=False, prune=False, join_candidates=False, run_arpafy=True,
+        validator_class=None, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
     graph on disk.
@@ -834,6 +835,10 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     Setting `run_arpafy` to False will skip running `arpa.arpafy`.
     Useful with `join_candidates`.
+
+    `validator_class` is class that takes the input graph as parameter, and implements
+    a `validate` method. See `arpa.arpafy` for more information.
+    This overrides any validator object given as the `arpa.arpafy` `validator` parameter.
 
     All other arguments are passed to `arpa.arpafy`.
 
@@ -873,6 +878,8 @@ def process(input_file, input_format, output_file, output_format, *args,
     kwargs['output_graph'] = output_graph
 
     if run_arpafy:
+        if validator_class:
+            kwargs['validator'] = validator_class(g)
         logger.info('Start arpafy')
         res = arpafy(g, *args, **kwargs)
 
