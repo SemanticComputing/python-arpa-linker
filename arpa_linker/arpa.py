@@ -87,9 +87,9 @@ from rdflib import Graph, URIRef, Literal
 from rdflib.namespace import RDF, SKOS
 from rdflib.util import guess_format
 
-__all__ = ['Arpa', 'ArpaMimic', 'arpafy', 'process', 'prune_candidates',
-            'combine_candidates', 'map_results', 'log_to_file', 'post',
-            'parse_args', 'main', 'LABEL_PROP', 'TYPE_PROP']
+__all__ = ['Arpa', 'ArpaMimic', 'arpafy', 'process', 'process_graph', 'prune_candidates',
+            'combine_candidates', 'map_results', 'log_to_file', 'post', 'parse_args',
+            'main', 'LABEL_PROP', 'TYPE_PROP']
 
 LABEL_PROP = 'label'
 """The name of the property containing the label of the match in the ARPA results."""
