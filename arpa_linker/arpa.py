@@ -811,8 +811,72 @@ def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=
     return output_graph
 
 
+def process_graph(graph, *args, new_graph=False, prune=False, join_candidates=False,
+        run_arpafy=True, source_prop=None, rdf_class=None, pruner=None, progress=None, **kwargs):
+    """
+    Convenience function for running different tasks related to linking.
+
+    `graph` is the graph to be processed.
+
+    If `new_graph` is set, use a new empty graph for adding the results.
+
+    If `prune` is set, prune candidates using `arpa.prune_candidates`.
+
+    If `join_candidates` is set, combine candidates into a single value using
+    `arpa.combine_candidates`.
+
+    Setting `run_arpafy` to False will skip running `arpa.arpafy`.
+    Useful with `join_candidates`.
+
+    `source_prop` is the property URI that contains the values to be processed.
+
+    For `pruner` see `arpa.prune_candidates`.
+
+    If `progress` is `True`, show a progress bar. Requires pyprind.
+
+    All other arguments are passed to `arpa.arpafy` (if run).
+
+    Return the results dict as returned by `arpa.arpafy`.
+    """
+
+    if new_graph:
+        logger.debug('Output to new graph')
+        output_graph = Graph()
+        output_graph.namespace_manager = graph.namespace_manager
+    else:
+        output_graph = graph
+
+    logger.info('Begin processing')
+    start_time = time.monotonic()
+
+    if prune:
+        logger.info('Prune candidates')
+        res = prune_candidates(graph, source_prop, pruner,
+                rdf_class=rdf_class, output_graph=output_graph,
+                progress=progress)
+        graph = res['graph']
+
+    if join_candidates:
+        logger.debug('Combine candidates')
+        output_graph = combine_candidates(graph, source_prop,
+                output_graph=output_graph, rdf_class=rdf_class,
+                progress=progress)
+        graph = output_graph
+        res = {'graph': output_graph}
+
+    if run_arpafy:
+        logger.info('Start arpafy')
+        res = arpafy(graph, *args, source_prop=source_prop, rdf_class=rdf_class,
+                output_graph=output_graph, progress=progress, **kwargs)
+
+    end_time = time.monotonic()
+    logger.info('Processing complete, runtime {}'.
+            format(timedelta(seconds=(end_time - start_time))))
+
+    return res
+
+
 def process(input_file, input_format, output_file, output_format, *args,
-        new_graph=False, prune=False, join_candidates=False, run_arpafy=True,
         validator_class=None, **kwargs):
     """
     Parse the given input file, run `arpa.arpafy`, and serialize the resulting
@@ -826,21 +890,11 @@ def process(input_file, input_format, output_file, output_format, *args,
 
     `output_format` is the output file format.
 
-    If `new_graph` is set, use a new empty graph for adding the results.
-
-    If `prune` is set, prune candidates using `arpa.prune_candidates`.
-
-    If `join_candidates` is set, combine candidates into a single value using
-    `arpa.combine_candidates`.
-
-    Setting `run_arpafy` to False will skip running `arpa.arpafy`.
-    Useful with `join_candidates`.
-
     `validator_class` is class that takes the input graph as parameter, and implements
     a `validate` method. See `arpa.arpafy` for more information.
     This overrides any validator object given as the `arpa.arpafy` `validator` parameter.
 
-    All other arguments are passed to `arpa.arpafy`.
+    All other arguments are passed to `arpa.process_graph`.
 
     Return the results dict as returned by `arpa.arpafy`.
     """
@@ -850,42 +904,12 @@ def process(input_file, input_format, output_file, output_format, *args,
     g.parse(input_file, format=input_format)
     logger.info('Parsing complete')
 
-    if new_graph:
-        logger.debug('Output to new graph')
-        output_graph = Graph()
-        output_graph.namespace_manager = g.namespace_manager
-    else:
-        output_graph = g
+    if validator_class:
+        kwargs['validator'] = validator_class(g)
 
-    logger.info('Begin processing')
-    start_time = time.monotonic()
+    res = process_graph(g, *args, **kwargs)
 
-    if prune:
-        logger.info('Prune candidates')
-        res = prune_candidates(g, kwargs.get('source_prop'), kwargs.get('pruner'),
-                rdf_class=kwargs.get('rdf_class'), output_graph=output_graph,
-                progress=kwargs.get('progress'))
-        g = res['graph']
-
-    if join_candidates:
-        logger.debug('Combine candidates')
-        output_graph = combine_candidates(g, kwargs.get('source_prop', SKOS['prefLabel']),
-                output_graph=output_graph, rdf_class=kwargs.get('rdf_class'),
-                progress=kwargs.get('progress'))
-        g = output_graph
-        res = {'graph': output_graph}
-
-    kwargs['output_graph'] = output_graph
-
-    if run_arpafy:
-        if validator_class:
-            kwargs['validator'] = validator_class(g)
-        logger.info('Start arpafy')
-        res = arpafy(g, *args, **kwargs)
-
-    end_time = time.monotonic()
-    logger.info('Processing complete, runtime {}'.
-            format(timedelta(seconds=(end_time - start_time))))
+    output_graph = res['graph']
 
     logger.info('Serializing graph as {}'.format(output_file))
     output_graph.serialize(destination=output_file, format=output_format)
