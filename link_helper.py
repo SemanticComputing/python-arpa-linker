@@ -6,7 +6,7 @@ logger = logging.getLogger('arpa_linker.arpa')
 
 
 def init_log(name, level):
-    log_to_file('{}_{}.log'.format(name, time.time()), level)
+    log_to_file('{}_{}_{}.log'.format(__name__, name, time.time()), level)
 
 
 def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pruner=None,
@@ -79,3 +79,8 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
                 source_prop=args.prop, rdf_class=args.rdf_class, new_graph=args.new_graph,
                 preprocessor=preprocessor, validator_class=validator_class, progress=True,
                 candidates_only=args.candidates_only)
+
+
+if __name__ == '__main__':
+    import sys
+    process_stage(sys.argv)

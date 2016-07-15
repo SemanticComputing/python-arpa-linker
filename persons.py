@@ -218,7 +218,7 @@ class Validator:
             try:
                 d = str(date_uri).split('time_')[1]
                 return self.parse_date(d)
-            except ValueError:
+            except (ValueError, IndexError):
                 logger.warning("Invalid time-span URI: {}".format(date_uri))
                 return None
 
