@@ -6,7 +6,7 @@ logger = logging.getLogger('arpa_linker.arpa')
 
 
 def init_log(name, level):
-    log_to_file('{}_{}_{}.log'.format(__name__, name, time.time()), level)
+    log_to_file('{}_{}.log'.format(name, time.time()), level)
 
 
 def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pruner=None,
@@ -30,7 +30,7 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
                 run_arpafy=False, progress=True)
 
     elif 'disambiguate' in argv[1]:
-        # Link with disambiguating and/or validation
+        # Link (with possible validation)
         args = parse_args(argv[3:])
 
         if set_dataset:
