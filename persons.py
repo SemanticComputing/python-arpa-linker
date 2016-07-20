@@ -10,22 +10,22 @@ import os
 
 logger = logging.getLogger('arpa_linker.arpa')
 
-MANNERHEIM_RITARIT = 'http://ldf.fi/warsa/sources/source5'
+MANNERHEIM_RITARIT = '<http://ldf.fi/warsa/sources/source5>'
 
 SOURCES = {
-    'http://ldf.fi/warsa/sources/source1': 0,
-    'http://ldf.fi/warsa/sources/source10': 1,  # Wikipedia
-    'http://ldf.fi/warsa/sources/source11': 0,
-    'http://ldf.fi/warsa/sources/source12': 0,
-    'http://ldf.fi/warsa/sources/source13': 0,
-    'http://ldf.fi/warsa/sources/source2': 0,
-    'http://ldf.fi/warsa/sources/source3': 0,
-    'http://ldf.fi/warsa/sources/source4': 0,
+    '<http://ldf.fi/warsa/sources/source1>': 0,
+    '<http://ldf.fi/warsa/sources/source10>': 1,  # Wikipedia
+    '<http://ldf.fi/warsa/sources/source11>': 0,
+    '<http://ldf.fi/warsa/sources/source12>': 0,
+    '<http://ldf.fi/warsa/sources/source13>': 0,
+    '<http://ldf.fi/warsa/sources/source2>': 0,
+    '<http://ldf.fi/warsa/sources/source3>': 0,
+    '<http://ldf.fi/warsa/sources/source4>': 0,
     MANNERHEIM_RITARIT: 1,
-    'http://ldf.fi/warsa/sources/source6': 0,
-    'http://ldf.fi/warsa/sources/source7': 0,
-    'http://ldf.fi/warsa/sources/source8': 0,
-    'http://ldf.fi/warsa/sources/source9': 0
+    '<http://ldf.fi/warsa/sources/source6>': 0,
+    '<http://ldf.fi/warsa/sources/source7>': 0,
+    '<http://ldf.fi/warsa/sources/source8>': 0,
+    '<http://ldf.fi/warsa/sources/source9>': 0
 }
 
 RANK_CLASS_SCORES = {
@@ -629,10 +629,10 @@ class Validator:
         if not (len(rank_set) == 1 and 'na' in rank_set) and not self.has_consistent_rank(
                 person, text):
             logger.info(
-                'Reducing score because an inconsistent rank was found in context: {} {} ({})'.format(
-                    ', '.join(set(props.get('rank', []))),
+                'Reducing score because an inconsistent rank was found in context: {} ({}) [{}]'.format(
                     person.get('label'),
-                    person.get('id')))
+                    person.get('id'),
+                    ', '.join(set(props.get('rank', [])))))
             return -10
 
         rank_classes = {r.replace('"', '') for r in props.get('hierarchy')}
@@ -676,10 +676,10 @@ class Validator:
             score += additional_score
         else:
             # This person did not have the matched rank at this time
-            logger.info('Reducing score because of inconsistent rank: {} {} ({})'.format(
-                ', '.join(set(props.get('rank', []))),
+            logger.info('Reducing score because of inconsistent rank: {} ({}) [{}]'.format(
                 person.get('label'),
-                person.get('id')))
+                person.get('id'),
+                ', '.join(set(props.get('rank', [])))))
             score -= 15
 
         return score
@@ -794,11 +794,11 @@ class Validator:
     def get_source_score(self, person):
         """
         >>> v = Validator(None)
-        >>> props = {'source': ['http://ldf.fi/warsa/sources/source5']}
+        >>> props = {'source': ['<http://ldf.fi/warsa/sources/source5>']}
         >>> person = {'properties': props, 'id': 'id'}
         >>> v.get_source_score(person)
         1
-        >>> props = {'source': ['http://ldf.fi/warsa/sources/source1']}
+        >>> props = {'source': ['<http://ldf.fi/warsa/sources/source1>']}
         >>> person = {'properties': props, 'id': 'id'}
         >>> v.get_source_score(person)
         0
@@ -860,7 +860,7 @@ class Validator:
         >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
         ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
         ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
         >>> person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
@@ -907,7 +907,7 @@ class Validator:
         >>> props = {'death_date': ['"1942-02-01"^^xsd:date', '"1942-02-01"^^xsd:date', '"1942-03-01"^^xsd:date'],
         ...    'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
         ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         >>> results = [person]
@@ -917,7 +917,7 @@ class Validator:
         ...    'first_names': ['"Adolf"', '"Adolf"'],
         ...    'promotion_date': ['"NA"', '"NA"', '"NA"'],
         ...    'hierarchy': ['"NA"', '"NA"', '"NA"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"NA"', '"NA"', '"NA"']}
         >>> person = {'properties': props, 'matches': ['Adolf Hitler'], 'id': 'id'}
         >>> results = [person]
@@ -926,13 +926,13 @@ class Validator:
         >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Komppaniaupseeri"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Vänrikki"']}
         >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
         >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
         ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
         ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id2'}
         >>> results = [person, person2]
@@ -943,7 +943,7 @@ class Validator:
         >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
         ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
         ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id'}
         >>> results = [person]
@@ -952,19 +952,19 @@ class Validator:
         >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Aliupseeri"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Lentomestari"']}
         >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
         >>> props2 = {'death_date': ['"1944-04-28"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Korpraali"']}
         >>> person2 = {'properties': props2, 'matches': ['Oiva Tuominen'], 'id': 'id2'}
         >>> props3 = {'death_date': ['"1940-04-28"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
@@ -978,21 +978,21 @@ class Validator:
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
         ...    'first_names': ['Arvi Petteri'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Sotamies"']}
         >>> person = {'properties': props, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id1'}
         >>> props2 = {'death_date': ['"1943-09-22"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
         ...    'first_names': ['Petteri'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Sotamies"']}
         >>> person2 = {'properties': props2, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id2'}
         >>> props3 = {'death_date': ['"1940-02-02"^^xsd:date'],
         ...    'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"Miehistö"'],
         ...    'first_names': ['Petteri Arvi'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
@@ -1007,7 +1007,7 @@ class Validator:
         ...    'hierarchy': ['"Miehistö"'],
         ...    'first_names': ['"Tuomas"'],
         ...    'family_name': ['"Noponen"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Korpraali"']}
         >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
         >>> results = [person]
@@ -1018,7 +1018,7 @@ class Validator:
         ...    'first_names': ['"Kari"', '"Kari"'],
         ...    'family_name': ['"SUOMALAINEN"', '"SUOMALAINEN"'],
         ...    'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         >>> person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
         >>> results = [person]
@@ -1027,7 +1027,7 @@ class Validator:
         >>> props = {'promotion_date': ['"NA"', '"NA"'],
         ...    'hierarchy': ['"NA"', '"NA"'],
         ...    'family_name': ['"Hämäläinen"', '"Hämäläinen"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Reservin vänrikki"', '"Reservin vänrikki"']}
         >>> person = {'properties': props, 'matches': ['Reservin vänrikki Hämäläinen', 'vänrikki Hämäläinen'],
         ...        'id': 'id1'}
@@ -1039,7 +1039,7 @@ class Validator:
         ...    'hierarchy': ['"NA"'],
         ...    'first_names': ['"Yrjö"'],
         ...    'family_name': ['"Pöyhönen"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source10'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source10>'],
         ...    'rank': ['"NA"']}
         >>> person = {'properties': props, 'matches': ['Y. Pöyhönen'], 'id': 'id1'}
         >>> results = [person]
@@ -1050,7 +1050,7 @@ class Validator:
         ...    'hierarchy': ['"Miehistö"'],
         ...    'first_names': ['"Kalle"'],
         ...    'family_name': ['"Sukunimi"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Sotamies"']}
         >>> person = {'properties': props, 'matches': ['sotamies Sukunimi'], 'id': 'id1'}
         >>> results = [person]
@@ -1077,7 +1077,7 @@ class Validator:
         >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
         ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
         ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['http://ldf.fi/warsa/sources/source1'],
+        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
         >>> person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
@@ -1133,8 +1133,8 @@ class Validator:
             log_msg = "{} ({}) scored {} [{}]".format(
                 person.get('label'),
                 person.get('id'),
-                ', '.join(set(person.get('properties', {}).get('rank', []))),
-                score)
+                score,
+                ', '.join(set(person.get('properties', {}).get('rank', []))))
 
             if score > 0:
                 log_msg = "PASS: " + log_msg
