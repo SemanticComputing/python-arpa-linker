@@ -36,8 +36,8 @@ RANK_CLASS_SCORES = {
     'kirkollinen henkilöstö': 1,
     'Aliupseeri': -5,
     'Miehistö': -10,
-    'lottahenkilostö': 0,
-    'virkahenkilostö': 0,
+    'lottahenkilöstö': 0,
+    'virkahenkilöstö': 0,
     'Jääkäriarvo': 0,
     'Muu arvo': 0,
     'Päällystö': 0,
@@ -1497,6 +1497,7 @@ def preprocessor(text, *args):
     text = re.sub(r'[Pp]residentti\s+ja\s+rouva\s+Svinhufvud', 'Pehr Evind Svinhufvud # Ellen Svinhufvud #', text)
     text = re.sub(r'[Rr]ouva\s+Svinhufvud', '# Ellen Svinhufvud ', text)
     text = text.replace('Öhqvist', 'Öhquist')
+    text = text.replace('Jörgen Hageman', 'Jörgen Hagemann')
 
     # Add a space after commas where it's missing
     text = re.sub(r'(?<=\S),(?=\S)', ', ', text)
@@ -1507,11 +1508,12 @@ def preprocessor(text, *args):
     text = text.replace('Sotamies Pihlajamaa', 'sotamies Väinö Pihlajamaa')
 
     # Events only
-    # text = text.replace('Ryti', '# Risto Ryti')
-    # text = text.replace('Tanner', '# Väinö Tanner')
-    # text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '# Kyösti Kallio', text)
-    # text = text.replace('Molotov', '# V. Molotov')  # not for photos
-    # text = re.sub(r'(?<!Josif\W)Stalin(ille|in|iin)?\b', 'Josif Stalin', text)
+    if Validator.dataset == 'event':
+        text = text.replace('Ryti', '# Risto Ryti')
+        text = text.replace('Tanner', '# Väinö Tanner')
+        text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '# Kyösti Kallio', text)
+        text = text.replace('Molotov', '# V. Molotov')  # not for photos
+        text = re.sub(r'(?<!Josif\W)Stalin(ille|ilta|in|iin)?\b', 'Josif Stalin', text)
 
     if text != orig:
         logger.info('Preprocessed to: {}'.format(text))
@@ -1562,13 +1564,15 @@ def pruner(candidate):
     return None
 
 
-def set_dataset(args):
-    if str(args.tprop) == 'http://purl.org/dc/terms/subject':
-        logger.info('Handling as photos')
+def set_dataset(dataset_name):
+    if dataset_name == 'event':
+        print('Handling as events')
+        Validator.dataset = 'event'
+    elif dataset_name == 'photo':
+        print('Handling as photos')
         Validator.dataset = 'photo'
     else:
-        logger.info('Handling as events')
-        Validator.dataset = 'event'
+        raise ValueError('Invalid dataset: {}'.format(dataset_name))
 
 
 if __name__ == '__main__':
@@ -1577,5 +1581,9 @@ if __name__ == '__main__':
         doctest.testmod()
         exit()
 
-    process_stage(sys.argv, ignore=ignore, validator_class=Validator, preprocessor=preprocessor,
-            pruner=pruner, set_dataset=set_dataset, log_level='INFO')
+    set_dataset(sys.argv[1])
+
+    args = sys.argv[0:1] + sys.argv[2:]
+
+    process_stage(args, ignore=ignore, validator_class=Validator,
+            preprocessor=preprocessor, pruner=pruner, log_level='INFO')

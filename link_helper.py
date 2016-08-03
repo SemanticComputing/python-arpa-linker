@@ -6,18 +6,16 @@ logger = logging.getLogger('arpa_linker.arpa')
 
 
 def init_log(name, level):
-    log_to_file('{}_{}.log'.format(name, time.time()), level)
+    log_to_file('{}_{}.log'.format(name, time.strftime('%Y%m%d_%H%M%S')), level)
 
 
 def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pruner=None,
-        remove_duplicates=False, set_dataset=None, log_level='INFO'):
+        remove_duplicates=False, log_level='INFO'):
 
     if argv[1] == 'prune':
         # Remove ngrams that will not match anything for sure
         init_log('prune', log_level)
         args = parse_args(argv[2:])
-        if set_dataset:
-            set_dataset(args)
         process(args.input, args.fi, args.output, args.fo, args.tprop, prune=True,
                 pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, run_arpafy=False, progress=True)
@@ -32,9 +30,6 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
     elif 'disambiguate' in argv[1]:
         # Link (with possible validation)
         args = parse_args(argv[3:])
-
-        if set_dataset:
-            set_dataset(args)
 
         f = open(argv[2])
         qry = f.read()

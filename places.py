@@ -165,11 +165,24 @@ if __name__ == '__main__':
         'martti',
         'ilmarinen',
         'maaselkä',  # the proper one does not exist yet
-        'kalajoki',  # the proper one does not exist yet
-        'turtola',  # only for events!
-        'pajari'  # only for events, remove for photos
+        'kalajoki'  # the proper one does not exist yet
         # 'karsikko'?
     ]
+
+    events_only_ignore = [
+        'turtola',  # only for events!
+        'pajari'  # only for events, remove for photos
+    ]
+
+    if sys.argv[1] == 'event':
+        print('Handling as events')
+        ignore = ignore + events_only_ignore
+    elif sys.argv[1] == 'photo':
+        print('Handling as photos')
+    else:
+        raise ValueError('Invalid dataset')
+
+    args = sys.argv[0:1] + sys.argv[2:]
 
     no_duplicates = [
         'http://www.yso.fi/onto/suo/kunta',
@@ -182,5 +195,5 @@ if __name__ == '__main__':
         'http://ldf.fi/pnr-schema#place_type_560',
     ]
 
-    process_stage(sys.argv, ignore=ignore, validator_class=Validator, preprocessor=preprocessor,
-            remove_duplicates=no_duplicates)
+    process_stage(args, ignore=ignore, validator_class=Validator,
+            preprocessor=preprocessor, remove_duplicates=no_duplicates)
