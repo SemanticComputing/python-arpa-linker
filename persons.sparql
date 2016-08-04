@@ -20,22 +20,22 @@ WHERE {
         <VALUES>
       }
       FILTER(STRLEN(?ngram)>2)
-      BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?ngram, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y') AS ?n_ngram)
-      BIND("^((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖüÜ-]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅüÜ-]{3,})$" AS ?nimiregex)
+      BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?ngram, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y'), 'W', 'V') AS ?n_ngram)
+      BIND("^((?:[a-zA-ZäÄåÅöÖüÜ]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))((?:-?[a-zA-ZäÄåÅöÖüÜ]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖüÜ]\\.[ ]*)|(?:[a-zA-ZäÄöÖåÅüÜ-]{3,}[ ]+))*([_a-zA-ZäÄöÖåÅüÜ-]{3,})$" AS ?nimiregex)
       BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$4"), "_", " ") AS ?family_name)
       BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$1"), "^(.*?)[ ]*$", "$1") AS ?ngrametu)
       BIND(REPLACE(REPLACE(?n_ngram, ?nimiregex, "$2"), "^(.*?)[ ]*$", "$1") AS ?ngramkeski)
       BIND(UCASE(?ngrametu) AS ?etu)
       FILTER(?ngramkeski="" || !(STRENDS(?ngrametu, ".") && !STRENDS(?ngramkeski, ".")))
-      BIND(UCASE(?ngramkeski) AS ?keski)
+      BIND(UCASE(REPLACE(?ngramkeski, '^-', '')) AS ?keski)
       BIND(CONCAT(?family_name, "~1") AS ?qstring)
 
       GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
       ?id foaf:familyName ?familyName_orig .
-      BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?familyName_orig, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y') AS ?familyName)
+      BIND(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(?familyName_orig, '[áà]', 'a'), '[éè]', 'e'), '[íì]', 'i'), '[óò]', 'o'), '[úù]', 'u'), '[ýỳ]', 'y'), 'W', 'V') AS ?familyName)
       FILTER((UCASE(?family_name) = UCASE(?familyName)) || (CONTAINS(?familyName, "(") || CONTAINS(?familyName, ".")) && REGEX(?familyName, CONCAT("^", ?family_name, "\\b"), "i"))
 
-      OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(?fnames, "[)(]", "") AS ?first_names) }
+      OPTIONAL { ?id foaf:firstName ?fnames . BIND(REPLACE(REPLACE(?fnames, "[)(]", ""), 'W', 'V') AS ?first_names) }
       OPTIONAL {
         ?promotion_id a etype:Promotion ;
                       crm:P11_had_participant ?id ;
@@ -50,9 +50,9 @@ WHERE {
         }
       }
       BIND(CONCAT("(^|[ ])", substr(?etu, 1, 1)) as ?etukirjainre)
-      BIND(CONCAT("(^|[ ])", substr(?keski, 1, 1)) as ?keskikirjainre)
+      BIND(CONCAT("(^|[ -])", substr(?keski, 1, 1)) as ?keskikirjainre)
       BIND(CONCAT("(^|[ ])", ?etu, "($|[ ])") AS ?etunimire)
-      BIND(CONCAT("(^|[ ])", ?keski, "($|[ ])") AS ?toinennimire)
+      BIND(CONCAT("(^|[ -])", ?keski, "($|[ ])") AS ?toinennimire)
       BIND(IF(STRLEN(?keski)=2, ?keskikirjainre, IF(?keski="", ".", ?toinennimire)) AS ?keskire)
       BIND(IF(STRLEN(?etu)=2, ?etukirjainre, ?etunimire) AS ?eture)
       BIND(CONCAT("(^|[ ])", ?etu, " ", ?keski, "($|[ ])") AS ?longrankre)

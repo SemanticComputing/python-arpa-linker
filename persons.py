@@ -1530,9 +1530,9 @@ ignore = [
 
 ALLOWED_NAME_CHARS = 'a-zA-ZäÄöÖåÅÜüáàéèíìóòúùýỳ-'
 
-name_re = (r'^((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
-    r']{3,}[ ]+))((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
-    r']{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ-]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
+name_re = (r'^((?:[a-zA-ZäÄåÅöÖ]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
+    r']{3,}[ ]+))((?:-?[a-zA-ZäÄåÅöÖ]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
+    r']{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
     r']{3,}[ ]+))*([A-ZÄÖÅÜ][_' + ALLOWED_NAME_CHARS + r']{2,})$')
 name_re_compiled = re.compile(name_re)
 
@@ -1557,6 +1557,10 @@ def pruner(candidate):
     >>> pruner('höpö')
     >>> pruner('Engelbrecht')
     >>> pruner('#retkellä Engelbrecht')
+    >>> pruner('K.-W.Grünn')
+    'K.-W.Grünn'
+    >>> pruner('K.-W. Grünn')
+    'K.-W. Grünn'
     """
     if name_re_compiled.fullmatch(candidate):
         if not name_re_exclude_compiled.search(candidate):
