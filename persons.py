@@ -99,7 +99,7 @@ ALL_RANKS = (
     'kenraalimajuri',
     'kenttäpiispa',
     'kersantti',
-    'komentaja',
+    # 'komentaja',
     'komentajakapteeni',
     'kommodori',
     'kontra-amiraali',
@@ -489,7 +489,7 @@ class Validator:
 
         return res
 
-    def get_ranks_with_unknown_date(self, person):
+    def get_ranks_with_unknown_date(self, person, rank_type):
         """
         >>> v = Validator(None)
         >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
@@ -497,18 +497,30 @@ class Validator:
         ...    'hierarchy': ['"Aliupseeri"'],
         ...    'rank': ['"Lentomestari"']}
         >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
-        >>> v.get_ranks_with_unknown_date(person)
+        >>> v.get_ranks_with_unknown_date(person, 'rank')
         ['Lentomestari']
         >>> ranks = {'promotion_date': ['"NA"'],
         ...    'hierarchy': ['"NA"'],
         ...    'rank': ['"NA"']}
         >>> person = {'properties': ranks, 'matches': ['Adolf Hitler']}
-        >>> v.get_ranks_with_unknown_date(person)
+        >>> v.get_ranks_with_unknown_date(person, 'rank')
         ['NA']
+        >>> props = {'promotion_date': ['"NA"', '"1976-09-02"^^xsd:date'],
+        ...    'hierarchy': ['"Aliupseeri"', '"Kenraalikunta"'],
+        ...    'rank': ['"Lentomestari"', '"Kenraali"']}
+        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
+        >>> v.get_ranks_with_unknown_date(person, 'rank')
+        ['Lentomestari']
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
+        >>> v.get_ranks_with_unknown_date(person, 'hierarchy')
+        ['Kenraalikunta']
         """
         res = []
         props = person['properties']
-        for i, rank in enumerate(props.get('rank')):
+        for i, rank in enumerate(props.get(rank_type)):
             promotion_date = props.get('promotion_date')[i].replace('"', '')
             if promotion_date == 'NA':
                 res.append(rank.replace('"', ''))
@@ -571,6 +583,13 @@ class Validator:
         # No rank found in context.
         return True
 
+    def _check_rank(self, ranks, matches):
+        if not ranks:
+            return False
+        current_rank = r'({})'.format(r'\b|\b'.join(ranks))
+        cur_rank_re = r'\b{}\b'.format(current_rank.lower())
+        return any([m for m in matches if re.match(cur_rank_re, m, re.I)])
+
     def get_rank_score(self, person, s_date, text):
         """
         >>> from datetime import date
@@ -621,6 +640,18 @@ class Validator:
         >>> person = {'properties': ranks, 'matches': ['Jorma Sarvanto']}
         >>> v.get_rank_score(person, date(1941, 3, 5), "luutnantti Jorma Sarvanto")
         -10
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
+        >>> v.get_rank_score(person, date(1941, 3, 5), "kenraalikunta Karpalo")
+        21
+        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
+        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
+        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
+        >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
+        >>> v.get_rank_score(person, date(1941, 3, 5), "kenraali Karpalo")
+        21
         """
 
         props = person['properties']
@@ -648,39 +679,28 @@ class Validator:
             # No rank found in matches.
             return score
 
-        current_rank = None
         if s_date:
             # Event has a date
             ranks = self.get_fuzzy_current_ranks(person, s_date, rank_type)
-            if ranks:
-                current_rank = r'({})'.format(r'\b|\b'.join(ranks))
-                additional_score = 20
+            if self._check_rank(ranks, matches):
+                return score + 20
             else:
                 # Current rank not found, match ranks with unknown promotion dates
-                ranks = self.get_ranks_with_unknown_date(person)
-                if ranks:
-                    current_rank = r'({})'.format(r'\b|\b'.join(ranks))
-                    additional_score = 11
-                else:
-                    # No current ranks or ranks with unknown promotion dates
-                    current_rank = 'NA'
+                ranks = self.get_ranks_with_unknown_date(person, rank_type)
+                if self._check_rank(ranks, matches):
+                    return score + 11
         else:
             # Unknown event date, match any rank
             ranks = self.filter_promotions_after_wars(person, rank_type) or ['NA']
-            current_rank = r'({})'.format(r'\b|\b'.join(ranks))
-            additional_score = 11
+            if self._check_rank(ranks, matches):
+                return score + 11
 
-        cur_rank_re = r'\b{}\b'.format(current_rank.lower())
-
-        if any([m for m in matches if re.match(cur_rank_re, m, re.I)]):
-            score += additional_score
-        else:
-            # This person did not have the matched rank at this time
-            logger.info('Reducing score because of inconsistent rank: {} ({}) [{}]'.format(
-                person.get('label'),
-                person.get('id'),
-                ', '.join(set(props.get('rank', [])))))
-            score -= 15
+        # This person did not have the matched rank at this time
+        logger.info('Reducing score because of inconsistent rank: {} ({}) [{}]'.format(
+            person.get('label'),
+            person.get('id'),
+            ', '.join(set(props.get('rank', [])))))
+        score -= 15
 
         return score
 
@@ -1353,7 +1373,7 @@ def preprocessor(text, *args):
     >>> preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa.")
     ' kapteeni Palolampi kapteeni Juutilainen ratsailla Levinassa.'
     >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
-    'kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.'
+    'kenraalit keskustelevat pienen tauon aikana, vas: eversti Antero Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.'
     >>> preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund).")
     'Radioryhmän toimintaa: Selostaja työssään ( vänrikki Seiva,  sotilasvirkamies Kumminen sotilasvirkamies Westerlund).'
     >>> preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
@@ -1362,8 +1382,8 @@ def preprocessor(text, *args):
     'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem,  sotilasvirkamies Zenker, sotilasvirkamies Farr, luutnantti Miettinen, etualalla oikealla Scott.'
     >>> preprocessor("Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sot.virk. Halonen, alikersantti Rosenberg, vänrikki Lindblad, sot.virk. Österman, alikersantti Salenius.")
     'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola,  sotilasvirkamies Halonen, alikersantti Rosenberg, vänrikki Lindblad,  sotilasvirkamies Österman, alikersantti Salenius.'
-    >>> preprocessor("Ev. luutn.Paasonen ja saks. Amiraali keskuselevat")
-    'everstiluutnantti Paasonen ja saks. Amiraali keskuselevat'
+    >>> preprocessor("Ev. luutn.Pasonen ja saks. Amiraali keskuselevat")
+    'everstiluutnantti Pasonen ja saks. Amiraali keskuselevat'
     >>> preprocessor("Ev. luutnantti Vänttinen")
     'everstiluutnantti Vänttinen'
     >>> preprocessor("Ev. luutn. Rauramo")
@@ -1378,6 +1398,8 @@ def preprocessor(text, *args):
     ' sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa'
     >>> preprocessor("Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta.")
     'Rautaristin saajat: eversti A. Puroma,  majuri A.G. Airimo majuri V. Lehvä,  luutnantti K. Sarva luutnantti U. Jalkanen,  vänrikki T. Laakso, vänrikki R. Kanto, vänrikki N. Vuolle vänrikki Y. Nuortio,  kersantti T. Aspegren kersantti H. Kalliaisenaho,  alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä korpraali R. Keihta.'
+    >>> preprocessor("Everstiluutnantti Paasonen.")
+    'eversti Antero Paasonen.'
     """
 
     text = str(text).replace('"', '')
@@ -1453,7 +1475,6 @@ def preprocessor(text, *args):
     text = text.replace('Laiva Josif Stalin', '#')
     text = re.sub(r'(Aleksandra\W)?Kollontai(\b|lle|n|hin)', 'Alexandra Kollontay', text)
     text = re.sub(r'Blick(\b|ille|in)', 'Aarne Leopold Blick', text)
-    text = text.replace('A.-E. Martola', 'kenraalikunta Ilmari Martola')
     text = re.sub(r'(?<!alikersantti\W)(?<!kenraalimajuri\W)Neno(nen|selle|sen)\b', '# kenraalikunta Nenonen', text)
     # Some young guy in one photo
     text = text.replace('majuri V.Tuompo', '#')
@@ -1490,7 +1511,7 @@ def preprocessor(text, *args):
     # text = text.replace('Söderhjelm', '## Johan Otto Söderhjelm')
     text = re.sub(r'(?<![Ee]verstiluutnantti )Paasikivi', '# Juho Kusti Paasikivi', text)
     text = re.sub(r'[Mm]inisteri Walden', '# kenraalikunta Walden', text)
-    text = re.sub(r'(?<![Ee]versti )(?<![Kk]enraaliluutnantti )(?<![Kk]enraalimajuri )(?<![Kk]enraalikunta )Walden', '# kenraaliluutnantti Walden #', text)
+    text = re.sub(r'(?<![Ee]versti )(?<![Kk]enraaliluutnantti )(?<![Kk]enraalimajuri )(?<![Kk]enraalikunta )(?<!Rudolf )Walden', '# kenraalikunta Walden #', text)
     text = re.sub(r'[vV]ääpeli( Oiva)? Tuomi(nen|selle|sen)', '# lentomestari Oiva Tuominen', text)
     text = re.sub(r'Ukko[ -]Pekka(\W+Svinhufvud)?', 'Pehr Evind Svinhufvud', text)
     text = re.sub(r'[Pp]residentti Svinhufvud', 'Pehr Evind Svinhufvud', text)
@@ -1498,6 +1519,8 @@ def preprocessor(text, *args):
     text = re.sub(r'[Rr]ouva\s+Svinhufvud', '# Ellen Svinhufvud ', text)
     text = text.replace('Öhqvist', 'Öhquist')
     text = text.replace('Jörgen Hageman', 'Jörgen Hagemann')
+    text = re.sub('[Ee]versti(luutnantti)?( [KA].)? Paasonen', 'eversti Antero Paasonen', text)
+    text = re.sub('[Ee]verstiluutnantti M. Nurmi', 'eversti Martti Nurmi', text)
 
     # Add a space after commas where it's missing
     text = re.sub(r'(?<=\S),(?=\S)', ', ', text)
@@ -1514,6 +1537,7 @@ def preprocessor(text, *args):
         text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '# Kyösti Kallio', text)
         text = text.replace('Molotov', '# V. Molotov')  # not for photos
         text = re.sub(r'(?<!Josif\W)Stalin(ille|ilta|in|iin)?\b', 'Josif Stalin', text)
+        text = text.replace('eversti L. Haanterä', 'everstiluutnantti L. Haanterä')
 
     if text != orig:
         logger.info('Preprocessed to: {}'.format(text))
