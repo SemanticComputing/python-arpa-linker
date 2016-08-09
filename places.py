@@ -59,6 +59,9 @@ def preprocessor(text, *args):
     text = text.replace('Norjan Kirkkoniem', '#')
     text = text.replace('Pietari Autti', '#')
 
+    text = text.strip()
+    text = re.sub(r'\s+', ' ', text)
+
     return text
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ from link_helper import process_stage
 def preprocessor(text, *args):
     """
     >>> preprocessor("Klo 8.52 ilmahälytys Viipurissa ja klo 9 pommitus Kotkan lohkoa vastaan.")
-    ' 8.52 ilmahälytys Viipurissa ja  9 pommitus Kotkan lohko vastaan.'
+    '8.52 ilmahälytys Viipurissa ja  9 pommitus Kotkan lohko vastaan.'
     """
     text = text.strip()
     text = re.sub(r':\w+', ' ', text)
@@ -14,6 +14,10 @@ def preprocessor(text, *args):
     text = re.sub(r'\bklo\b', '', text, flags=re.I)
     # ARPA has a problem with "lohkoa"
     text = re.sub(r'\blohkoa\b', 'lohko', text, flags=re.I)
+
+    text = text.strip()
+    text = re.sub(r'\s+', ' ', text)
+
     return text
 
 if __name__ == '__main__':

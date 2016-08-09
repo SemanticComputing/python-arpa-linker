@@ -1340,22 +1340,22 @@ to_be_lowercased = (
 def preprocessor(text, *args):
     """
     >>> preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka," \
-            " everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
-    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola,  # Juho Koivisto, ministeri Salovaara, ministeri Horelli, ministeri Arola, ministeri Honka, everstiluutnantti Varis, everstiluutnantti Ehnrooth, everstiluutnantti Juva, everstiluutnantti Heimolainen, everstiluutnantti Björnström, majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.'
+    " everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
+    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola, # Juho Koivisto, ministeri Salovaara, ministeri Horelli, ministeri Arola, ministeri Honka, everstiluutnantti Varis, everstiluutnantti Ehnrooth, everstiluutnantti Juva, everstiluutnantti Heimolainen, everstiluutnantti Björnström, majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.'
     >>> preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.")
-    ' kenraalikunta Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
+    'kenraalikunta Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
     >>> preprocessor("Kenraali Karl Oesch seuraa maastoammuntaa.")
-    ' kenraalikunta Karl Oesch seuraa maastoammuntaa.'
+    'kenraalikunta Karl Oesch seuraa maastoammuntaa.'
     >>> preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.")
     'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
-    >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit  Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
-    '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri,  kenraalikunta Neuvonen, kenraalikunta Walden, kenraalikunta Mäkinen, eversti Sihvo,  kenraalikunta Airo, kenraalikunta Oesch, eversti Hersalo ym. klo 12.45.'
+    >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
+    '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri, kenraalikunta Neuvonen, kenraalikunta Walden, kenraalikunta Mäkinen, eversti Sihvo, kenraalikunta Airo, kenraalikunta Oesch, eversti Hersalo ym. klo 12.45.'
     >>> preprocessor("Sotamarsalkka Raasulissa.")
     '# kenraalikunta Mannerheim # Raasulissa.'
     >>> preprocessor("Eräs Brewster-koneista, jotka seurasivat marsalkan seuruetta.")
     'Eräs Brewster-koneista, jotka seurasivat # kenraalikunta Mannerheim # seuruetta.'
     >>> preprocessor("Kenraali Walden Marsalkan junassa aterialla.")
-    ' kenraalikunta Walden # kenraalikunta Mannerheim # junassa aterialla.'
+    'kenraalikunta Walden # kenraalikunta Mannerheim # junassa aterialla.'
     >>> preprocessor('"Eläköön Sotamarsalkka"')
     'Eläköön # kenraalikunta Mannerheim #'
     >>> preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.")
@@ -1365,39 +1365,39 @@ def preprocessor(text, *args):
     >>> preprocessor("Everstiluutnantti Laaksonen")
     'everstiluutnantti Sulo Laaksonen'
     >>> preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.")
-    'Vas: everstiluutnantti Sulo Laaksonen, kapteeni Karu, ylikersantti Vorho, ja  alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.'
+    'Vas: everstiluutnantti Sulo Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.'
     >>> preprocessor("Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.")
     'Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.'
     >>> preprocessor("Luutn. Juutilainen Saharan kauhu jouluk. Alussa.")
     '# kapteeni Juutilainen # # kapteeni Juutilainen # jouluk. Alussa.'
     >>> preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa.")
-    ' kapteeni Palolampi kapteeni Juutilainen ratsailla Levinassa.'
+    'kapteeni Palolampi kapteeni Juutilainen ratsailla Levinassa.'
     >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
     'kenraalit keskustelevat pienen tauon aikana, vas: eversti Antero Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.'
     >>> preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund).")
-    'Radioryhmän toimintaa: Selostaja työssään ( vänrikki Seiva,  sotilasvirkamies Kumminen sotilasvirkamies Westerlund).'
+    'Radioryhmän toimintaa: Selostaja työssään ( vänrikki Seiva, sotilasvirkamies Kumminen sotilasvirkamies Westerlund).'
     >>> preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
-    ' sotilasvirkamies Yläjärvellä (vas.  sotilasvirkamies Kapra, sotilasvirkamies Jalkanen, vänrikki  Rahikainen).'
+    'sotilasvirkamies Yläjärvellä (vas. sotilasvirkamies Kapra, sotilasvirkamies Jalkanen, vänrikki Rahikainen).'
     >>> preprocessor("Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
-    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem,  sotilasvirkamies Zenker, sotilasvirkamies Farr, luutnantti Miettinen, etualalla oikealla Scott.'
+    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sotilasvirkamies Zenker, sotilasvirkamies Farr, luutnantti Miettinen, etualalla oikealla Scott.'
     >>> preprocessor("Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sot.virk. Halonen, alikersantti Rosenberg, vänrikki Lindblad, sot.virk. Österman, alikersantti Salenius.")
-    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola,  sotilasvirkamies Halonen, alikersantti Rosenberg, vänrikki Lindblad,  sotilasvirkamies Österman, alikersantti Salenius.'
+    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sotilasvirkamies Halonen, alikersantti Rosenberg, vänrikki Lindblad, sotilasvirkamies Österman, alikersantti Salenius.'
     >>> preprocessor("Ev. luutn.Pasonen ja saks. Amiraali keskuselevat")
     'everstiluutnantti Pasonen ja saks. Amiraali keskuselevat'
     >>> preprocessor("Ev. luutnantti Vänttinen")
     'everstiluutnantti Vänttinen'
     >>> preprocessor("Ev. luutn. Rauramo")
-    'everstiluutnantti  Rauramo'
+    'everstiluutnantti Rauramo'
     >>> preprocessor("TK-Pärttyli Virkki erään lennon jälkeen.")
     'sotilasvirkamies Pärttyli Virkki erään lennon jälkeen.'
     >>> preprocessor("Virkki,erään lennon jälkeen.")
     'Virkki, erään lennon jälkeen.'
     >>> preprocessor("TK-mies Hiisivaara.")
-    ' sotilasvirkamies Hiisivaara.'
+    'sotilasvirkamies Hiisivaara.'
     >>> preprocessor("Tk-miehet Varo, Itänen ja Tenkanen kuvaamassa Väinämöisen ammuntaa")
-    ' sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa'
+    'sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa'
     >>> preprocessor("Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta.")
-    'Rautaristin saajat: eversti A. Puroma,  majuri A.G. Airimo majuri V. Lehvä,  luutnantti K. Sarva luutnantti U. Jalkanen,  vänrikki T. Laakso, vänrikki R. Kanto, vänrikki N. Vuolle vänrikki Y. Nuortio,  kersantti T. Aspegren kersantti H. Kalliaisenaho,  alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä korpraali R. Keihta.'
+    'Rautaristin saajat: eversti A. Puroma, majuri A.G. Airimo majuri V. Lehvä, luutnantti K. Sarva luutnantti U. Jalkanen, vänrikki T. Laakso, vänrikki R. Kanto, vänrikki N. Vuolle vänrikki Y. Nuortio, kersantti T. Aspegren kersantti H. Kalliaisenaho, alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä korpraali R. Keihta.'
     >>> preprocessor("Everstiluutnantti Paasonen.")
     'eversti Antero Paasonen.'
     """
@@ -1538,6 +1538,9 @@ def preprocessor(text, *args):
         text = text.replace('Molotov', '# V. Molotov')  # not for photos
         text = re.sub(r'(?<!Josif\W)Stalin(ille|ilta|in|iin)?\b', 'Josif Stalin', text)
         text = text.replace('eversti L. Haanterä', 'everstiluutnantti L. Haanterä')
+
+    text = text.strip()
+    text = re.sub(r'\s+', ' ', text)
 
     if text != orig:
         logger.info('Preprocessed to: {}'.format(text))

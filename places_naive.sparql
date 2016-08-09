@@ -1,9 +1,6 @@
 PREFIX text: <http://jena.apache.org/text#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX hipla: <http://ldf.fi/schema/hipla/>
-PREFIX places: <http://ldf.fi/warsa/places>
-PREFIX ptype: <http://ldf.fi/warsa/places/place_types/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 SELECT ?id ?label ?ngram ?type
 {
