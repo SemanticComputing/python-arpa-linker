@@ -47,8 +47,9 @@ def preprocessor(text, *args):
     text = re.sub('[()]', ' ', text)
     # Add a space after commas if they're followed by a word
     text = re.sub(r'(\w),(\w)', r'\1, \2', text)
-    # Baseforming doesn't work for "Sommee" so baseform that manually.
+    # Baseforming doesn't work for "Sommee" and "Muolaa" so baseform them manually.
     text = re.sub(r'Sommee(n?|s[st]a)?\b', 'Sommee', text)
+    text = re.sub(r'Muolaa(n?|s[st]a)?\b', 'Muolaa', text)
     # Detach names connected by hyphens to match places better.
     # Skip Yl[äi]-, Al[ia]-, Iso-. and Pitkä-
     text = text.replace('Pitkä-', 'Pitkä#')
@@ -167,8 +168,9 @@ if __name__ == '__main__':
         'valko',
         'martti',
         'ilmarinen',
-        'maaselkä',  # the proper one does not exist yet
-        'kalajoki'  # the proper one does not exist yet
+        'härkä',
+        # 'maaselkä',  # the proper one does not exist yet
+        # 'kalajoki'  # the proper one does not exist yet
         # 'karsikko'?
     ]
 
