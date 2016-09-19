@@ -431,7 +431,7 @@ class TestArpa(TestCase):
                 json=self.candidate_response, status=200,
                 match_querystring=True)
         arpa = Arpa('http://url')
-        res = arpa.get_candidates('Hanko')
+        res = arpa.get_candidates('Hanko')['results']
 
         self.assertEqual(len(res), 3)
         for r in res:
@@ -442,18 +442,30 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = Arpa('http://url')
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 3)
         for r in res:
             self.assertTrue(isinstance(r, URIRef))
 
     @responses.activate
+    def test_mentions(self):
+        responses.add(responses.POST, 'http://url',
+                json=self.matches, status=200)
+        arpa = Arpa('http://url')
+        res = arpa.get_uri_matches('Hanko Hanko')
+
+        mentions = res['mentions']
+        expected = set(['Hanko', 'Hanko Hanko'])
+
+        self.assertEqual(mentions, expected)
+
+    @responses.activate
     def test_arbitrary_duplicate_removal(self):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = Arpa('http://url', remove_duplicates=True)
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/pnr/P_10311760')
@@ -465,7 +477,7 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = Arpa('http://url', remove_duplicates=no_dups)
-        res = arpa.get_uri_matches('Hanko Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/places/municipalities/m_place_506')
@@ -476,7 +488,7 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = Arpa('http://url', min_ngram_length=2)
-        res = arpa.get_uri_matches('Hanko Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 1)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/places/municipalities/m_place_504')
@@ -486,7 +498,7 @@ class TestArpa(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = Arpa('http://url', ignore=['Hanko Hanko'])
-        res = arpa.get_uri_matches('Hanko Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 2)
         self.assertEqual(str(res[0]), 'http://ldf.fi/pnr/P_10311760')
@@ -526,7 +538,7 @@ class TestArpa(TestCase):
 
         arpa = Arpa('http://url', remove_duplicates=True, min_ngram_length=2,
                 ignore=['Hanko'], retries=1, wait_between_tries=0)
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(responses.calls), 1)
         self.assertEqual(len(res), 1)
@@ -540,7 +552,7 @@ class TestArpa(TestCase):
 
         arpa = Arpa('http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Hanko Hanko'])
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 0)
 
@@ -573,7 +585,7 @@ class TestArpaMimic(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = ArpaMimic('', 'http://url')
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 2)
         for r in res:
@@ -584,7 +596,7 @@ class TestArpaMimic(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches_with_dups, status=200)
         arpa = ArpaMimic('', 'http://url', remove_duplicates=True)
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 1)
 
@@ -593,7 +605,7 @@ class TestArpaMimic(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches_with_dups, status=200)
         arpa = ArpaMimic('', 'http://url', min_ngram_length=2)
-        res = arpa.get_uri_matches('Hanko Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 1)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/actors/person_1')
@@ -603,7 +615,7 @@ class TestArpaMimic(TestCase):
         responses.add(responses.POST, 'http://url',
                 json=self.matches, status=200)
         arpa = ArpaMimic('', 'http://url', ignore=['Carl Gustaf Emil Mannerheim'])
-        res = arpa.get_uri_matches('Hanko Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 1)
         self.assertEqual(str(res[0]), 'http://ldf.fi/warsa/actors/person_2')
@@ -642,7 +654,7 @@ class TestArpaMimic(TestCase):
 
         arpa = ArpaMimic('', 'http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Joku Toinen'], retries=1)
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(responses.calls), 1)
         self.assertEqual(len(res), 1)
@@ -655,7 +667,7 @@ class TestArpaMimic(TestCase):
 
         arpa = ArpaMimic('', 'http://url', remove_duplicates=True,
                 min_ngram_length=2, ignore=['Carl Gustaf Emil Mannerheim', 'Joku Toinen'])
-        res = arpa.get_uri_matches('Hanko')
+        res = arpa.get_uri_matches('Hanko Hanko')['results']
 
         self.assertEqual(len(res), 0)
 

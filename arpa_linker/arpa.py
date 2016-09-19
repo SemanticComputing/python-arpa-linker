@@ -407,9 +407,21 @@ class Arpa:
         """
         return [URIRef(x['id']) for x in results]
 
+    def get_distinct_mentions(self, results):
+        """
+        Get distinct mentions (i.e. matches) that yielded results.
+
+        `results` is the results as returned by `arpa.query`.
+        """
+        return {m for ml in [p['matches'] for p in results] for m in ml}
+
     def get_uri_matches(self, text, *args, validator=None, **kwargs):
         """
-        Query ARPA and return a list of uris of resources that match the text.
+        Query ARPA and return a dict with a list of uris of resources that match the text.
+
+        Return a dict where 'results' has the list of uris, 'mentions' has the mentions
+        that yielded results, and 'pre_validation_mentions' has mentions that yielded
+        results before running the `validator`.
 
         `text` is the text to use in the query.
 
@@ -422,24 +434,37 @@ class Arpa:
 
         results = self.query(text)
 
+        pre_validation_mentions = set()
+        post_validation_mentions = set()
+
         if validator and results:
             logger.debug('Validating results: {}'.format(results))
+            pre_validation_mentions = self.get_distinct_mentions(results)
+            logger.info('Distinct mentions before validation: {} ({})'.format(len(pre_validation_mentions), pre_validation_mentions))
             results = validator.validate(results, text, *args, **kwargs)
 
         if results:
             logger.info('Found matches {}'.format(results))
+            post_validation_mentions = self.get_distinct_mentions(results)
+            logger.info('Distinct mentions: {} ({})'.format(len(post_validation_mentions), post_validation_mentions))
             results = self.extract_uris(results)
         else:
             logger.info('No matches found'.format(text))
 
-        return results
+        return {
+            'results': results,
+            'mentions': post_validation_mentions,
+            'pre_validation_mentions': pre_validation_mentions
+        }
 
     def get_candidates(self, text, *args, **kwargs):
         """
         Get the candidates from `text` that would be used by the ARPA service
         to query for matches.
 
-        Return the candidates as a list of rdflib Literals.
+        A dict is returned for compatibility with `arpa.get_uri_matches`.
+
+        Return a dict where 'results' has the candidates as a list of rdflib Literals.
         """
 
         text = self._sanitize(text)
@@ -450,7 +475,7 @@ class Arpa:
 
         logger.debug('Received candidates: {}'.format(res))
 
-        result = [Literal(candidate) for candidate in res]
+        result = {'results': [Literal(candidate) for candidate in res]}
 
         return result
 
@@ -597,6 +622,8 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
 
     triple_match_count = 0
     subject_match_count = 0
+    pre_validation_mention_count = 0
+    post_validation_mention_count = 0
     errors = []
 
     bar = get_bar(len(subgraph), progress)
@@ -604,14 +631,17 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
     for s, o in subgraph.subject_objects():
         o = preprocessor(o, s, graph) if preprocessor else o
         try:
-            results = get_results(o, s, validator=validator)
+            result_dict = get_results(o, s, validator=validator)
         except (HTTPError, ValueError) as e:
             logger.exception('Error getting matches from ARPA')
             errors.append(e)
         else:
+            results = result_dict['results']
             triple_match_count += len(results)
+            pre_validation_mention_count += len(result_dict.get('pre_validation_mentions', []))
             if results:
                 subject_match_count += 1
+                post_validation_mention_count += len(result_dict.get('mentions', []))
                 # Add each result as a value of the target property
                 for result in results:
                     output_graph.add((s, target_prop, result))
@@ -622,11 +652,15 @@ def arpafy(graph, target_prop, arpa, source_prop=None, rdf_class=None,
         'processed': len(subgraph),
         'matches': triple_match_count,
         'subjects_matched': subject_match_count,
+        'pre_validation_mention_count': pre_validation_mention_count,
+        'post_validation_mention_count': post_validation_mention_count,
         'errors': errors
     }
 
-    logger.info('Processed {} triples, found {} matches ({} errors)'
-                .format(res['processed'], res['matches'], len(res['errors'])))
+    logger.info('Processed {} triples, found {} matches from {} mentions'
+                ' with {} total mentions ({} errors)'
+                .format(res['processed'], res['matches'], res['post_validation_mention_count'],
+                    res['pre_validation_mention_count'], len(res['errors'])))
 
     return res
 
