@@ -91,179 +91,226 @@ RANK_HIERARCHY = {
     'ylimatruusi': 1
 }
 
-ALL_RANKS = (
-    'sotilasvirkamies',
-    'tuntematon',
-    'alikersantti',
-    'aliluutnantti',
-    'alisotilasohjaaja',
-    'alisotilasvirkamies',
-    'aliupseeri',
-    'aliupseerioppilas',
-    'alokas',
-    'apusisar',
-    'asemestari',
-    'eläinlääketieteen everstiluutnantti',
-    'eläinlääketieteen kapteeni',
-    'eläinlääketieteen luutnantti',
-    'eläinlääketieteen majuri',
-    'eläinlääkintäeversti',
-    'eläinlääkintäeverstiluutnantti',
-    'eläinlääkintäkapteeni',
-    'eläinlääkintäkenraalimajuri',
-    'eläinlääkintäluutnantti',
-    'eläinlääkintämajuri',
-    'erikoismestari',
-    'eversti',
-    'everstiluutnantti',
-    'gewehrführer',
-    'gruppenführer',
-    'hauptzugführer',
-    'hilfsgewehrführer',
-    'hilfsgruppenführer',
-    'ilmasuojelumies',
-    'ilmasuojelusotamies',
-    'insinöörikapteeni',
-    'insinöörikapteeniluutnantti',
-    'insinöörikenraalimajuri',
-    'insinööriluutnantti',
-    'insinöörimajuri',
-    'jalkaväenkenraali',
-    'jefreitteri',
-    'jääkäri',
-    'kadetti',
-    'kansiupseeri',
-    'kanslialotta',
-    'kapteeni',
-    'kapteeniluutnantti',
-    'kenraali',
-    'kenraaliluutnantti',
-    'kenraalimajuri',
-    'kenttäpiispa',
-    'kersantti',
-    # 'komentaja',
-    'komentajakapteeni',
-    'kommodori',
-    'kontra-amiraali',
-    'kornetti',
-    'korpraali',
-    'lentomekaanikko',
-    'lentomestari',
-    'linnoitustyönjohtaja',
-    'lotta',
-    'luotsi',
-    'luutnantti',
-    'lähetti',
-    'lääkintäalikersantti',
-    'lääkintäamiraali',
-    'lääkintäeversti',
-    'lääkintäeverstiluutnantti',
-    'lääkintäkapteeni',
-    'lääkintäkenraaliluutnantti',
-    'lääkintäkenraalimajuri',
-    'lääkintäkersantti',
-    'lääkintäkorpraali',
-    'lääkintälotta',
-    'lääkintäluutnantti',
-    'lääkintämajuri',
-    'lääkintäsotamies',
-    'lääkintävirkamies',
-    'lääkintävääpeli',
-    'majuri',
-    'matruusi',
-    'merivartija',
-    'musiikkiluutnantti',
-    'obersturmführer',
-    'oberzugführer',
-    'offizierstellvertreter',
-    'oppilas',
-    'paikallispäällikkö',
-    'panssarijääkäri',
-    'pioneeri',
-    'pursimies',
-    'rajajääkäri',
-    'rajavääpeli',
-    'rakuuna',
-    'ratsumestari',
-    'ratsumies',
-    'ratsuväenkenraali',
-    'ratsuvääpeli',
-    'reservin aliluutnantti',
-    'reservin kapteeni',
-    'reservin kornetti',
-    'reservin luutnantti',
-    'reservin vänrikki',
-    'rottenführer',
-    'sairaanhoitaja',
-    'sairaanhoitajaoppilas',
-    'schütze',
-    'siviili',
-    'soitto-oppilas',
-    'sotainvalidi',
-    'sotakirjeenvaihtaja',
-    'sotamarsalkka',
-    'sotamies',
-    'sotaylituomari',
-    'sotilasalivirkamies',
-    'sotilaskotisisar',
-    'sotilasmestari',
-    'sotilaspastori',
-    'sotilaspoika',
-    'sotilaspoliisi',
-    'sturmmann',
-    'suojeluskunta-alokas',
-    'suojeluskuntakorpraali',
-    'suojeluskuntasotamies',
-    'suojeluskuntaupseeri',
-    'suojeluskuntavääpeli',
-    'suomen marsalkka',
-    'toisen luokan nostomies',
-    'tykistönkenraali',
-    'tykkimies',
-    'työvelvollinen',
-    'unterscharführer',
-    'untersturmführer',
-    'upseerikokelas',
-    'upseerioppilas',
-    'vahtimestari',
-    'vara-amiraali',
-    'varavahtimestari',
-    'varavääpeli',
-    'vizefeldwebel',
-    'vänrikki',
-    'vääpeli',
-    'yleisesikuntaupseeri',
-    'ylihoitaja',
-    'ylikersantti',
-    'yliluutnantti',
-    'ylimatruusi',
-    'ylivääpeli',
-    'zugführer',
-)
+ALL_RANKS = {
+    'alisotilasohjaaja': 0,
+    'alisotilasvirkamies': 0,
+    'aliupseerioppilas': 0,
+    'alokas': 0,
+    'apusisar': 0,
+    'armeijakenraali': 0,
+    'asemestari': 0,
+    'cadet': 0,
+    'erikoismestari': 0,
+    'gewehrführer': 0,
+    'hauptzugführer': 0,
+    'hilfsgewehrführer': 0,
+    'hilfsgruppenführer': 0,
+    'kadetti': 0,
+    'kadettialikersantti': 0,
+    'kadettikersantti': 0,
+    'kadettipursimies': 0,
+    'kadettivääpeli': 0,
+    'kadettiylikersantti': 0,
+    'kansiupseeri': 0,
+    'kenraalieversti': 0,
+    'kenttäpostimestari': 0,
+    'lentomekaanikko': 0,
+    'linnoitustyönjohtaja': 0,
+    'luotsi': 0,
+    'lähetti': 0,
+    'lääkintävirkamies': 0,
+    'mekaanikko': 0,
+    'merivartija': 0,
+    'oberzugführer': 0,
+    'offizierstellvertreter': 0,
+    'oppilas': 0,
+    'paikallispäällikkö': 0,
+    'rottenführer': 0,
+    'sairaanhoitaja': 0,
+    'sairaanhoitajaoppilas': 0,
+    'siviili': 0,
+    'soitto-oppilas': 0,
+    'sotainvalidi': 0,
+    'sotakirjeenvaihtaja': 0,
+    'sotaylituomari': 0,
+    'sotilasalivirkamies': 0,
+    'sotilasdiakoni': 0,
+    'sotilaskotisisar': 0,
+    'sotilaspoika': 0,
+    'sotilaspoliisi': 0,
+    'sotilasvirkamies': 0,
+    'suojeluskunta-alokas': 0,
+    'suojeluskuntaupseeri': 0,
+    'toisen luokan nostomies': 0,
+    'tuntematon': 0,
+    'työvelvollinen': 0,
+    'vapaaehtoinen': 0,
+    'varusmiesdiakoni': 0,
+    'varusmiespappi': 0,
+    'vizefeldwebel': 0,
+    'yleisesikuntaupseeri': 0,
+    'ylihoitaja': 0,
+    'zugführer': 0,
+    'autosotamies': 1,
+    'erikoisjääkäri': 1,
+    'erikoisrajajääkäri': 1,
+    'ilmasuojelumies': 1,
+    'ilmasuojelusotamies': 1,
+    'ilmavalvontalotta': 1,
+    'jääkäri': 1,
+    'kaartinjääkäri': 1,
+    'kanslialotta': 1,
+    'kenttälotta': 1,
+    'lentosotamies': 1,
+    'lotta': 1,
+    'lääkintälotta': 1,
+    'lääkintäsotamies': 1,
+    'matruusi': 1,
+    'muonituslotta': 1,
+    'panssarijääkäri': 1,
+    'panssarimies': 1,
+    'pioneeri': 1,
+    'rajajääkäri': 1,
+    'rakuuna': 1,
+    'rannikkojääkäri': 1,
+    'ratsujääkäri': 1,
+    'ratsumies': 1,
+    'schütze': 1,
+    'sotamies': 1,
+    'suojelumies': 1,
+    'suojeluskuntasotamies': 1,
+    'tykkimies': 1,
+    'valonheitinlotta': 1,
+    'viestimies': 1,
+    'gefreiter': 2,
+    'jefreitteri': 2,
+    'korpraali': 2,
+    'lääkintäkorpraali': 2,
+    'rajakorpraali': 2,
+    'sturmmann': 2,
+    'suojeluskuntakorpraali': 2,
+    'ylimatruusi': 2,
+    'alikersantti': 3,
+    'lääkintäalikersantti': 3,
+    'unterscharführer': 3,
+    'upseerioppilas': 3,
+    'kersantti': 4,
+    'lääkintäkersantti': 4,
+    'upseerikokelas': 4,
+    'varavahtimestari': 5,
+    'varavääpeli': 5,
+    'ylikersantti': 5,
+    'lääkintävääpeli': 6,
+    'pursimies': 6,
+    'rajavääpeli': 6,
+    'ratsuvääpeli': 6,
+    'reservin vääpeli': 6,
+    'suojeluskuntavääpeli': 6,
+    'vahtimestari': 6,
+    'vääpeli': 6,
+    'ylipursimies': 7,
+    'ylivääpeli': 7,
+    'lentomestari': 8,
+    'sotilasmestari': 8,
+    'tykkimestari': 8,
+    'aliluutnantti': 9,
+    'kornetti': 9,
+    'musiikkivänrikki': 9,
+    'reservin aliluutnantti': 9,
+    'reservin kornetti': 9,
+    'reservin vänrikki': 9,
+    'untersturmführer': 9,
+    'vänrikki': 9,
+    'eläinlääkintäluutnantti': 10,
+    'insinööriluutnantti': 10,
+    'luutnantti': 10,
+    'lääkintäluutnantti': 10,
+    'musiikkiluutnantti': 10,
+    'obersturmführer': 10,
+    'reservin luutnantti': 10,
+    'yliluutnantti': 11,
+    'eläinlääkintäkapteeni': 12,
+    'hauptmann': 12,
+    'insinöörikapteeni': 12,
+    'insinöörikapteeniluutnantti': 12,
+    'kapteeni': 12,
+    'kapteeniluutnantti': 12,
+    'lääkintäkapteeni': 12,
+    'musiikkikapteeni': 12,
+    'ratsumestari': 12,
+    'reservin kapteeni': 12,
+    'sotilaspastori': 12,
+    'eläinlääkintämajuri': 13,
+    'insinöörimajuri': 13,
+    'komentajakapteeni': 13,
+    'lääkintämajuri': 13,
+    'majuri': 13,
+    'eläinlääkintäeverstiluutnantti': 14,
+    'everstiluutnantti': 14,
+    'insinöörieverstiluutnantti': 14,
+    'kenttärovasti': 14,
+    # 'komentaja': 14,
+    'lääkintäeverstiluutnantti': 14,
+    'eläinlääkintäeversti': 15,
+    'eversti': 15,
+    'kommodori': 15,
+    'lääkintäeversti': 15,
+    'kenttäpiispa': 16,
+    'lippueamiraali': 16,
+    'prikaatikenraali': 16,
+    'prikaatinkomentaja': 16,
+    'divisioonankomentaja': 17,
+    'eläinlääkintäkenraalimajuri': 17,
+    'insinöörikenraalimajuri': 17,
+    'kenraalimajuri': 17,
+    'kontra-amiraali': 17,
+    'lääkintäkenraalimajuri': 17,
+    'armeijakunnankomentaja': 18,
+    'gruppenführer': 18,
+    'kenraaliluutnantti': 18,
+    'lääkintäkenraaliluutnantti': 18,
+    'vara-amiraali': 18,
+    '2. luokan armeijankomentaja': 19,
+    'amiraali': 19,
+    'jalkaväenkenraali': 19,
+    'jääkärikenraali': 19,
+    'kenraali': 19,
+    'lääkintäamiraali': 19,
+    'ratsuväenkenraali': 19,
+    'tykistönkenraali': 19,
+    '1. luokan armeijankomentaja': 20,
+    'sotamarsalkka': 20,
+    'neuvostoliiton marsalkka': 21,
+    'suomen marsalkka': 21,
+}
 
 all_rank_classes_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(RANK_CLASS_SCORES.keys())), re.I)
-all_ranks_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(ALL_RANKS)), re.I)
+all_ranks_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(ALL_RANKS.keys())), re.I)
 
 knight_re = re.compile(r'ritar[ie]', re.I)
 
 
-class Validator:
+def parse_date(d):
+    str_date = '-'.join(d.replace('"', '').split('^')[0].split('-')[0:3])
+    return datetime.strptime(str_date, "%Y-%m-%d").date()
+
+
+class ValidationContext:
     dataset = ''
 
-    def __init__(self, graph, *args, **kwargs):
+    def __init__(self, graph, s):
+        self.s = s
         self.graph = graph
-
-    def parse_date(self, d):
-        str_date = '-'.join(d.replace('"', '').split('^')[0].split('-')[0:3])
-        return datetime.strptime(str_date, "%Y-%m-%d").date()
+        self.original_text = graph.value(s, URIRef('http://www.w3.org/2004/02/skos/core#prefLabel'))
+        self.s_date = self.get_s_start_date(s)
+        self.units = {str(u) for u in graph.objects(s, URIRef('http://ldf.fi/warsa/photographs/unit')) if u}
 
     def get_s_start_date(self, s):
-
         def get_event_date():
             date_uri = self.graph.value(s, URIRef('http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span'))
             try:
                 d = str(date_uri).split('time_')[1]
-                return self.parse_date(d)
+                return parse_date(d)
             except (ValueError, IndexError):
                 logger.warning("Invalid time-span URI: {}".format(date_uri))
                 return None
@@ -272,7 +319,7 @@ class Validator:
             date_value = self.graph.value(s, URIRef('http://purl.org/dc/terms/created'))
             d = str(date_value)
             try:
-                return self.parse_date(d)
+                return parse_date(d)
             except ValueError:
                 logger.warning("Invalid date for {}: {}".format(s, date_value))
                 return None
@@ -283,6 +330,11 @@ class Validator:
             return get_photo_date()
         else:
             raise Exception('Dataset not defined or invalid')
+
+
+class Validator:
+    def __init__(self, graph, *args, **kwargs):
+        self.graph = graph
 
     def get_ranked_matches(self, results):
         d = {x.get('id'): set(x.get('matches')) for x in results}
@@ -317,7 +369,7 @@ class Validator:
         datetime.date(1940, 2, 1)
         """
         try:
-            death_date = self.parse_date(person['properties']['death_date'][0])
+            death_date = parse_date(person['properties']['death_date'][0])
         except (KeyError, ValueError):
             logger.info("No death date found for {}".format(person.get('id')))
             return None
@@ -332,7 +384,7 @@ class Validator:
         latest_date = None
         for i, rank in enumerate(props.get('rank')):
             try:
-                promotion_date = self.parse_date(props.get('promotion_date')[i])
+                promotion_date = parse_date(props.get('promotion_date')[i])
             except:
                 # Unknown date
                 continue
@@ -359,8 +411,8 @@ class Validator:
                 continue
 
             try:
-                promotion_date = self.parse_date(props.get('promotion_date')[i])
-                latest_promotion_date = self.parse_date(props.get('latest_promotion_date')[i])
+                promotion_date = parse_date(props.get('promotion_date')[i])
+                latest_promotion_date = parse_date(props.get('latest_promotion_date')[i])
             except:
                 # Unknown date
                 continue
@@ -398,18 +450,44 @@ class Validator:
 
         return res
 
+    def get_rank_level(self, props, i):
+        try:
+            return int(props.get('rank_level')[i])
+        except ValueError:
+            return 999
+
+    def get_lowest_rank_level(self, person, date, rank_type):
+        props = person['properties']
+        ranks = self.get_fuzzy_current_ranks(person, date, 'rank', 0)
+        lowest_rank = None
+        for rank in ranks:
+            if not lowest_rank or ALL_RANKS.get(rank, 0) > ALL_RANKS.get(lowest_rank, 0):
+                return ALL_RANKS.get(rank, 0)
+        if not lowest_rank:
+            for rank in props.get('ranks', []):
+                if not lowest_rank or ALL_RANKS.get(rank, 0) < ALL_RANKS.get(lowest_rank, 0):
+                    return ALL_RANKS.get(rank, 0)
+        return 0
+
     def filter_promotions_after_wars(self, person, rank_type):
         props = person['properties']
         res = set()
+        lowest_level = self.get_lowest_rank_level(person, date(1939, 1, 1), rank_type)
         for i, rank in enumerate(props.get(rank_type)):
+            rank = rank.replace('"', '')
+            if rank == 'Yleisesikuntaupseeri':
+                # Yleisesikuntaupseeri is not an actual rank.
+                continue
+            if props.get('rank_level', 0) < lowest_level:
+                continue
             try:
-                promotion_date = self.parse_date(props.get('promotion_date')[i])
+                promotion_date = parse_date(props.get('promotion_date')[i])
             except:
                 # Unknown date
-                res.add(rank.replace('"', ''))
+                res.add(rank)
                 continue
             if promotion_date < date(1946, 1, 1):
-                res.add(rank.replace('"', ''))
+                res.add(rank)
 
         return res
 
@@ -614,11 +692,15 @@ class Validator:
         return 0
 
     def get_unit_score(self, person, units):
-        if units.intersection(set(person.get('unit', []))):
+        """
+        Score person higher if the photo has the same unit as the person.
+        """
+        person_units = set(person['properties'].get('unit', []))
+        if units.intersection(person_units):
             return 10
         return 0
 
-    def get_score(self, person, s, s_date, text, original_text, results, units):
+    def get_score(self, person, text, results, ctx):
         person_id = person.get('id')
         logger.debug('Scoring {} ({}) [{}]'.format(person.get('label'), person_id,
             ', '.join(set(person.get('properties', {}).get('rank', [])))))
@@ -632,10 +714,10 @@ class Validator:
         rms = ranked_matches.get(person.get('id'), 0)
         logger.debug('Match score: {}'.format(rms))
 
-        ds = self.get_date_score(person, s_date, s, text)
+        ds = self.get_date_score(person, ctx.s_date, ctx.s, ctx.original_text)
         logger.debug('Date score: {}'.format(ds))
 
-        rs = self.get_rank_score(person, s_date, text)
+        rs = self.get_rank_score(person, ctx.s_date, text)
         logger.debug('Rank score: {}'.format(rs))
 
         ns = self.get_name_score(person)
@@ -644,20 +726,21 @@ class Validator:
         ss = self.get_source_score(person)
         logger.debug('Source score: {}'.format(ss))
 
-        ks = self.get_knight_score(person, original_text, results)
+        ks = self.get_knight_score(person, ctx.original_text, results)
         logger.debug('Knight score: {}'.format(ks))
 
-        return rms + ds + rs + ns + ss + ks
+        us = self.get_unit_score(person, ctx.units)
+        logger.debug('Unit score: {}'.format(us))
+
+        return rms + ds + rs + ns + ss + ks + us
 
     def validate(self, results, text, s):
         if not results:
             return results
         res = []
-        s_date = self.get_s_start_date(s)
+        context = ValidationContext(self.graph, s)
         for person in results:
-            original_text = self.graph.value(s, URIRef('http://www.w3.org/2004/02/skos/core#prefLabel'))
-            units = {str(u) for u in self.graph.objects(s, URIRef('http://ldf.fi/warsa/photographs/unit'))}
-            score = self.get_score(person, s, s_date, text, original_text, results, units)
+            score = self.get_score(person, text, results, context)
             log_msg = "{} ({}) scored {} [{}]".format(
                 person.get('label'),
                 person.get('id'),
@@ -967,7 +1050,7 @@ def preprocessor(text, *args):
     text = text.replace('Sotamies Pihlajamaa', 'sotamies Väinö Pihlajamaa')
 
     # Events only
-    if Validator.dataset == 'event':
+    if ValidationContext.dataset == 'event':
         text = text.replace('Ryti', '# Risto Ryti')
         text = text.replace('Tanner', '# Väinö Tanner')
         text = re.sub(r'(?<!M\.\W)Kallio(lle|n)?\b', '# Kyösti Kallio', text)
@@ -1013,10 +1096,10 @@ def pruner(candidate):
 def set_dataset(dataset_name):
     if dataset_name == 'event':
         print('Handling as events')
-        Validator.dataset = 'event'
+        ValidationContext.dataset = 'event'
     elif dataset_name == 'photo':
         print('Handling as photos')
-        Validator.dataset = 'photo'
+        ValidationContext.dataset = 'photo'
     else:
         raise ValueError('Invalid dataset: {}'.format(dataset_name))
 
