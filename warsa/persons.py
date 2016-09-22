@@ -285,41 +285,6 @@ class Validator:
             raise Exception('Dataset not defined or invalid')
 
     def get_ranked_matches(self, results):
-        """
-        >>> v = Validator(None)
-        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Komppaniaupseeri"'],
-        ...    'rank': ['"Vänrikki"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'lieutenant'}
-        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general'}
-        >>> results = [person, person2]
-        >>> rd = v.get_ranked_matches(results)
-        >>> rd['A. Snellman']['uris']
-        {'lieutenant'}
-        >>> rd['A. Snellman']['score']
-        -20
-        >>> rd['Kenraalimajuri A. Snellman']['uris']
-        {'general'}
-        >>> rd['Kenraalimajuri A. Snellman']['score']
-        0
-        >>> person2 = {'properties': props, 'matches': ['A. Snellman'], 'id': 'general'}
-        >>> results = [person, person2]
-        >>> rd = v.get_ranked_matches(results)
-        >>> len(rd)
-        1
-        >>> 'lieutenant' in rd['A. Snellman']['uris']
-        True
-        >>> 'general' in rd['A. Snellman']['uris']
-        True
-        >>> rd['A. Snellman']['score']
-        0
-        """
-
         d = {x.get('id'): set(x.get('matches')) for x in results}
         dd = defaultdict(set)
         for k, v in d.items():
@@ -335,59 +300,6 @@ class Validator:
         return rd
 
     def get_match_scores(self, results):
-        """
-        >>> v = Validator(None)
-        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Komppaniaupseeri"'],
-        ...    'rank': ['"Vänrikki"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'lieutenant'}
-        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general'}
-        >>> results = [person, person2]
-        >>> scores = v.get_match_scores(results)
-        >>> scores['general']
-        0
-        >>> scores['lieutenant']
-        -20
-        >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general2'}
-        >>> results = [person, person2]
-        >>> scores = v.get_match_scores(results)
-        >>> scores['general']
-        0
-        >>> scores['general2']
-        0
-        >>> props = {'death_date': ['"1944-06-30"^^xsd:date'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person = {'properties': props, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id1'}
-        >>> props2 = {'death_date': ['"1943-09-22"^^xsd:date'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person2 = {'properties': props2, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id2'}
-        >>> props3 = {'death_date': ['"1940-02-02"^^xsd:date'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
-        >>> results = [person, person2, person3]
-        >>> scores = v.get_match_scores(results)
-        >>> scores['id1']
-        0
-        >>> scores['id2']
-        0
-        >>> scores['id3']
-        0
-        """
         rd = self.get_ranked_matches(results)
         scores = {}
         for k, v in rd.items():
@@ -414,20 +326,6 @@ class Validator:
     def get_current_rank(self, person, event_date):
         """
         Get the latest rank the person had attained by the date given.
-        >>> from datetime import date
-        >>> v = Validator(None)
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1940, 3, 5)
-        >>> v.get_current_rank(person, d)
-        'Korpraali'
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1940, 4, 5)
-        >>> v.get_current_rank(person, d)
-        'Luutnantti'
         """
         props = person['properties']
         res = None
@@ -449,59 +347,6 @@ class Validator:
         return res
 
     def get_fuzzy_current_ranks(self, person, event_date, rank_type, date_range=30):
-        """
-        >>> from datetime import date
-        >>> v = Validator(None)
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-06"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-04-06"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1940, 3, 5)
-        >>> r = v.get_fuzzy_current_ranks(person, d, 'rank')
-        >>> len(r)
-        2
-        >>> 'Korpraali' in r
-        True
-        >>> 'Sotamies' in r
-        True
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1943, 4, 5)
-        >>> v.get_fuzzy_current_ranks(person, d, 'rank')
-        {'Luutnantti'}
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Yleisesikuntaupseeri"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1943, 4, 5)
-        >>> v.get_fuzzy_current_ranks(person, d, 'rank')
-        {'Korpraali'}
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-05-01"^^xsd:date', '"1940-05-01"^^xsd:date', '"1941-05-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1943, 4, 5)
-        >>> v.get_fuzzy_current_ranks(person, d, 'rank')
-        {'Luutnantti'}
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1940-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-05-01"^^xsd:date', '"1940-05-01"^^xsd:date', '"1940-05-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1943, 4, 5)
-        >>> r = v.get_fuzzy_current_ranks(person, d, 'rank')
-        >>> len(r)
-        3
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-04-22"^^xsd:date', '"1940-04-22"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-04-21"^^xsd:date', '"1940-05-01"^^xsd:date', '"1940-05-01"^^xsd:date'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Luutnantti"']}
-        >>> person = {'properties': ranks}
-        >>> d = date(1943, 4, 5)
-        >>> r = v.get_fuzzy_current_ranks(person, d, 'rank')
-        >>> len(r)
-        2
-        """
         props = person['properties']
         res = set()
         latest_date = None
@@ -569,34 +414,6 @@ class Validator:
         return res
 
     def get_ranks_with_unknown_date(self, person, rank_type):
-        """
-        >>> v = Validator(None)
-        >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Aliupseeri"'],
-        ...    'rank': ['"Lentomestari"']}
-        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
-        >>> v.get_ranks_with_unknown_date(person, 'rank')
-        ['Lentomestari']
-        >>> ranks = {'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"NA"'],
-        ...    'rank': ['"NA"']}
-        >>> person = {'properties': ranks, 'matches': ['Adolf Hitler']}
-        >>> v.get_ranks_with_unknown_date(person, 'rank')
-        ['NA']
-        >>> props = {'promotion_date': ['"NA"', '"1976-09-02"^^xsd:date'],
-        ...    'hierarchy': ['"Aliupseeri"', '"Kenraalikunta"'],
-        ...    'rank': ['"Lentomestari"', '"Kenraali"']}
-        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
-        >>> v.get_ranks_with_unknown_date(person, 'rank')
-        ['Lentomestari']
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
-        >>> v.get_ranks_with_unknown_date(person, 'hierarchy')
-        ['Kenraalikunta']
-        """
         res = []
         props = person['properties']
         for i, rank in enumerate(props.get(rank_type)):
@@ -614,27 +431,6 @@ class Validator:
         True/False is enough (as opposed to scoring different results),
         because either there is a match with a consistent rank, in which case
         matches are already scored accordingly, or there is no match with a rank.
-
-        >>> v = Validator(None)
-        >>> props = {'hierarchy': ['"Kenraalikunta"'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
-        >>> v.has_consistent_rank(person, "sotamies A. Snellman")
-        False
-        >>> person = {'properties': props, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id'}
-        >>> v.has_consistent_rank(person, "kenraalikunta A. Snellman")
-        True
-
-        This is a bit unfortunate, but it shouldn't be a problem.
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
-        >>> v.has_consistent_rank(person, "upseeri A. Snellman")
-        False
-
-        >>> props = {'hierarchy': ['"Miehistö"'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
-        >>> v.has_consistent_rank(person, "kenraalikunta A. Snellman")
-        False
         """
 
         text_rank_re = r'\b(\w+)\b\s+'
@@ -666,78 +462,6 @@ class Validator:
         return any([m for m in matches if re.match(cur_rank_re, m, re.I)])
 
     def get_rank_score(self, person, s_date, text):
-        """
-        >>> from datetime import date
-        >>> v = Validator(None)
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': ranks, 'matches': ['Kenraali Karpalo']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "Kenraali Karpalo")
-        21
-        >>> v.get_rank_score(person, date(1940, 3, 5), "Kenraali Karpalo")
-        -14
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1946-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1946-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
-        >>> v.get_rank_score(person, None, "kenraali Karpalo")
-        -14
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "kenraalikunta Karpalo")
-        21
-        >>> v.get_rank_score(person, None, "kenraalikunta Karpalo")
-        12
-        >>> ranks = {'promotion_date': ['"NA"'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"NA"'],
-        ...    'rank': ['"NA"']}
-        >>> person = {'properties': ranks, 'matches': ['Adolf Hitler']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "Adolf Hitler")
-        0
-        >>> ranks = {'promotion_date': ['"NA"'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"NA"'],
-        ...    'rank': ['"NA"']}
-        >>> person = {'properties': ranks, 'matches': ['Jorma Sarvanto']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "luutnantti Jorma Sarvanto")
-        0
-        >>> ranks = {'promotion_date': ['"NA"', '"NA"'],
-        ...    'latest_promotion_date': ['"NA"', '"NA"'],
-        ...    'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
-        ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
-        >>> person = {'properties': ranks, 'matches': ['Kari Suomalainen']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "Piirros: Kari Suomalainen")
-        0
-        >>> ranks = {'promotion_date': ['"NA"'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person = {'properties': ranks, 'matches': ['Jorma Sarvanto']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "luutnantti Jorma Sarvanto")
-        -10
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "kenraalikunta Karpalo")
-        12
-        >>> ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
-        >>> v.get_rank_score(person, date(1941, 3, 5), "kenraali Karpalo")
-        12
-        """
-
         props = person['properties']
 
         rank_set = {r.replace('"', '').lower() for r in props.get('rank', [])}
@@ -789,26 +513,6 @@ class Validator:
         return score
 
     def get_date_score(self, person, s_date, s, e_label):
-        """
-        >>> from datetime import date
-        >>> v = Validator(None)
-        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
-        ...    '"1940-03-01"^^xsd:date']}
-        >>> person = {'properties': props}
-        >>> v.get_date_score(person, date(1941, 3, 5), None, None)
-        -30
-        >>> props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
-        ...    '"1940-03-01"^^xsd:date']}
-        >>> person = {'properties': props}
-        >>> v.get_date_score(person, date(1939, 3, 5), None, None)
-        0
-        >>> v.get_date_score(person, None, None, None)
-        0
-        >>> props = {}
-        >>> person = {'properties': props}
-        >>> v.get_date_score(person, date(1939, 3, 5), None, None)
-        0
-        """
         score = 0
         death_date = self.get_death_date(person)
         try:
@@ -832,39 +536,6 @@ class Validator:
         return score
 
     def get_name_score(self, person):
-        """
-        >>> v = Validator(None)
-        >>> person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['kenraali Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        0
-        >>> person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['Tero Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        5
-        >>> person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        10
-        >>> person = {'properties': {'first_names': ['"Turo"']}, 'matches': ['Turo Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        10
-        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['T. J. Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        5
-        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['T.J. Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        5
-        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['T.J.Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        5
-        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['Korpraali T.J.Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        5
-        >>> person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['Korpraali T.Karpalo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        0
-        >>> person = {'properties': {'first_names': ['"Viljo Wiljo Einar"']}, 'matches': ['W.E.Tuompo'], 'id': 'id'}
-        >>> v.get_name_score(person)
-        0
-        """
         first_names = person['properties'].get('first_names', [None])[0]
         if not first_names:
             return 0
@@ -896,25 +567,6 @@ class Validator:
         return score
 
     def get_source_score(self, person):
-        """
-        >>> v = Validator(None)
-        >>> props = {'source': ['<http://ldf.fi/warsa/sources/source5>']}
-        >>> person = {'properties': props, 'id': 'id'}
-        >>> v.get_source_score(person)
-        1
-        >>> props = {'source': ['<http://ldf.fi/warsa/sources/source1>']}
-        >>> person = {'properties': props, 'id': 'id'}
-        >>> v.get_source_score(person)
-        0
-        >>> props = {'source': ['na']}
-        >>> person = {'properties': props, 'id': 'id'}
-        >>> v.get_source_score(person)
-        0
-        >>> props = {}
-        >>> person = {'properties': props, 'id': 'id'}
-        >>> v.get_source_score(person)
-        0
-        """
         sources = {r.replace('"', '') for r in person['properties'].get('source', [])}
         if not sources:
             return 0
@@ -934,51 +586,6 @@ class Validator:
         A person that is a knight of the Mannerheim cross get a higher score
         if the context mentions knighthood. Non-knights' scores are reduced
         in this case.
-
-        >>> v = Validator(None)
-        >>> props = {'source': ['<http://ldf.fi/warsa/sources/source1>']}
-        >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
-        >>> results = [person]
-        >>> v.get_knight_score(person, 'kenraali Karpalo', results)
-        0
-        >>> props['source'].append(MANNERHEIM_RITARIT)
-        >>> v.get_knight_score(person, 'kenraali Karpalo', results)
-        0
-        >>> props['source'].append(MANNERHEIM_RITARIT)
-        >>> v.get_knight_score(person, 'ritari kenraali Karpalo', results)
-        20
-        >>> props = {'source': [MANNERHEIM_RITARIT]}
-        >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
-        >>> other_props = {'source': ['<http://ldf.fi/warsa/sources/source1>']}
-        >>> other = {'properties': other_props, 'matches': ['kenraali Karpalo'], 'id': 'id2'}
-        >>> results = [person, other]
-        >>> v.get_knight_score(person, 'ritari kenraali Karpalo', results)
-        20
-        >>> v.get_knight_score(other, 'ritari kenraali Karpalo', results)
-        -20
-        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Komppaniaupseeri"'],
-        ...    'source': [MANNERHEIM_RITARIT],
-        ...    'rank': ['"Vänrikki"']}
-        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
-        >>> person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
-        >>> results = [person, person2]
-        >>> v.get_knight_score(person, 'ritari A. Snellman', results)
-        20
-        >>> v.get_knight_score(person2, 'ritari A. Snellman', results)
-        -20
-        >>> person2 = {'properties': props2, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id2'}
-        >>> results = [person, person2]
-        >>> v.get_knight_score(person2, 'ritari kenraalikunta A. Snellman', results)
-        0
         """
         if not knight_re.search(text):
             # No mention of knighthood in context.
@@ -1012,218 +619,6 @@ class Validator:
         return 0
 
     def get_score(self, person, s, s_date, text, original_text, results, units):
-        """
-        >>> from datetime import date
-        >>> v = Validator(None)
-        >>> units = set()
-        >>> props = {'death_date': ['"1942-02-01"^^xsd:date', '"1942-02-01"^^xsd:date', '"1942-03-01"^^xsd:date'],
-        ...    'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
-        ...    'hierarchy': ['"Miehistö"', '"Miehistö"', '"Kenraalikunta"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
-        >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 3, 5), 'kenraali Karpalo', 'kenraali Karpalo', results, units)
-        21
-        >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
-        ...    'first_names': ['"Adolf"', '"Adolf"'],
-        ...    'promotion_date': ['"NA"', '"NA"', '"NA"'],
-        ...    'latest_promotion_date': ['"NA"', '"NA"', '"NA"'],
-        ...    'hierarchy': ['"NA"', '"NA"', '"NA"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"NA"', '"NA"', '"NA"']}
-        >>> person = {'properties': props, 'matches': ['Adolf Hitler'], 'id': 'id'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 3, 5), 'Adolf Hitler', 'Adolf Hitler', results, units)
-        10
-        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Komppaniaupseeri"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Vänrikki"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
-        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id2'}
-        >>> results = [person, person2]
-        >>> v.get_score(person, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results, units)
-        -30
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results, units)
-        21
-        >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 11, 20), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results, units)
-        -14
-        >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Aliupseeri"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Lentomestari"']}
-        >>> person = {'properties': props, 'matches': ['lentomestari Oiva Tuominen', 'Oiva Tuominen'], 'id': 'id1'}
-        >>> props2 = {'death_date': ['"1944-04-28"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Korpraali"']}
-        >>> person2 = {'properties': props2, 'matches': ['Oiva Tuominen'], 'id': 'id2'}
-        >>> props3 = {'death_date': ['"1940-04-28"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
-        >>> results = [person, person2, person3]
-        >>> v.get_score(person, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results, units)
-        6
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results, units)
-        -30
-        >>> v.get_score(person3, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results, units)
-        -60
-        >>> props = {'death_date': ['"1944-06-30"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'first_names': ['Arvi Petteri'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person = {'properties': props, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id1'}
-        >>> props2 = {'death_date': ['"1943-09-22"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'first_names': ['Petteri'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person2 = {'properties': props2, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id2'}
-        >>> props3 = {'death_date': ['"1940-02-02"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'first_names': ['Petteri Arvi'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
-        >>> results = [person, person2, person3]
-        >>> v.get_score(person, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results, units)
-        11
-        >>> v.get_score(person2, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results, units)
-        -29
-        >>> v.get_score(person3, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results, units)
-        -24
-        >>> props = {'death_date': ['"1944-06-15"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'first_names': ['"Tuomas"'],
-        ...    'family_name': ['"Noponen"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Korpraali"']}
-        >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', 'Tuomas Noponen', results, units)
-        0
-        >>> props = {'death_date': ['"1999-08-10"^^xsd:date', '"1999-08-10"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"', '"NA"'],
-        ...    'promotion_date': ['"NA"', '"NA"'],
-        ...    'first_names': ['"Kari"', '"Kari"'],
-        ...    'family_name': ['"SUOMALAINEN"', '"SUOMALAINEN"'],
-        ...    'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
-        >>> person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', 'Piirros Kari Suomalainen', results, units)
-        10
-        >>> props = {'promotion_date': ['"NA"', '"NA"'],
-        ...    'latest_promotion_date': ['"NA"', '"NA"'],
-        ...    'hierarchy': ['"NA"', '"NA"'],
-        ...    'family_name': ['"Hämäläinen"', '"Hämäläinen"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Reservin vänrikki"', '"Reservin vänrikki"']}
-        >>> person = {'properties': props, 'matches': ['Reservin vänrikki Hämäläinen', 'vänrikki Hämäläinen'],
-        ...        'id': 'id1'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Reservin vänrikki Hämäläinen', 'Reservin vänrikki Hämäläinen', results, units)
-        11
-        >>> props = {'death_date': ['"1971-10-10"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"NA"'],
-        ...    'first_names': ['"Yrjö"'],
-        ...    'family_name': ['"Pöyhönen"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source10>'],
-        ...    'rank': ['"NA"']}
-        >>> person = {'properties': props, 'matches': ['Y. Pöyhönen'], 'id': 'id1'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'everstiluutnantti Y. Pöyhönen', 'everstiluutnantti Y. Pöyhönen', results, units)
-        1
-        >>> props = {'death_date': ['"1942-10-10"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'first_names': ['"Kalle"'],
-        ...    'family_name': ['"Sukunimi"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Sotamies"']}
-        >>> person = {'properties': props, 'matches': ['sotamies Sukunimi'], 'id': 'id1'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'sotamies Sukunimi', 'sotamies Sukunimi', results, units)
-        1
-        >>> props = {'death_date': ['"1944-06-15"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Miehistö"'],
-        ...    'first_names': ['"Tuomas"'],
-        ...    'family_name': ['"Noponen"'],
-        ...    'source': [MANNERHEIM_RITARIT],
-        ...    'rank': ['"Korpraali"']}
-        >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
-        >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', 'Tuomas Noponen', results, units)
-        1
-        >>> v.get_score(person, None, date(1941, 8, 4), 'ritari Tuomas Noponen', 'ritari Tuomas Noponen', results, units)
-        21
-        >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
-        ...    'latest_promotion_date': ['"NA"'],
-        ...    'promotion_date': ['"NA"'],
-        ...    'hierarchy': ['"Komppaniaupseeri"'],
-        ...    'source': [MANNERHEIM_RITARIT],
-        ...    'rank': ['"Vänrikki"']}
-        >>> props2 = {'death_date': ['"1942-04-28"^^xsd:date'],
-        ...    'latest_promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'promotion_date': ['"1942-04-26"^^xsd:date'],
-        ...    'hierarchy': ['"Kenraalikunta"'],
-        ...    'source': ['<http://ldf.fi/warsa/sources/source1>'],
-        ...    'rank': ['"Kenraalimajuri"']}
-        >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
-        >>> person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
-        >>> results = [person, person2]
-        >>> v.get_score(person, None, date(1942, 4, 27), 'ritari A. Snellman', 'ritari A. Snellman', results, units)
-        22
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'ritari A. Snellman', 'ritari A. Snellman', results, units)
-        -19
-        >>> person2 = {'properties': props2, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id2'}
-        >>> results = [person, person2]
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'ritari kenraalikunta A. Snellman', 'ritari kenraalikunta A. Snellman', results, units)
-        21
-        >>> v.get_score(person, None, date(1942, 4, 27), 'ritari kenraalikunta A. Snellman', 'ritari kenraalikunta A. Snellman', results, units)
-        -9
-        """
         person_id = person.get('id')
         logger.debug('Scoring {} ({}) [{}]'.format(person.get('label'), person_id,
             ', '.join(set(person.get('properties', {}).get('rank', [])))))
@@ -1417,16 +812,6 @@ def replace_ak_list(text):
 
 
 def replace_sv_list(text):
-    """
-    >>> replace_sv_list("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
-    'TK-rintamakirjeenvaihtaja Yläjärvellä (vas.  sotilasvirkamies Kapra, sotilasvirkamies Jalkanen,vänr. Rahikainen).'
-    >>> replace_sv_list("Sotilasvirk. Kapra, Jalkanen, vänr. Rahikainen).")
-    ' sotilasvirkamies Kapra, sotilasvirkamies Jalkanen,vänr. Rahikainen).'
-    >>> replace_sv_list("Sotilasvirkailija Kapra, Jalkanen, vänr. Rahikainen).")
-    ' sotilasvirkamies Kapra, sotilasvirkamies Jalkanen,vänr. Rahikainen).'
-    >>> replace_sv_list("Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
-    'Komentajasta oikealla: Björnsson Mehlem,  sotilasvirkamies Zenker, sotilasvirkamies Farr,luutnantti Miettinen,etualalla oikealla Scott.'
-    """
     return add_titles(sv_regex, 'sotilasvirkamies', text)
 
 
@@ -1451,70 +836,6 @@ to_be_lowercased = (
 
 
 def preprocessor(text, *args):
-    """
-    >>> preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka," \
-    " everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
-    'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola, # Juho Koivisto, ministeri Salovaara, ministeri Horelli, ministeri Arola, ministeri Honka, everstiluutnantti Varis, everstiluutnantti Ehnrooth, everstiluutnantti Juva, everstiluutnantti Heimolainen, everstiluutnantti Björnström, majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.'
-    >>> preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.")
-    'kenraalikunta Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.'
-    >>> preprocessor("Kenraali Karl Oesch seuraa maastoammuntaa.")
-    'kenraalikunta Karl Oesch seuraa maastoammuntaa.'
-    >>> preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.")
-    'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.'
-    >>> preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45.")
-    '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri, kenraalikunta Neuvonen, kenraalikunta Walden, kenraalikunta Mäkinen, eversti Sihvo, kenraalikunta Airo, kenraalikunta Oesch, eversti Hersalo ym. klo 12.45.'
-    >>> preprocessor("Sotamarsalkka Raasulissa.")
-    '# kenraalikunta Mannerheim # Raasulissa.'
-    >>> preprocessor("Eräs Brewster-koneista, jotka seurasivat marsalkan seuruetta.")
-    'Eräs Brewster-koneista, jotka seurasivat # kenraalikunta Mannerheim # seuruetta.'
-    >>> preprocessor("Kenraali Walden Marsalkan junassa aterialla.")
-    'kenraalikunta Walden # kenraalikunta Mannerheim # junassa aterialla.'
-    >>> preprocessor('"Eläköön Sotamarsalkka"')
-    'Eläköön # kenraalikunta Mannerheim #'
-    >>> preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.")
-    'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.'
-    >>> preprocessor("Majuri Laaksonen JR 8:ssa.")
-    'majuri Sulo Laaksonen JR 8:ssa.'
-    >>> preprocessor("Everstiluutnantti Laaksonen")
-    'everstiluutnantti Sulo Laaksonen'
-    >>> preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.")
-    'Vas: everstiluutnantti Sulo Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.'
-    >>> preprocessor("Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.")
-    'Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.'
-    >>> preprocessor("Luutn. Juutilainen Saharan kauhu jouluk. Alussa.")
-    '# kapteeni Juutilainen # # kapteeni Juutilainen # jouluk. Alussa.'
-    >>> preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa.")
-    'kapteeni Palolampi kapteeni Juutilainen ratsailla Levinassa.'
-    >>> preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.")
-    'kenraalit keskustelevat pienen tauon aikana, vas: eversti Antero Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.'
-    >>> preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund).")
-    'Radioryhmän toimintaa: Selostaja työssään ( vänrikki Seiva, sotilasvirkamies Kumminen sotilasvirkamies Westerlund).'
-    >>> preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen).")
-    'sotilasvirkamies Yläjärvellä (vas. sotilasvirkamies Kapra, sotilasvirkamies Jalkanen, vänrikki Rahikainen).'
-    >>> preprocessor("Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott.")
-    'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sotilasvirkamies Zenker, sotilasvirkamies Farr, luutnantti Miettinen, etualalla oikealla Scott.'
-    >>> preprocessor("Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: Vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sot.virk. Halonen, alikersantti Rosenberg, vänrikki Lindblad, sot.virk. Österman, alikersantti Salenius.")
-    'Viestiosasto 1: Sotilasradiosähköttäjien tutkinossa 27.4.1942 todistuksen saaneet, vas. oikealle: vänrikki Aro, korpraali Räsänen, vänrikki Nordberg, sotilasmestari Kivi, luutnantti Päiviö, sotilasmestari Lavola, sotilasvirkamies Halonen, alikersantti Rosenberg, vänrikki Lindblad, sotilasvirkamies Österman, alikersantti Salenius.'
-    >>> preprocessor("Ev. luutn.Pasonen ja saks. Amiraali keskuselevat")
-    'everstiluutnantti Pasonen ja saks. Amiraali keskuselevat'
-    >>> preprocessor("Ev. luutnantti Vänttinen")
-    'everstiluutnantti Vänttinen'
-    >>> preprocessor("Ev. luutn. Rauramo")
-    'everstiluutnantti Rauramo'
-    >>> preprocessor("TK-Pärttyli Virkki erään lennon jälkeen.")
-    'sotilasvirkamies Pärttyli Virkki erään lennon jälkeen.'
-    >>> preprocessor("Virkki,erään lennon jälkeen.")
-    'Virkki, erään lennon jälkeen.'
-    >>> preprocessor("TK-mies Hiisivaara.")
-    'sotilasvirkamies Hiisivaara.'
-    >>> preprocessor("Tk-miehet Varo, Itänen ja Tenkanen kuvaamassa Väinämöisen ammuntaa")
-    'sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa'
-    >>> preprocessor("Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta.")
-    'Rautaristin saajat: eversti A. Puroma, majuri A.G. Airimo majuri V. Lehvä, luutnantti K. Sarva luutnantti U. Jalkanen, vänrikki T. Laakso, vänrikki R. Kanto, vänrikki N. Vuolle vänrikki Y. Nuortio, kersantti T. Aspegren kersantti H. Kalliaisenaho, alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä korpraali R. Keihta.'
-    >>> preprocessor("Everstiluutnantti Paasonen.")
-    'eversti Antero Paasonen.'
-    """
-
     text = str(text).replace('"', '')
     logger.info('Preprocessing: {}'.format(text))
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
@@ -1580,6 +901,7 @@ def preprocessor(text, *args):
     text = re.sub(r'[Tt]ykistökenraali', 'tykistönkenraali', text)
     text = re.sub(r'[Tk][Kk]-([A-ZÄÖÅ])', r'sotilasvirkamies \1', text)
     text = re.sub(r'\bkenraali\b', 'kenraalikunta', text)
+    text = re.sub(r'\b[Tt]km\.', 'tykkimies ', text)
 
     text = re.sub(r'[Ll]ääkintäkenraali\b', 'kenraalikunta', text)
 
@@ -1682,27 +1004,6 @@ name_re_exclude_compiled = re.compile(name_re_exclude)
 
 
 def pruner(candidate):
-    """
-    >>> pruner('Kenraali Engelbrecht')
-    'Kenraali Engelbrecht'
-    >>> pruner('Kenraali Engelbrecht retkellä')
-    >>> pruner('höpö höpö Engelbrecht')
-    'höpö höpö Engelbrecht'
-    >>> pruner('Höpö höpö Engelbrecht')
-    'Höpö höpö Engelbrecht'
-    >>> pruner('Everstiluutnantti Berndt Eino Edvard Polón')
-    'Everstiluutnantti Berndt Eino Edvard Polón'
-    >>> pruner('höpö höpö Engelbrecht:')
-    >>> pruner('höpö höpö Engelbrecht ')
-    >>> pruner('kapteeni kissa')
-    >>> pruner('höpö')
-    >>> pruner('Engelbrecht')
-    >>> pruner('#retkellä Engelbrecht')
-    >>> pruner('K.-W.Grünn')
-    'K.-W.Grünn'
-    >>> pruner('K.-W. Grünn')
-    'K.-W. Grünn'
-    """
     if name_re_compiled.fullmatch(candidate):
         if not name_re_exclude_compiled.search(candidate):
             return candidate
