@@ -1,6 +1,6 @@
 import re
 import sys
-from link_helper import process_stage
+from arpa_linker.link_helper import process_stage
 
 
 class Validator:

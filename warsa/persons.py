@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from link_helper import process_stage
+from arpa_linker.link_helper import process_stage
 from rdflib import URIRef
 # from rdflib.namespace import SKOS
 import logging
@@ -1006,10 +1006,16 @@ class Validator:
                         return -20
         return 0
 
-    def get_score(self, person, s, s_date, text, original_text, results):
+    def get_unit_score(self, person, units):
+        if units.intersection(set(person.get('unit', []))):
+            return 10
+        return 0
+
+    def get_score(self, person, s, s_date, text, original_text, results, units):
         """
         >>> from datetime import date
         >>> v = Validator(None)
+        >>> units = set()
         >>> props = {'death_date': ['"1942-02-01"^^xsd:date', '"1942-02-01"^^xsd:date', '"1942-03-01"^^xsd:date'],
         ...    'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
         ...    'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"1941-03-01"^^xsd:date'],
@@ -1018,7 +1024,7 @@ class Validator:
         ...    'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         >>> person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 3, 5), 'kenraali Karpalo', 'kenraali Karpalo', results)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'kenraali Karpalo', 'kenraali Karpalo', results, units)
         21
         >>> props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
         ...    'first_names': ['"Adolf"', '"Adolf"'],
@@ -1029,7 +1035,7 @@ class Validator:
         ...    'rank': ['"NA"', '"NA"', '"NA"']}
         >>> person = {'properties': props, 'matches': ['Adolf Hitler'], 'id': 'id'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 3, 5), 'Adolf Hitler', 'Adolf Hitler', results)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'Adolf Hitler', 'Adolf Hitler', results, units)
         10
         >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1046,9 +1052,9 @@ class Validator:
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id2'}
         >>> results = [person, person2]
-        >>> v.get_score(person, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results)
+        >>> v.get_score(person, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results, units)
         -30
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results)
+        >>> v.get_score(person2, None, date(1942, 4, 27), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results, units)
         21
         >>> props = {'death_date': ['"1942-04-28"^^xsd:date'],
         ...    'latest_promotion_date': ['"1942-04-26"^^xsd:date'],
@@ -1058,7 +1064,7 @@ class Validator:
         ...    'rank': ['"Kenraalimajuri"']}
         >>> person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 11, 20), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results)
+        >>> v.get_score(person, None, date(1941, 11, 20), 'Kenraalimajuri A. Snellman', 'Kenraalimajuri A. Snellman', results, units)
         -14
         >>> props = {'death_date': ['"1976-09-02"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1082,11 +1088,11 @@ class Validator:
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
-        >>> v.get_score(person, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results)
+        >>> v.get_score(person, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results, units)
         6
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results)
+        >>> v.get_score(person2, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results, units)
         -30
-        >>> v.get_score(person3, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results)
+        >>> v.get_score(person3, None, date(1942, 4, 27), 'lentomestari Oiva Tuominen', 'lentomestari Oiva Tuominen', results, units)
         -60
         >>> props = {'death_date': ['"1944-06-30"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1113,11 +1119,11 @@ class Validator:
         ...    'rank': ['"Sotamies"']}
         >>> person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
         >>> results = [person, person2, person3]
-        >>> v.get_score(person, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results)
+        >>> v.get_score(person, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results, units)
         11
-        >>> v.get_score(person2, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results)
+        >>> v.get_score(person2, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results, units)
         -29
-        >>> v.get_score(person3, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results)
+        >>> v.get_score(person3, None, date(1944, 5, 31), 'sotamies Arvi Pesonen', 'sotamies Arvi Pesonen', results, units)
         -24
         >>> props = {'death_date': ['"1944-06-15"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1129,7 +1135,7 @@ class Validator:
         ...    'rank': ['"Korpraali"']}
         >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', 'Tuomas Noponen', results)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', 'Tuomas Noponen', results, units)
         0
         >>> props = {'death_date': ['"1999-08-10"^^xsd:date', '"1999-08-10"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"', '"NA"'],
@@ -1141,7 +1147,7 @@ class Validator:
         ...    'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         >>> person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', 'Piirros Kari Suomalainen', results)
+        >>> v.get_score(person, None, date(1941, 3, 5), 'Piirros Kari Suomalainen', 'Piirros Kari Suomalainen', results, units)
         10
         >>> props = {'promotion_date': ['"NA"', '"NA"'],
         ...    'latest_promotion_date': ['"NA"', '"NA"'],
@@ -1152,7 +1158,7 @@ class Validator:
         >>> person = {'properties': props, 'matches': ['Reservin vänrikki Hämäläinen', 'vänrikki Hämäläinen'],
         ...        'id': 'id1'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Reservin vänrikki Hämäläinen', 'Reservin vänrikki Hämäläinen', results)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'Reservin vänrikki Hämäläinen', 'Reservin vänrikki Hämäläinen', results, units)
         11
         >>> props = {'death_date': ['"1971-10-10"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1164,7 +1170,7 @@ class Validator:
         ...    'rank': ['"NA"']}
         >>> person = {'properties': props, 'matches': ['Y. Pöyhönen'], 'id': 'id1'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'everstiluutnantti Y. Pöyhönen', 'everstiluutnantti Y. Pöyhönen', results)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'everstiluutnantti Y. Pöyhönen', 'everstiluutnantti Y. Pöyhönen', results, units)
         1
         >>> props = {'death_date': ['"1942-10-10"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1176,7 +1182,7 @@ class Validator:
         ...    'rank': ['"Sotamies"']}
         >>> person = {'properties': props, 'matches': ['sotamies Sukunimi'], 'id': 'id1'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'sotamies Sukunimi', 'sotamies Sukunimi', results)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'sotamies Sukunimi', 'sotamies Sukunimi', results, units)
         1
         >>> props = {'death_date': ['"1944-06-15"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1188,9 +1194,9 @@ class Validator:
         ...    'rank': ['"Korpraali"']}
         >>> person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
         >>> results = [person]
-        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', 'Tuomas Noponen', results)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'Tuomas Noponen', 'Tuomas Noponen', results, units)
         1
-        >>> v.get_score(person, None, date(1941, 8, 4), 'ritari Tuomas Noponen', 'ritari Tuomas Noponen', results)
+        >>> v.get_score(person, None, date(1941, 8, 4), 'ritari Tuomas Noponen', 'ritari Tuomas Noponen', results, units)
         21
         >>> props = {'death_date': ['"1944-09-02"^^xsd:date'],
         ...    'latest_promotion_date': ['"NA"'],
@@ -1207,15 +1213,15 @@ class Validator:
         >>> person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id1'}
         >>> person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
         >>> results = [person, person2]
-        >>> v.get_score(person, None, date(1942, 4, 27), 'ritari A. Snellman', 'ritari A. Snellman', results)
+        >>> v.get_score(person, None, date(1942, 4, 27), 'ritari A. Snellman', 'ritari A. Snellman', results, units)
         22
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'ritari A. Snellman', 'ritari A. Snellman', results)
+        >>> v.get_score(person2, None, date(1942, 4, 27), 'ritari A. Snellman', 'ritari A. Snellman', results, units)
         -19
         >>> person2 = {'properties': props2, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id2'}
         >>> results = [person, person2]
-        >>> v.get_score(person2, None, date(1942, 4, 27), 'ritari kenraalikunta A. Snellman', 'ritari kenraalikunta A. Snellman', results)
+        >>> v.get_score(person2, None, date(1942, 4, 27), 'ritari kenraalikunta A. Snellman', 'ritari kenraalikunta A. Snellman', results, units)
         21
-        >>> v.get_score(person, None, date(1942, 4, 27), 'ritari kenraalikunta A. Snellman', 'ritari kenraalikunta A. Snellman', results)
+        >>> v.get_score(person, None, date(1942, 4, 27), 'ritari kenraalikunta A. Snellman', 'ritari kenraalikunta A. Snellman', results, units)
         -9
         """
         person_id = person.get('id')
@@ -1255,7 +1261,8 @@ class Validator:
         s_date = self.get_s_start_date(s)
         for person in results:
             original_text = self.graph.value(s, URIRef('http://www.w3.org/2004/02/skos/core#prefLabel'))
-            score = self.get_score(person, s, s_date, text, original_text, results)
+            units = {str(u) for u in self.graph.objects(s, URIRef('http://ldf.fi/warsa/photographs/unit'))}
+            score = self.get_score(person, s, s_date, text, original_text, results, units)
             log_msg = "{} ({}) scored {} [{}]".format(
                 person.get('label'),
                 person.get('id'),
