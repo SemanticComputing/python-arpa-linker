@@ -1050,6 +1050,9 @@ def preprocessor(text, *args):
     text = re.sub(r'[RB]osenbröijer(in|ille|ia)?\b', '# Edvin Rosenbröijer #', text)
     text = re.sub(r'Turo Kart(on|olle|toa)\b', '# Turo Kartto #', text)
 
+    text = re.sub(r'Onni Palomä(ki|en)', 'Olli Palomäki', text)
+    text = re.sub(r'[Ee]versti Somersalo', 'everstiluutnantti Somersalo', text)
+
     text = text.replace('Hitler', '# Adolf Hitler')
 
     text = re.sub(r'(Saharan|Marokon) kauhu', '# kapteeni Juutilainen #', text)
