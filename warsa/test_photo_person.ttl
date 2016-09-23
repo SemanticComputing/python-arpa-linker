@@ -210,9 +210,6 @@
     dc:description "Sissipataljoona 2. hiihtoammuntakilpailusta: Tässä ottaa kilpailun voittaja kersantti Leskinen komeasti mäen. Hän hiihti parhaan ajan ja ampui täydet pisteet. Eikä ihmekään sillä hän on siviilissä Pohjois-Savon Nuorten mestari." ;
     dc:source sources:source13 ;
     dc:spatial <http://ldf.fi/warsa/places/karelian_places/k_place_4406> ;
-    dc:subject <http://ldf.fi/warsa/actors/person_p258145>,
-        <http://ldf.fi/warsa/actors/person_p276021>,
-        <http://ldf.fi/warsa/actors/person_p750686> ;
     sch:contentUrl "http://sa-kuva.fi/static/49/65/74965_r500.jpg" ;
     sch:thumbnailUrl "http://sa-kuva.fi/static/49/65/74965_r100.jpg" ;
     skos:prefLabel "Sissipataljoona 2. hiihtoammuntakilpailusta: Tässä ottaa kilpailun voittaja kersantti Leskinen komeasti mäen. Hän hiihti parhaan ajan ja ampui täydet pisteet. Eikä ihmekään sillä hän on siviilissä Pohjois-Savon Nuorten mestari." .

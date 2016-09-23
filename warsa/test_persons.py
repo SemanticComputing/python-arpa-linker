@@ -40,7 +40,8 @@ class TestPersonValidation(TestCase):
                 'rank': ['"Kenraalimajuri"']}
         person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general'}
         results = [person, person2]
-        rd = self.validator.get_ranked_matches(results)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        rd = ctx.ranked_matches
 
         self.assertEqual(rd['A. Snellman']['uris'], {'lieutenant'})
         self.assertEqual(rd['A. Snellman']['score'], -20)
@@ -49,7 +50,8 @@ class TestPersonValidation(TestCase):
 
         person2 = {'properties': props, 'matches': ['A. Snellman'], 'id': 'general'}
         results = [person, person2]
-        rd = self.validator.get_ranked_matches(results)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        rd = ctx.ranked_matches
 
         self.assertEqual(len(rd), 1)
         self.assertTrue('lieutenant' in rd['A. Snellman']['uris'])
@@ -105,7 +107,8 @@ class TestPersonValidation(TestCase):
                 'rank': ['"Kenraalimajuri"']}
         person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general'}
         results = [person, person2]
-        scores = self.validator.get_match_scores(results)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        scores = ctx.get_match_scores(results)
 
         self.assertEqual(scores['general'], 0)
         self.assertEqual(scores['lieutenant'], -20)
@@ -116,7 +119,8 @@ class TestPersonValidation(TestCase):
                 'rank': ['"Kenraalimajuri"']}
         person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'general2'}
         results = [person, person2]
-        scores = self.validator.get_match_scores(results)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        scores = ctx.get_match_scores(results)
 
         self.assertEqual(scores['general'], 0)
         self.assertEqual(scores['general2'], 0)
@@ -137,7 +141,8 @@ class TestPersonValidation(TestCase):
                 'rank': ['"Sotamies"']}
         person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
         results = [person, person2, person3]
-        scores = self.validator.get_match_scores(results)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        scores = ctx.get_match_scores(results)
 
         self.assertEqual(scores['id1'], 0)
         self.assertEqual(scores['id2'], 0)
@@ -273,7 +278,7 @@ class TestPersonValidation(TestCase):
 
         self.assertEqual(self.validator.get_rank_score(
             person, date(1941, 3, 5), "kenraalikunta Karpalo"), 21)
-        self.assertEqual(self.validator.get_rank_score(person, None, "kenraalikunta Karpalo"), 12)
+        self.assertEqual(self.validator.get_rank_score(person, None, "kenraalikunta Karpalo"), 11)
 
         ranks = {'promotion_date': ['"NA"'],
                 'latest_promotion_date': ['"NA"'],
@@ -313,7 +318,7 @@ class TestPersonValidation(TestCase):
                 'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         person = {'properties': ranks, 'matches': ['kenraalikunta Karpalo']}
 
-        self.assertEqual(self.validator.get_rank_score(person, date(1941, 3, 5), "kenraalikunta Karpalo"), 12)
+        self.assertEqual(self.validator.get_rank_score(person, date(1941, 3, 5), "kenraalikunta Karpalo"), 11)
 
         ranks = {'promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
                 'latest_promotion_date': ['"1940-02-01"^^xsd:date', '"1940-03-01"^^xsd:date', '"NA"'],
@@ -321,7 +326,7 @@ class TestPersonValidation(TestCase):
                 'rank': ['"Sotamies"', '"Korpraali"', '"Kenraali"']}
         person = {'properties': ranks, 'matches': ['kenraali Karpalo']}
 
-        self.assertEqual(self.validator.get_rank_score(person, date(1941, 3, 5), "kenraali Karpalo"), 12)
+        self.assertEqual(self.validator.get_rank_score(person, date(1941, 3, 5), "kenraali Karpalo"), 11)
 
     def test_get_date_score(self):
         props = {'death_date': ['"1940-02-01"^^xsd:date', '"1940-02-01"^^xsd:date',
@@ -345,7 +350,7 @@ class TestPersonValidation(TestCase):
     def test_get_name_score(self):
         person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['kenraali Karpalo'], 'id': 'id'}
 
-        self.assertEqual(self.validator.get_name_score(person), 0)
+        self.assertEqual(self.validator.get_name_score(person), -5)
 
         person = {'properties': {'first_names': ['"Turo Tero"']}, 'matches': ['Tero Karpalo'], 'id': 'id'}
 
@@ -377,11 +382,11 @@ class TestPersonValidation(TestCase):
 
         person = {'properties': {'first_names': ['"Turo Jare"']}, 'matches': ['Korpraali T.Karpalo'], 'id': 'id'}
 
-        self.assertEqual(self.validator.get_name_score(person), 0)
+        self.assertEqual(self.validator.get_name_score(person), -5)
 
         person = {'properties': {'first_names': ['"Viljo Wiljo Einar"']}, 'matches': ['W.E.Tuompo'], 'id': 'id'}
 
-        self.assertEqual(self.validator.get_name_score(person), 0)
+        self.assertEqual(self.validator.get_name_score(person), -5)
 
     def test_get_source_score(self):
         props = {'source': ['<http://ldf.fi/warsa/sources/source5>']}
@@ -405,7 +410,7 @@ class TestPersonValidation(TestCase):
         self.assertEqual(self.validator.get_source_score(person), 0)
 
     def test_get_unit_score(self):
-        unit = 'http://ldf.fi/warsa/actors/actor_2942'
+        unit = '<http://ldf.fi/warsa/actors/actor_2942>'
         props = {'unit': [unit]}
         person = {'properties': props, 'id': 'id'}
 
@@ -415,7 +420,7 @@ class TestPersonValidation(TestCase):
 
         self.assertEqual(self.validator.get_unit_score(person, {unit}), 0)
 
-        person['properties']['unit'] = ['http://ldf.fi/warsa/actors/actor_29']
+        person['properties']['unit'] = ['<http://ldf.fi/warsa/actors/actor_29>']
 
         self.assertEqual(self.validator.get_unit_score(person, {unit}), 0)
         self.assertEqual(self.validator.get_unit_score(person, set()), 0)
@@ -425,15 +430,16 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         results = [person]
 
-        self.assertEqual(self.validator.get_knight_score(person, 'kenraali Karpalo', results), 0)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        self.assertEqual(self.validator.get_knight_score(person, 'kenraali Karpalo', results, ctx.ranked_matches), 0)
 
         props['source'].append(MANNERHEIM_RITARIT)
 
-        self.assertEqual(self.validator.get_knight_score(person, 'kenraali Karpalo', results), 0)
+        self.assertEqual(self.validator.get_knight_score(person, 'kenraali Karpalo', results, ctx.ranked_matches), 0)
 
         props['source'].append(MANNERHEIM_RITARIT)
 
-        self.assertEqual(self.validator.get_knight_score(person, 'ritari kenraali Karpalo', results), 20)
+        self.assertEqual(self.validator.get_knight_score(person, 'ritari kenraali Karpalo', results, ctx.ranked_matches), 20)
 
         props = {'source': [MANNERHEIM_RITARIT]}
         person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
@@ -441,8 +447,9 @@ class TestPersonValidation(TestCase):
         other = {'properties': other_props, 'matches': ['kenraali Karpalo'], 'id': 'id2'}
         results = [person, other]
 
-        self.assertEqual(self.validator.get_knight_score(person, 'ritari kenraali Karpalo', results), 20)
-        self.assertEqual(self.validator.get_knight_score(other, 'ritari kenraali Karpalo', results), -20)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        self.assertEqual(self.validator.get_knight_score(person, 'ritari kenraali Karpalo', results, ctx.ranked_matches), 20)
+        self.assertEqual(self.validator.get_knight_score(other, 'ritari kenraali Karpalo', results, ctx.ranked_matches), -20)
 
         props = {'death_date': ['"1944-09-02"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -460,13 +467,15 @@ class TestPersonValidation(TestCase):
         person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
         results = [person, person2]
 
-        self.assertEqual(self.validator.get_knight_score(person, 'ritari A. Snellman', results), 20)
-        self.assertEqual(self.validator.get_knight_score(person2, 'ritari A. Snellman', results), -20)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        self.assertEqual(self.validator.get_knight_score(person, 'ritari A. Snellman', results, ctx.ranked_matches), 20)
+        self.assertEqual(self.validator.get_knight_score(person2, 'ritari A. Snellman', results, ctx.ranked_matches), -20)
 
         person2 = {'properties': props2, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id2'}
         results = [person, person2]
 
-        self.assertEqual(self.validator.get_knight_score(person2, 'ritari kenraalikunta A. Snellman', results), 0)
+        ctx = ValidationContext(self.validator.graph, results, None)
+        self.assertEqual(self.validator.get_knight_score(person2, 'ritari kenraalikunta A. Snellman', results, ctx.ranked_matches), 0)
 
     def test_get_score(self):
         props = {'death_date': ['"1942-02-01"^^xsd:date', '"1942-02-01"^^xsd:date', '"1942-03-01"^^xsd:date'],
@@ -478,9 +487,9 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['kenraali Karpalo'], 'id': 'id'}
         results = [person]
         s = URIRef('http://ldf.fi/warsa/photographs/sakuva_1000')
-        ctx = ValidationContext(self.validator.graph, s)
+        ctx = ValidationContext(self.validator.graph, results, s)
 
-        self.assertEqual(self.validator.get_score(person, 'kenraali Karpalo', results, ctx), 21)
+        self.assertEqual(self.validator.get_score(person, 'kenraali Karpalo', ctx), 21)
 
         props = {'death_date': ['"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date', '"1945-04-30"^^xsd:date'],
                 'first_names': ['"Adolf"', '"Adolf"'],
@@ -492,8 +501,9 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['Adolf Hitler'], 'id': 'id'}
         results = [person]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1941, 3, 5)
-        self.assertEqual(self.validator.get_score(person, 'Adolf Hitler', results, ctx), 10)
+        self.assertEqual(self.validator.get_score(person, 'Adolf Hitler', ctx), 10)
 
         props = {'death_date': ['"1944-09-02"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -511,9 +521,10 @@ class TestPersonValidation(TestCase):
         person2 = {'properties': props2, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id2'}
         results = [person, person2]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1942, 4, 27)
-        self.assertEqual(self.validator.get_score(person, 'Kenraalimajuri A. Snellman', results, ctx), -30)
-        self.assertEqual(self.validator.get_score(person2, 'Kenraalimajuri A. Snellman', results, ctx), 21)
+        self.assertEqual(self.validator.get_score(person, 'Kenraalimajuri A. Snellman', ctx), -30)
+        self.assertEqual(self.validator.get_score(person2, 'Kenraalimajuri A. Snellman', ctx), 21)
 
         props = {'death_date': ['"1942-04-28"^^xsd:date'],
                 'latest_promotion_date': ['"1942-04-26"^^xsd:date'],
@@ -524,8 +535,9 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['A. Snellman', 'Kenraalimajuri A. Snellman'], 'id': 'id'}
         results = [person]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1941, 11, 20)
-        self.assertEqual(self.validator.get_score(person, 'Kenraalimajuri A. Snellman', results, ctx), -14)
+        self.assertEqual(self.validator.get_score(person, 'Kenraalimajuri A. Snellman', ctx), -14)
 
         props = {'death_date': ['"1976-09-02"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -550,10 +562,11 @@ class TestPersonValidation(TestCase):
         person3 = {'properties': props3, 'matches': ['Oiva Tuominen'], 'id': 'id3'}
         results = [person, person2, person3]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1942, 4, 27)
-        self.assertEqual(self.validator.get_score(person, 'lentomestari Oiva Tuominen', results, ctx), 6)
-        self.assertEqual(self.validator.get_score(person2, 'lentomestari Oiva Tuominen', results, ctx), -30)
-        self.assertEqual(self.validator.get_score(person3, 'lentomestari Oiva Tuominen', results, ctx), -60)
+        self.assertEqual(self.validator.get_score(person, 'lentomestari Oiva Tuominen', ctx), 5)
+        self.assertEqual(self.validator.get_score(person2, 'lentomestari Oiva Tuominen', ctx), -30)
+        self.assertEqual(self.validator.get_score(person3, 'lentomestari Oiva Tuominen', ctx), -60)
 
         props = {'death_date': ['"1944-06-30"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -581,10 +594,11 @@ class TestPersonValidation(TestCase):
         person3 = {'properties': props3, 'matches': ['sotamies Arvi Pesonen', 'Arvi Pesonen'], 'id': 'id3'}
         results = [person, person2, person3]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1944, 5, 31)
-        self.assertEqual(self.validator.get_score(person, 'sotamies Arvi Pesonen', results, ctx), 11)
-        self.assertEqual(self.validator.get_score(person2, 'sotamies Arvi Pesonen', results, ctx), -29)
-        self.assertEqual(self.validator.get_score(person3, 'sotamies Arvi Pesonen', results, ctx), -24)
+        self.assertEqual(self.validator.get_score(person, 'sotamies Arvi Pesonen', ctx), 10)
+        self.assertEqual(self.validator.get_score(person2, 'sotamies Arvi Pesonen', ctx), -35)
+        self.assertEqual(self.validator.get_score(person3, 'sotamies Arvi Pesonen', ctx), -25)
 
         props = {'death_date': ['"1944-06-15"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -597,8 +611,9 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
         results = [person]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1941, 8, 4)
-        self.assertEqual(self.validator.get_score(person, 'Tuomas Noponen', results, ctx), 0)
+        self.assertEqual(self.validator.get_score(person, 'Tuomas Noponen', ctx), 0)
 
         props = {'death_date': ['"1999-08-10"^^xsd:date', '"1999-08-10"^^xsd:date'],
                 'latest_promotion_date': ['"NA"', '"NA"'],
@@ -611,8 +626,9 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
         results = [person]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1941, 3, 5)
-        self.assertEqual(self.validator.get_score(person, 'Piirros Kari Suomalainen', results, ctx), 10)
+        self.assertEqual(self.validator.get_score(person, 'Piirros Kari Suomalainen', ctx), 10)
 
         props = {'promotion_date': ['"NA"', '"NA"'],
                 'latest_promotion_date': ['"NA"', '"NA"'],
@@ -624,8 +640,9 @@ class TestPersonValidation(TestCase):
                 'id': 'id1'}
         results = [person]
 
+        ctx = ValidationContext(self.validator.graph, results, s)
         ctx.s_date = date(1941, 8, 4)
-        self.assertEqual(self.validator.get_score(person, 'Reservin vänrikki Hämäläinen', results, ctx), 11)
+        self.assertEqual(self.validator.get_score(person, 'Reservin vänrikki Hämäläinen', ctx), 10)
 
         props = {'death_date': ['"1971-10-10"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -638,7 +655,8 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['Y. Pöyhönen'], 'id': 'id1'}
         results = [person]
 
-        self.assertEqual(self.validator.get_score(person, 'everstiluutnantti Y. Pöyhönen', results, ctx), 1)
+        ctx = ValidationContext(self.validator.graph, results, s)
+        self.assertEqual(self.validator.get_score(person, 'everstiluutnantti Y. Pöyhönen', ctx), -4)
 
         props = {'death_date': ['"1942-10-10"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -651,7 +669,8 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['sotamies Sukunimi'], 'id': 'id1'}
         results = [person]
 
-        self.assertEqual(self.validator.get_score(person, 'sotamies Sukunimi', results, ctx), 1)
+        ctx = ValidationContext(self.validator.graph, results, s)
+        self.assertEqual(self.validator.get_score(person, 'sotamies Sukunimi', ctx), -5)
 
         props = {'death_date': ['"1944-06-15"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -664,10 +683,10 @@ class TestPersonValidation(TestCase):
         person = {'properties': props, 'matches': ['Tuomas Noponen'], 'id': 'id1'}
         results = [person]
 
-        ctx = ValidationContext(self.validator.graph, URIRef('http://ldf.fi/warsa/photographs/sakuva_1000'))
-        self.assertEqual(self.validator.get_score(person, 'Tuomas Noponen', results, ctx), 1)
-        ctx = ValidationContext(self.validator.graph, URIRef('http://ldf.fi/warsa/photographs/sakuva_127026_test'))
-        self.assertEqual(self.validator.get_score(person, 'Tuomas Noponen', results, ctx), 21)
+        ctx = ValidationContext(self.validator.graph, results, URIRef('http://ldf.fi/warsa/photographs/sakuva_1000'))
+        self.assertEqual(self.validator.get_score(person, 'Tuomas Noponen', ctx), 1)
+        ctx = ValidationContext(self.validator.graph, results, URIRef('http://ldf.fi/warsa/photographs/sakuva_127026_test'))
+        self.assertEqual(self.validator.get_score(person, 'Tuomas Noponen', ctx), 21)
 
         props = {'death_date': ['"1944-09-02"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
@@ -685,18 +704,21 @@ class TestPersonValidation(TestCase):
         person2 = {'properties': props2, 'matches': ['A. Snellman'], 'id': 'id2'}
         results = [person, person2]
 
+        ctx = ValidationContext(self.validator.graph, results, URIRef('http://ldf.fi/warsa/photographs/sakuva_127026_test'))
         ctx.s_date = date(1942, 4, 27)
-        self.assertEqual(self.validator.get_score(person, 'A. Snellman', results, ctx), 22)
-        self.assertEqual(self.validator.get_score(person2, 'A. Snellman', results, ctx), -19)
+        self.assertEqual(self.validator.get_score(person, 'A. Snellman', ctx), 22)
+        self.assertEqual(self.validator.get_score(person2, 'A. Snellman', ctx), -19)
 
         person2 = {'properties': props2, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id2'}
         results = [person, person2]
 
-        self.assertEqual(self.validator.get_score(person2, 'kenraalikunta A. Snellman', results, ctx), 21)
-        self.assertEqual(self.validator.get_score(person, 'kenraalikunta A. Snellman', results, ctx), -9)
+        ctx = ValidationContext(self.validator.graph, results, URIRef('http://ldf.fi/warsa/photographs/sakuva_127026_test'))
+        ctx.s_date = date(1942, 4, 27)
+        self.assertEqual(self.validator.get_score(person2, 'kenraalikunta A. Snellman', ctx), 21)
+        self.assertEqual(self.validator.get_score(person, 'kenraalikunta A. Snellman', ctx), -9)
 
     def test_overall_score_with_unit(self):
-        unit = 'http://ldf.fi/warsa/actors/actor_2747'
+        unit = '<http://ldf.fi/warsa/actors/actor_2747>'
         props = {'death_date': ['"1942-02-07"^^xsd:date'],
                 'latest_promotion_date': ['"NA"'],
                 'promotion_date': ['"NA"'],
@@ -711,14 +733,14 @@ class TestPersonValidation(TestCase):
                 'hierarchy': ['"Aliupseeri"'],
                 'first_names': ['"Pauli"'],
                 'family_name': ['"Leskinen"'],
-                'unit': ['http://ldf.fi/warsa/actors/actor_2509'],
+                'unit': ['<http://ldf.fi/warsa/actors/actor_2509>'],
                 'rank': ['"Kersantti"']}
         reino = {'properties': props, 'matches': ['kersantti Leskinen'], 'id': 'id1'}
         pauli = {'properties': props2, 'matches': ['kersantti Leskinen'], 'id': 'id2'}
         results = [reino, pauli]
-        ctx = ValidationContext(self.validator.graph, URIRef('http://ldf.fi/warsa/photographs/sakuva_74965'))
-        self.assertEqual(self.validator.get_score(reino, '"kersantti Leskinen"', results, ctx), 16)
-        self.assertEqual(self.validator.get_score(pauli, '"kersantti Leskinen"', results, ctx), 6)
+        ctx = ValidationContext(self.validator.graph, results, URIRef('http://ldf.fi/warsa/photographs/sakuva_74965'))
+        self.assertEqual(self.validator.get_score(reino, '"kersantti Leskinen"', ctx), 10)
+        self.assertEqual(self.validator.get_score(pauli, '"kersantti Leskinen"', ctx), 0)
 
     def test_preprocessor(self):
         self.assertEqual(preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka,"
@@ -732,7 +754,7 @@ class TestPersonValidation(TestCase):
         self.assertEqual(preprocessor("Kenraali Walden Marsalkan junassa aterialla."), 'kenraalikunta Walden # kenraalikunta Mannerheim # junassa aterialla.')
         self.assertEqual(preprocessor('"Eläköön Sotamarsalkka"'), 'Eläköön # kenraalikunta Mannerheim #')
         self.assertEqual(preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies."), 'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.')
-        self.assertEqual(preprocessor("Majuri Laaksonen JR 8:ssa."), 'majuri Sulo Laaksonen JR 8:ssa.')
+        self.assertEqual(preprocessor("Majuri Laaksonen JR 8:ssa."), 'Majuri Laaksonen JR 8:ssa.')
         self.assertEqual(preprocessor("Everstiluutnantti Laaksonen"), 'everstiluutnantti Sulo Laaksonen')
         self.assertEqual(preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa."), 'Vas: everstiluutnantti Sulo Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.')
         self.assertEqual(preprocessor("Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä."), 'Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.')
@@ -750,7 +772,16 @@ class TestPersonValidation(TestCase):
         self.assertEqual(preprocessor("Virkki,erään lennon jälkeen."), 'Virkki, erään lennon jälkeen.')
         self.assertEqual(preprocessor("TK-mies Hiisivaara."), 'sotilasvirkamies Hiisivaara.')
         self.assertEqual(preprocessor("Tk-miehet Varo, Itänen ja Tenkanen kuvaamassa Väinämöisen ammuntaa"), 'sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa')
-        self.assertEqual(preprocessor("Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, V. Launonen ja Salmi sekä korpraali R. Keihta."), 'Rautaristin saajat: eversti A. Puroma, majuri A.G. Airimo majuri V. Lehvä, luutnantti K. Sarva luutnantti U. Jalkanen, vänrikki T. Laakso, vänrikki R. Kanto, vänrikki N. Vuolle vänrikki Y. Nuortio, kersantti T. Aspegren kersantti H. Kalliaisenaho, alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä korpraali R. Keihta.')
+        self.assertEqual(preprocessor(
+            "Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, "
+            "luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja "
+            "Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, "
+            "V. Launonen ja Salmi sekä korpraali R. Keihta."),
+            'Rautaristin saajat: eversti A. Puroma, majuri A.G. Airimo majuri V. Lehvä, '
+            'luutnantti K. Sarva luutnantti U. Jalkanen, vänrikki T. Laakso, vänrikki R. Kanto, '
+            'vänrikki N. Vuolle vänrikki Y. Nuortio, kersantti T. Aspegren kersantti H. Kalliaisenaho, '
+            'alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä '
+            'korpraali R. Keihta.')
         self.assertEqual(preprocessor("Everstiluutnantti Paasonen."), 'eversti Antero Paasonen.')
 
     def test_pruner(self):

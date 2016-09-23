@@ -298,12 +298,15 @@ def parse_date(d):
 class ValidationContext:
     dataset = ''
 
-    def __init__(self, graph, s):
+    def __init__(self, graph, results, s):
         self.s = s
         self.graph = graph
         self.original_text = graph.value(s, URIRef('http://www.w3.org/2004/02/skos/core#prefLabel'))
         self.s_date = self.get_s_start_date(s)
-        self.units = {str(u) for u in graph.objects(s, URIRef('http://ldf.fi/warsa/photographs/unit')) if u}
+        self.units = {'<{}>'.format(u) for u in graph.objects(s, URIRef('http://ldf.fi/warsa/photographs/unit')) if u}
+        self.results = results
+        self.ranked_matches = self.get_ranked_matches(results)
+        self.match_scores = self.get_match_scores(results)
 
     def get_s_start_date(self, s):
         def get_event_date():
@@ -331,11 +334,6 @@ class ValidationContext:
         else:
             raise Exception('Dataset not defined or invalid')
 
-
-class Validator:
-    def __init__(self, graph, *args, **kwargs):
-        self.graph = graph
-
     def get_ranked_matches(self, results):
         d = {x.get('id'): set(x.get('matches')) for x in results}
         dd = defaultdict(set)
@@ -359,6 +357,11 @@ class Validator:
                 scores[uri] = v['score']
 
         return scores
+
+
+class Validator:
+    def __init__(self, graph, *args, **kwargs):
+        self.graph = graph
 
     def get_death_date(self, person):
         """
@@ -452,33 +455,38 @@ class Validator:
 
     def get_rank_level(self, props, i):
         try:
-            return int(props.get('rank_level')[i])
-        except ValueError:
-            return 999
+            return int(re.sub(r'"(\d+)".*', r'\1', props.get('rank_level')[i]))
+        except Exception:
+            return 0
 
     def get_lowest_rank_level(self, person, date, rank_type):
         props = person['properties']
         ranks = self.get_fuzzy_current_ranks(person, date, 'rank', 0)
+        ranks = {r.lower() for r in ranks}
+        logger.debug('RANKS: {}'.format(ranks))
         lowest_rank = None
         for rank in ranks:
             if not lowest_rank or ALL_RANKS.get(rank, 0) > ALL_RANKS.get(lowest_rank, 0):
-                return ALL_RANKS.get(rank, 0)
-        if not lowest_rank:
-            for rank in props.get('ranks', []):
-                if not lowest_rank or ALL_RANKS.get(rank, 0) < ALL_RANKS.get(lowest_rank, 0):
-                    return ALL_RANKS.get(rank, 0)
-        return 0
+                lowest_rank = rank
+        if lowest_rank:
+            return ALL_RANKS.get(lowest_rank, 0)
+        for rank in props.get('ranks', []):
+            if not lowest_rank or ALL_RANKS.get(rank, 0) < ALL_RANKS.get(lowest_rank, 0):
+                lowest_rank = rank
+        return ALL_RANKS.get(lowest_rank, 0)
 
-    def filter_promotions_after_wars(self, person, rank_type):
+    def filter_promotions_outside_wars(self, person, rank_type):
         props = person['properties']
         res = set()
         lowest_level = self.get_lowest_rank_level(person, date(1939, 1, 1), rank_type)
-        for i, rank in enumerate(props.get(rank_type)):
+        logger.debug('LOWEST LEVEL: {}'.format(lowest_level))
+        for i, rank in enumerate([r.lower() for r in props.get(rank_type, [])]):
             rank = rank.replace('"', '')
             if rank == 'Yleisesikuntaupseeri':
                 # Yleisesikuntaupseeri is not an actual rank.
                 continue
-            if props.get('rank_level', 0) < lowest_level:
+            if self.get_rank_level(props, i) < lowest_level:
+                logger.debug('TOO LOW: {} ({})'.format(rank, self.get_rank_level(props, i)))
                 continue
             try:
                 promotion_date = parse_date(props.get('promotion_date')[i])
@@ -489,6 +497,7 @@ class Validator:
             if promotion_date < date(1946, 1, 1):
                 res.add(rank)
 
+        logger.debug('PROMS: {}'.format(res))
         return res
 
     def get_ranks_with_unknown_date(self, person, rank_type):
@@ -574,12 +583,12 @@ class Validator:
                 # Current rank not found, match ranks with unknown promotion dates
                 ranks = self.get_ranks_with_unknown_date(person, rank_type)
                 if self._check_rank(ranks, matches):
-                    return score + 11
+                    return score + 10
         else:
             # Unknown event date, match any rank
-            ranks = self.filter_promotions_after_wars(person, rank_type) or ['NA']
+            ranks = self.filter_promotions_outside_wars(person, rank_type) or ['NA']
             if self._check_rank(ranks, matches):
-                return score + 11
+                return score + 10
 
         # This person did not have the matched rank at this time
         logger.info('Reducing score because of inconsistent rank: {} ({}) [{}]'.format(
@@ -642,6 +651,8 @@ class Validator:
             if re.search(very_first_name, match_str):
                 score += 5
 
+        if score == 0:
+            score = -5
         return score
 
     def get_source_score(self, person):
@@ -659,7 +670,7 @@ class Validator:
             return True
         return False
 
-    def get_knight_score(self, person, text, results):
+    def get_knight_score(self, person, text, results, ranked_matches):
         """
         A person that is a knight of the Mannerheim cross get a higher score
         if the context mentions knighthood. Non-knights' scores are reduced
@@ -677,7 +688,6 @@ class Validator:
 
         result_dict = {x['id']: x for x in results}
 
-        ranked_matches = self.get_ranked_matches(results)
         for match, val in ranked_matches.items():
             uris = val['uris']
             if person['id'] in uris:
@@ -696,11 +706,13 @@ class Validator:
         Score person higher if the photo has the same unit as the person.
         """
         person_units = set(person['properties'].get('unit', []))
+        logger.debug('PERSON UNITS: {}'.format(person_units))
+        logger.debug('PHOTO UNITS: {}'.format(units))
         if units.intersection(person_units):
             return 10
         return 0
 
-    def get_score(self, person, text, results, ctx):
+    def get_score(self, person, text, ctx):
         person_id = person.get('id')
         logger.debug('Scoring {} ({}) [{}]'.format(person.get('label'), person_id,
             ', '.join(set(person.get('properties', {}).get('rank', [])))))
@@ -710,8 +722,7 @@ class Validator:
             logger.debug('Mannerheim score')
             return 50
 
-        ranked_matches = self.get_match_scores(results)
-        rms = ranked_matches.get(person.get('id'), 0)
+        rms = ctx.match_scores.get(person.get('id'), 0)
         logger.debug('Match score: {}'.format(rms))
 
         ds = self.get_date_score(person, ctx.s_date, ctx.s, ctx.original_text)
@@ -726,7 +737,7 @@ class Validator:
         ss = self.get_source_score(person)
         logger.debug('Source score: {}'.format(ss))
 
-        ks = self.get_knight_score(person, ctx.original_text, results)
+        ks = self.get_knight_score(person, ctx.original_text, ctx.results, ctx.ranked_matches)
         logger.debug('Knight score: {}'.format(ks))
 
         us = self.get_unit_score(person, ctx.units)
@@ -734,13 +745,42 @@ class Validator:
 
         return rms + ds + rs + ns + ss + ks + us
 
+    def choose_best(self, res):
+        if res and len(res) > 1:
+            match_dict = {}
+            logger.info("Choosing the best score")
+            for person in res:
+                for match in set(person['matches']):
+                    # {'kapteeni Kalpamaa': {'score': 1, 'persons': [persons]}}
+                    best_match_score = match_dict.get(match, {}).get('score', 0)
+                    if person['score'] > best_match_score:
+                        match_dict[match] = {'score': person['score'], 'persons': [person]}
+                    elif person['score'] == best_match_score:
+                        match_dict[match]['persons'].append(person)
+                    else:
+                        logger.warning("LOW SCORE: {} score {}".format(person['id'], person['score']))
+            best = []
+            ids = set()
+            for m, val in match_dict.items():
+                for p in val['persons']:
+                    if p['id'] not in ids:
+                        ids.add(p['id'])
+                        best.append(p)
+                logger.info("BEST: {} score {} ({})".format([p['id'] for p in val['persons']],
+                    val['score'], m))
+            logger.info("{}/{} chosen".format(len(best), len(res)))
+            return best
+        return res
+
     def validate(self, results, text, s):
         if not results:
             return results
         res = []
-        context = ValidationContext(self.graph, s)
+        context = ValidationContext(self.graph, results, s)
+        logger.info('ORIG: {}'.format(context.original_text))
         for person in results:
-            score = self.get_score(person, text, results, context)
+            score = self.get_score(person, text, context)
+
             log_msg = "{} ({}) scored {} [{}]".format(
                 person.get('label'),
                 person.get('id'),
@@ -749,6 +789,7 @@ class Validator:
 
             if score > 0:
                 log_msg = "PASS: " + log_msg
+                person['score'] = score
                 res.append(person)
             else:
                 log_msg = "FAIL: " + log_msg
@@ -756,10 +797,7 @@ class Validator:
             logger.info(log_msg)
 
         logger.info("{}/{} passed validation".format(len(res), len(results)))
-
-        return res
-
-        # l = graph.value(s, SKOS.prefLabel)
+        return self.choose_best(res)
 
 
 _name_part = r'[A-ZÄÖÅ]' + r'(?:(?:\.\s*|\w+\s+)?[A-ZÄÖÅ])?' * 2
@@ -945,13 +983,16 @@ def preprocessor(text, *args):
     text = re.sub(r'[Yy]lipäällik(kö|ön|ölle|köä|kön)\b', '# kenraalikunta Mannerheim #', text)
     text = re.sub(r'Marski(n|a|lle)?\b', '# kenraalikunta Mannerheim #', text)
 
+    # v. -> von (exclude e.g. "6 v.")
+    text = re.sub(r'(?<!\d[- ])(?<!\d)\bv\.\s*(?=[A-ZÄÖÅ])', 'von ', text)
     # E.g. von Bonin -> von_Bonin
     text = re.sub(r'\bvon\s+(?=[A-ZÄÅÖ])', 'von_', text)
 
-    text = text.replace('A.K Airimo', 'A.G. Airimo')
-
     # E.g. "TK-mies"
-    text = re.sub(r'[Tk][Kk]-[a-zäåö]+', r'sotilasvirkamies', text)
+    text = re.sub(r'[Tk][Kk]-[a-zäåö]+', 'sotilasvirkamies', text)
+
+    # Note the missing period
+    text = text.replace('A.K Airimo', 'A.G. Airimo')
 
     for r in to_be_lowercased:
         text = text.replace(r, r.lower())
@@ -988,7 +1029,6 @@ def preprocessor(text, *args):
 
     text = re.sub(r'[Ll]ääkintäkenraali\b', 'kenraalikunta', text)
 
-    text = text.replace('Paavo Nurmi', '#')
     text = text.replace('Heinrichsin', 'Heinrichs')
     text = text.replace('Laiva Josif Stalin', '#')
     text = re.sub(r'(Aleksandra\W)?Kollontai(\b|lle|n|hin)', 'Alexandra Kollontay', text)
@@ -1020,8 +1060,6 @@ def preprocessor(text, *args):
     text = re.sub(r'(?<!3\. )(?<!III )(luutnantti|[Vv]änrikki|Lauri Wilhelm) Nissi(nen|sen)\b', '# vänrikki Lauri Nissinen #', text)
     text = text.replace('Cajander', 'Aimo Kaarlo Cajander')
     text = re.sub(r'[Ee]versti(luutnantti)? Laaksonen', 'everstiluutnantti Sulo Laaksonen', text)
-    if 'JR 8' in text.upper():
-        text = re.sub(r'\b[Mm]ajuri Laaksonen', 'majuri Sulo Laaksonen', text)
     # Needs tweaking for photos
     # text = text.replace('E. Mäkinen', '## kenraalimajuri Mäkinen')
     text = re.sub(r'(?<!Aimo )(?<!Aukusti )(?<!Y\.)Tanner', '# Väinö Tanner #', text)
@@ -1115,4 +1153,4 @@ if __name__ == '__main__':
     args = sys.argv[0:1] + sys.argv[2:]
 
     process_stage(args, ignore=ignore, validator_class=Validator,
-            preprocessor=preprocessor, pruner=pruner, log_level='INFO')
+            preprocessor=preprocessor, pruner=pruner, log_level='DEBUG')
