@@ -743,24 +743,37 @@ class TestPersonValidation(TestCase):
         self.assertEqual(self.validator.get_score(pauli, '"kersantti Leskinen"', ctx), 0)
 
     def test_preprocessor(self):
-        self.assertEqual(preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka,"
-            " everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko."), 'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola, # Juho Koivisto, ministeri Salovaara, ministeri Horelli, ministeri Arola, ministeri Honka, everstiluutnantti Varis, everstiluutnantti Ehnrooth, everstiluutnantti Juva, everstiluutnantti Heimolainen, everstiluutnantti Björnström, majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.')
+        self.assertEqual(preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, "
+            "ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, "
+            "everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, "
+            "majurit: Müller, Pennanen, Kalpamaa, Varko."),
+            'Kuva ruokailusta. Ruokailussa läsnä: kenraalimajuri Martola, '
+            'Juho Koivisto, ministeri Salovaara, ministeri Horelli, ministeri Arola, ministeri Honka, '
+            'everstiluutnantti Varis, everstiluutnantti Ehnrooth, everstiluutnantti Juva, '
+            'everstiluutnantti Heimolainen, everstiluutnantti Björnström, '
+            'majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.')
         self.assertEqual(preprocessor("Kenraali Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa."), 'kenraalikunta Hägglund seuraa maastoammuntaa Aunuksen kannaksen mestaruuskilpailuissa.')
         self.assertEqual(preprocessor("Kenraali Karl Oesch seuraa maastoammuntaa."), 'kenraalikunta Karl Oesch seuraa maastoammuntaa.')
         self.assertEqual(preprocessor("Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa."), 'Korkeaa upseeristoa maastoammunnan Aunuksen kannaksen mestaruuskilpailuissa.')
-        self.assertEqual(preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalit Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45."), '# Risto Ryti #, sotamarsalkka Mannerheim, pääministeri, kenraalikunta Neuvonen, kenraalikunta Walden, kenraalikunta Mäkinen, eversti Sihvo, kenraalikunta Airo, kenraalikunta Oesch, eversti Hersalo ym. klo 12.45.')
+        self.assertEqual(preprocessor("Presidentti Ryti, sotamarsalkka Mannerheim, pääministeri, "
+                    "kenraalit Neuvonen,Walden,Mäkinen, eversti Sihvo, kenraali Airo,Oesch, eversti Hersalo ym. klo 12.45."),
+                'Risto Ryti, sotamarsalkka Mannerheim, pääministeri, kenraalikunta Neuvonen, kenraalikunta Walden, kenraalikunta Mäkinen, eversti Sihvo, kenraalikunta Airo, kenraalikunta Oesch, '
+                'eversti Hersalo ym. klo 12.45.')
         self.assertEqual(preprocessor("Sotamarsalkka Raasulissa."), '# kenraalikunta Mannerheim # Raasulissa.')
         self.assertEqual(preprocessor("Eräs Brewster-koneista, jotka seurasivat marsalkan seuruetta."), 'Eräs Brewster-koneista, jotka seurasivat # kenraalikunta Mannerheim # seuruetta.')
         self.assertEqual(preprocessor("Kenraali Walden Marsalkan junassa aterialla."), 'kenraalikunta Walden # kenraalikunta Mannerheim # junassa aterialla.')
         self.assertEqual(preprocessor('"Eläköön Sotamarsalkka"'), 'Eläköön # kenraalikunta Mannerheim #')
-        self.assertEqual(preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies."), 'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies.')
+        self.assertEqual(preprocessor("Fältmarsalk Mannerheim mattager Hangögruppens anmälar av Öv. Koskimies."),
+                'sotamarsalkka Mannerheim mattager Hangögruppens anmälar av eversti Koskimies.')
         self.assertEqual(preprocessor("Majuri Laaksonen JR 8:ssa."), 'Majuri Laaksonen JR 8:ssa.')
-        self.assertEqual(preprocessor("Everstiluutnantti Laaksonen"), 'everstiluutnantti Sulo Laaksonen')
-        self.assertEqual(preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa."), 'Vas: everstiluutnantti Sulo Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.')
+        self.assertEqual(preprocessor("Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantit Paajanen ja Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa."), 'Vas: eversti Laaksonen, kapteeni Karu, ylikersantti Vorho, ja alikersantti Paajanen alikersantti Nordin filmattavina. Oik. komentajakapteeni Arho juttelee muiden Mannerheim-ritarien kanssa.')
         self.assertEqual(preprocessor("Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä."), 'Majuri Laaksosen komentopaikka mistä johdettiin viivytystaistelua Karhumäkilinjalla. Majuri Laaksonen seisomassa kuvan keskellä.')
         self.assertEqual(preprocessor("Luutn. Juutilainen Saharan kauhu jouluk. Alussa."), '# kapteeni Juutilainen # # kapteeni Juutilainen # jouluk. Alussa.')
         self.assertEqual(preprocessor("Kapteenit Palolampi ja Juutilainen ratsailla Levinassa."), 'kapteeni Palolampi kapteeni Juutilainen ratsailla Levinassa.')
-        self.assertEqual(preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala."), 'kenraalit keskustelevat pienen tauon aikana, vas: eversti Antero Paasonen, kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.')
+        self.assertEqual(preprocessor("kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, "
+                    "kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala."),
+                'kenraalit keskustelevat pienen tauon aikana, vas: eversti Paasonen, '
+                'kenraalimajuri Palojärvi, kenraalimajuri Svanström, Yl.Esikuntapäällikkö jalkaväenkenraali Heinrichs ja eversti Vaala.')
         self.assertEqual(preprocessor("Radioryhmän toimintaa: Selostaja työssään ( Vänrikki Seiva, sot.virk. Kumminen ja Westerlund)."), 'Radioryhmän toimintaa: Selostaja työssään ( vänrikki Seiva, sotilasvirkamies Kumminen sotilasvirkamies Westerlund).')
         self.assertEqual(preprocessor("TK-rintamakirjeenvaihtaja Yläjärvellä (vas. Sot.virk. Kapra, Jalkanen, vänr. Rahikainen)."), 'sotilasvirkamies Yläjärvellä (vas. sotilasvirkamies Kapra, sotilasvirkamies Jalkanen, vänrikki Rahikainen).')
         self.assertEqual(preprocessor("Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sot.virk.Zenker, Farr, luutnantti Miettinen,etualalla oikealla Scott."), 'Ulkomaisten lehtimiesten retkikunta etulinjan komentopaikalla Tornion rintamalla 3/10-44. Komentaja, everstiluutnantti Halsti selostaa tilannetta kaistallaan piirtäen kepillä kartan maantiehen. Komentajasta oikealla: Björnsson Mehlem, sotilasvirkamies Zenker, sotilasvirkamies Farr, luutnantti Miettinen, etualalla oikealla Scott.')
@@ -771,9 +784,10 @@ class TestPersonValidation(TestCase):
         self.assertEqual(preprocessor("TK-Pärttyli Virkki erään lennon jälkeen."), 'sotilasvirkamies Pärttyli Virkki erään lennon jälkeen.')
         self.assertEqual(preprocessor("Virkki,erään lennon jälkeen."), 'Virkki, erään lennon jälkeen.')
         self.assertEqual(preprocessor("TK-mies Hiisivaara."), 'sotilasvirkamies Hiisivaara.')
-        self.assertEqual(preprocessor("Tk-miehet Varo, Itänen ja Tenkanen kuvaamassa Väinämöisen ammuntaa"), 'sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa')
+        self.assertEqual(preprocessor("Tk-miehet Varo, Itänen ja Tenkanen kuvaamassa Väinämöisen ammuntaa"),
+                'sotilasvirkamies Varo, sotilasvirkamies Itänen sotilasvirkamies Tenkanen kuvaamassa Väinämöisen ammuntaa')
         self.assertEqual(preprocessor(
-            "Rautaristin saajat: Eversti A. Puroma, majurit A.K Airimo ja V. Lehvä, "
+            "Rautaristin saajat: Eversti A. Puroma, majurit A.G. Airimo ja V. Lehvä, "
             "luutnantit K. Sarva ja U. Jalkanen, vänrikit T. Laakso, R. Kanto, N. Vuolle ja "
             "Y. Nuortio, kersantit T. Aspegren ja H. Kalliaisenaho, alikersantit L. Nousiainen, "
             "V. Launonen ja Salmi sekä korpraali R. Keihta."),
@@ -782,7 +796,6 @@ class TestPersonValidation(TestCase):
             'vänrikki N. Vuolle vänrikki Y. Nuortio, kersantti T. Aspegren kersantti H. Kalliaisenaho, '
             'alikersantti L. Nousiainen, alikersantti V. Launonen alikersantti Salmi sekä '
             'korpraali R. Keihta.')
-        self.assertEqual(preprocessor("Everstiluutnantti Paasonen."), 'eversti Antero Paasonen.')
 
     def test_pruner(self):
         self.assertEqual(pruner('Kenraali Engelbrecht'), 'Kenraali Engelbrecht')
