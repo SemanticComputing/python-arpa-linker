@@ -33,6 +33,8 @@ def preprocessor(text, *args):
     'Kenraalimajuri E.J.Raappana seurueineen.'
     >>> preprocessor("J.R.8. komentaja, ev. Antti")
     'JR 8. komentaja, ev. Antti'
+    >>> preprocessor("Harlu JP.I.")
+    'Harlu JP 1.'
     """
     text = text.strip()
     # KLo = Kotkan Lohko, 'Klo' will match
@@ -50,9 +52,12 @@ def preprocessor(text, *args):
     # J.R. -> JR
     text = re.sub(r'\bJ\.[Rr]\.?\s*(?=\d)', 'JR ', text)
     # JR, JP
-    text = re.sub(r'\b(J[RrPp])\.?(?=\d+)', r'\1 ', text)
+    text = re.sub(r'\b(J[RrPp])\.?(?=\d|I)', r'\1 ', text)
     # JR/55 -> JR 55
-    text = re.sub(r'\b(?<=J[Rr])/(?=\d+)', r' ', text)
+    text = re.sub(r'\b(?<=J[Rr])/(?=\d)', ' ', text)
+
+    text = re.sub(r'\b(?<=J[RrPp] )I', '1', text)
+    text = re.sub(r'\b(?<=J[RrPp] )II', '2', text)
 
     # AK, AKE
     text = re.sub(r'([IV])\.\s*(?=AKE?)', r'\1 ', text)
