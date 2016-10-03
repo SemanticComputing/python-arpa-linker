@@ -110,6 +110,12 @@ class TestPersonValidation(TestCase):
 
         self.assertTrue(self.validator.has_consistent_rank(person, "sotamies Turtti kenraalikunta A. Snellman"))
 
+        props = {'hierarchy': ['"Kenraalikunta"'],
+        'rank': ['"Kenraalimajuri"']}
+        person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
+
+        self.assertFalse(self.validator.has_consistent_rank(person, "sotamies Turtti A. Snellman"))
+
         person = {'properties': props, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id'}
 
         self.assertTrue(self.validator.has_consistent_rank(person, "kenraalikunta A. Snellman"))

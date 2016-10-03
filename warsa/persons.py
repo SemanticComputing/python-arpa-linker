@@ -520,6 +520,10 @@ class Validator:
         matches are already scored accordingly, or there is no match with a rank.
         """
 
+        # The match might be misleading: e.g. "Aarne Snellman"
+        # in "sotamies Antero Aarne Snellman" is not preceded by a rank, yet
+        # the rank is obviously inconsistent if "Aarne Snellman" is e.g. "eversti".
+        # Thus look one word further if the preceding word is name-like.
         text_rank_re = r'\b(\w+)\s+(?:(?:\w+\s+)|(?:[A-ZÄÅÖÜ]\.\s+))?'
         text_ranks = []
 
