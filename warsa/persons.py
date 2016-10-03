@@ -34,7 +34,7 @@ RANK_CLASS_SCORES = {
     'Komppaniaupseeri': 0,
     'Upseeri': 0,
     'kirkollinen henkilöstö': 1,
-    'Aliupseeri': -5,
+    'Aliupseeri': -10,
     'Miehistö': -10,
     'lottahenkilöstö': 0,
     'virkahenkilöstö': 0,
@@ -585,17 +585,17 @@ class Validator:
             # Event has a date
             ranks = self.get_fuzzy_current_ranks(person, s_date, rank_type)
             if self._check_rank(ranks, matches):
-                return score + 20
+                return score + 10
             else:
                 # Current rank not found, match ranks with unknown promotion dates
                 ranks = self.get_ranks_with_unknown_date(person, rank_type)
                 if self._check_rank(ranks, matches):
-                    return score + 10
+                    return score + 5
         else:
             # Unknown event date, match any rank
             ranks = self.filter_promotions_outside_wars(person, rank_type) or ['NA']
             if self._check_rank(ranks, matches):
-                return score + 10
+                return score + 5
 
         # This person did not have the matched rank at this time
         logger.info('Reducing score because of inconsistent rank: {} ({}) [{}]'.format(
@@ -762,7 +762,7 @@ class Validator:
                     # {'kapteeni Kalpamaa': {'score': 1, 'persons': [persons]}}
                     best_match_score = match_dict.get(match, {}).get('score', 0)
                     if person['score'] > best_match_score:
-                        if match_dict[match]:
+                        if match_dict.get(match):
                             for p in match_dict[match]['persons']:
                                 logger.warning("LOW SCORE: {} score {}".format(p['id'], p['score']))
                         match_dict[match] = {'score': person['score'], 'persons': [person]}

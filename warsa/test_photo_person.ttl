@@ -214,3 +214,13 @@
     sch:thumbnailUrl "http://sa-kuva.fi/static/49/65/74965_r100.jpg" ;
     skos:prefLabel "Sissipataljoona 2. hiihtoammuntakilpailusta: Tässä ottaa kilpailun voittaja kersantti Leskinen komeasti mäen. Hän hiihti parhaan ajan ja ampui täydet pisteet. Eikä ihmekään sillä hän on siviilissä Pohjois-Savon Nuorten mestari." .
 
+:sakuva_37700 a :Photograph ;
+    :place_string "Rukajärven suunta, I/KTR 18 ja III/JR56" ;
+    :theme "F321" ;
+    dc:created "1942-07-23"^^xsd:date ;
+    dc:creator "Luutnantti J. Laukkonen" ;
+    dc:description "Partio palannut, luutn. Järvinen kertoilee kuulumisiaan, joita TK-mies (taustalla) tarkkaavaisena kuuntelee." ;
+    dc:source sources:source13 ;
+    sch:contentUrl "http://sa-kuva.fi/static/77/00/37700_r500.jpg" ;
+    sch:thumbnailUrl "http://sa-kuva.fi/static/77/00/37700_r100.jpg" ;
+    skos:prefLabel "Partio palannut, luutn. Järvinen kertoilee kuulumisiaan, joita TK-mies (taustalla) tarkkaavaisena kuuntelee." .

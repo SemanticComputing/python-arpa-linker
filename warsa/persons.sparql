@@ -94,7 +94,7 @@ WHERE {
     }
   }
   OPTIONAL {
-    ?id ^crm:P143_joined/crm:P144_joined_with ?unit .
+    ?id ^crm:P143_joined/crm:P144_joined_with/(^crm:P143_joined/crm:P144_joined_with)? ?unit .
   }
   OPTIONAL {
     ?death crm:P100_was_death_of ?id .
