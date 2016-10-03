@@ -80,6 +80,36 @@ class TestPersonValidation(TestCase):
 
         self.assertFalse(self.validator.has_consistent_rank(person, "sotamies A. Snellman"))
 
+        props = {'hierarchy': ['"Kenraalikunta"'],
+        'rank': ['"Kenraalimajuri"']}
+        person = {'properties': props, 'matches': ['kenraalikunta Snellman'], 'id': 'id'}
+
+        self.assertTrue(self.validator.has_consistent_rank(person, "kenraalikunta Snellman"))
+
+        props = {'hierarchy': ['"Kenraalikunta"'],
+        'rank': ['"Kenraalimajuri"']}
+        person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
+
+        self.assertFalse(self.validator.has_consistent_rank(person, "sotamies E. A. Snellman"))
+
+        props = {'hierarchy': ['"Kenraalikunta"'],
+        'rank': ['"Kenraalimajuri"']}
+        person = {'properties': props, 'matches': ['Aarne Snellman'], 'id': 'id'}
+
+        self.assertFalse(self.validator.has_consistent_rank(person, "sotamies Turo Aarne Snellman"))
+
+        props = {'hierarchy': ['"Kenraalikunta"'],
+        'rank': ['"Kenraalimajuri"']}
+        person = {'properties': props, 'matches': ['kenraalikunta Snellman'], 'id': 'id'}
+
+        self.assertTrue(self.validator.has_consistent_rank(person, "sotamies Turtti kenraalikunta Snellman"))
+
+        props = {'hierarchy': ['"Kenraalikunta"'],
+        'rank': ['"Kenraalimajuri"']}
+        person = {'properties': props, 'matches': ['A. Snellman'], 'id': 'id'}
+
+        self.assertTrue(self.validator.has_consistent_rank(person, "sotamies Turtti kenraalikunta A. Snellman"))
+
         person = {'properties': props, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id'}
 
         self.assertTrue(self.validator.has_consistent_rank(person, "kenraalikunta A. Snellman"))
@@ -706,7 +736,7 @@ class TestPersonValidation(TestCase):
 
         ctx = ValidationContext(self.validator.graph, results, URIRef('http://ldf.fi/warsa/photographs/sakuva_127026_test'))
         ctx.s_date = date(1942, 4, 27)
-        self.assertEqual(self.validator.get_score(person, 'A. Snellman', ctx), 22)
+        self.assertEqual(self.validator.get_score(person, 'A. Snellman', ctx), 21)
         self.assertEqual(self.validator.get_score(person2, 'A. Snellman', ctx), -19)
 
         person2 = {'properties': props2, 'matches': ['kenraalikunta A. Snellman', 'A. Snellman'], 'id': 'id2'}

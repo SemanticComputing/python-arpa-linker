@@ -31,8 +31,8 @@ SOURCES = {
 RANK_CLASS_SCORES = {
     'Kenraalikunta': 1,
     'Esiupseeri': 1,
-    'Komppaniaupseeri': 1,
-    'Upseeri': 1,
+    'Komppaniaupseeri': 0,
+    'Upseeri': 0,
     'kirkollinen henkilöstö': 1,
     'Aliupseeri': -5,
     'Miehistö': -10,
@@ -520,10 +520,13 @@ class Validator:
         matches are already scored accordingly, or there is no match with a rank.
         """
 
-        text_rank_re = r'\b(\w+)\b\s+'
+        text_rank_re = r'\b(\w+)\s+(?:(?:\w+\s+)|(?:[A-ZÄÅÖÜ]\.\s+))?'
         text_ranks = []
 
         for match in set(person['matches']):
+            if all_ranks_regex.findall(match) or all_rank_classes_regex.findall(match):
+                # Rank already in match
+                return True
             ranks_in_text = re.findall(text_rank_re + match, text)
             for r in ranks_in_text:
                 if all_ranks_regex.findall(r) or all_rank_classes_regex.findall(r):
@@ -610,9 +613,9 @@ class Validator:
         else:
             if diff.days > 30:
                 logger.info(
-                    "DEAD PERSON: {p_label} ({p_uri}) died ({death_date}) more than a month"
+                    "DEAD PERSON: {p_label} ({p_uri}) died ({death_date}) more than a month "
                     "({diff} days) before start ({s_date}) of event {e_label} ({e_uri})"
-                    .format(p_label=person.get('label'), p_uri=person.get('id'), diff=diff,
+                    .format(p_label=person.get('label'), p_uri=person.get('id'), diff=diff.days,
                         death_date=death_date, s_date=s_date, e_uri=s, e_label=e_label))
                 score -= 30
             elif diff.days >= 0:
@@ -661,7 +664,8 @@ class Validator:
             return 0
 
         score = max([SOURCES.get(s, 0) for s in sources])
-        score += len(sources) - 1
+        # Give one extra point if the person has multiple sources
+        score += 1 if len(sources) > 1 else 0
         return score
 
     def is_knight(self, person):
