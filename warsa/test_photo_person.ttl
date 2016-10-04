@@ -224,3 +224,34 @@
     sch:contentUrl "http://sa-kuva.fi/static/77/00/37700_r500.jpg" ;
     sch:thumbnailUrl "http://sa-kuva.fi/static/77/00/37700_r100.jpg" ;
     skos:prefLabel "Partio palannut, luutn. Järvinen kertoilee kuulumisiaan, joita TK-mies (taustalla) tarkkaavaisena kuuntelee." .
+
+:sakuva_51458 a :Photograph ;
+    :place_string "Immola" ;
+    :theme "H126" ;
+    dc:created "1941-10-10"^^xsd:date ;
+    dc:creator "Sot.virk. Pärttyli Virkki" ;
+    dc:description "Lentomestari Tuominen tarkastelee koneen konekiväärejä." ;
+    dc:source sources:source13 ;
+    sch:contentUrl "http://sa-kuva.fi/static/14/58/51458_r500.jpg" ;
+    sch:thumbnailUrl "http://sa-kuva.fi/static/14/58/51458_r100.jpg" ;
+    skos:prefLabel "Lentomestari Tuominen tarkastelee koneen konekiväärejä." .
+
+:sakuva_44324 a :Photograph ;
+    :place_string "Römpötti" ;
+    :theme "207" ;
+    dc:creator "Luutnantti J.Ilanko" ;
+    dc:description "Mannerheim-ristin ritari lentomestari Oiva Tuominen, jolla on 30 ilmavoittoa tilillään, odottaa lentueen hälytystä. Syyskuu 1942." ;
+    dc:source sources:source13 ;
+    sch:contentUrl "http://sa-kuva.fi/static/43/24/44324_r500.jpg" ;
+    sch:thumbnailUrl "http://sa-kuva.fi/static/43/24/44324_r100.jpg" ;
+    skos:prefLabel "Mannerheim-ristin ritari lentomestari Oiva Tuominen, jolla on 30 ilmavoittoa tilillään, odottaa lentueen hälytystä. Syyskuu 1942." .
+
+:sakuva_89614 a :Photograph ;
+    :place_string "Joensuu, Niittylahti, Tohmajärvi" ;
+    dc:creator "Wiro, P.J., luutn." ;
+    dc:description "Vääpeli Tuominen ltn. Linkolan lentueesta, joka ampui Joensuun lähellä 3 (4?) konetta alas" ;
+    dc:source sources:source13 ;
+    sch:contentUrl "http://sa-kuva.fi/static/96/14/89614_r500.jpg" ;
+    sch:thumbnailUrl "http://sa-kuva.fi/static/96/14/89614_r100.jpg" ;
+    skos:prefLabel "Vääpeli Tuominen ltn. Linkolan lentueesta, joka ampui Joensuun lähellä 3 (4?) konetta alas" .
+

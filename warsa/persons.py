@@ -34,8 +34,8 @@ RANK_CLASS_SCORES = {
     'Komppaniaupseeri': 0,
     'Upseeri': 0,
     'kirkollinen henkilöstö': 1,
-    'Aliupseeri': -10,
-    'Miehistö': -10,
+    'Aliupseeri': -7,
+    'Miehistö': -7,
     'lottahenkilöstö': 0,
     'virkahenkilöstö': 0,
     'Jääkäriarvo': 0,
@@ -47,48 +47,6 @@ RANK_CLASS_SCORES = {
     'musiikkihenkilöstö': 0,
     'tekninen henkilöstö': 0,
     'NA': 0
-}
-
-RANK_HIERARCHY = {
-    'suomen marsalkka': 25,
-    'sotamarsalkka': 24,
-    'amiraali': 23,
-    'kenraali': 23,
-    'kenraaliluutnantti': 22,
-    'vara-amiraali': 22,
-    'kenraalimajuri': 21,
-    'kontra-amiraali': 21,
-    'lippueamiraali': 20,
-    'prikaatikenraali': 20,
-    'eversti': 19,
-    'kommodori': 19,
-    'everstiluutnantti': 18,
-    'komentaja': 18,
-    'komentajakapteeni': 17,
-    'majuri': 17,
-    'kapteeni': 16,
-    'kapteeniluutnantti': 16,
-    'yliluutnantti': 15,
-    'luutnantti': 14,
-    'aliluutnantti': 12,
-    'vänrikki': 12,
-    'sotilasmestari': 11,
-    'ylipursimies': 8,
-    'ylivääpeli': 8,
-    'pursimies': 7,
-    'vääpeli': 7,
-    'ylikersantti': 6,
-    'kersantti': 5,
-    'neuvostoliiton marsalkka': 5,
-    '1. luokan armeijankomentaja': 4,
-    'alikersantti': 4,
-    '2. luokan armeijankomentaja': 3,
-    'armeijakunnankomentaja': 2,
-    'hauptzugführer': 2,
-    'divisioonankomentaja': 1,
-    'korpraali': 1,
-    'oberzugführer': 1,
-    'ylimatruusi': 1
 }
 
 ALL_RANKS = {
@@ -585,17 +543,17 @@ class Validator:
             # Event has a date
             ranks = self.get_fuzzy_current_ranks(person, s_date, rank_type)
             if self._check_rank(ranks, matches):
-                return score + 10
+                return score + 8
             else:
                 # Current rank not found, match ranks with unknown promotion dates
                 ranks = self.get_ranks_with_unknown_date(person, rank_type)
                 if self._check_rank(ranks, matches):
-                    return score + 5
+                    return score + 7
         else:
             # Unknown event date, match any rank
             ranks = self.filter_promotions_outside_wars(person, rank_type) or ['NA']
             if self._check_rank(ranks, matches):
-                return score + 5
+                return score + 7
 
         # This person did not have the matched rank at this time
         logger.info('Reducing score because of inconsistent rank: {} ({}) [{}]'.format(
@@ -654,12 +612,10 @@ class Validator:
         very_first_name = re.sub(r'^(\S+)\b.*$', r'\\b\1\\b', first_names)
         first_names = r'(\b{}\b)'.format(re.sub(r'\s+', r'\\b|\\b', first_names))
         if re.search(first_names, match_str):
-            score += 5
+            score += 3
             if re.search(very_first_name, match_str):
-                score += 5
+                score += 2
 
-        if score == 0:
-            score = -5
         return score
 
     def get_source_score(self, person):
@@ -717,7 +673,7 @@ class Validator:
         logger.debug('PERSON UNITS: {}'.format(person_units))
         logger.debug('PHOTO UNITS: {}'.format(units))
         if units.intersection(person_units):
-            return 10
+            return 15
         return 0
 
     def get_score(self, person, text, ctx):
@@ -1111,7 +1067,7 @@ def preprocessor(text, *args):
     if text.strip() == 'Illalla venäläisten viimeiset evakuointialukset mm. Josif Stalin lähtivät Hangosta.':
         return ''
     if text == "Lentomestari Oippa Tuominen.":
-        text = "lentomestari Tuominen"
+        text = "lentomestari Oiva Tuominen"
         logger.info('=> {}'.format(text))
         return text
     orig = text
@@ -1207,4 +1163,4 @@ if __name__ == '__main__':
     args = sys.argv[0:1] + sys.argv[2:]
 
     process_stage(args, ignore=ignore, validator_class=Validator,
-            preprocessor=preprocessor, pruner=pruner, log_level='DEBUG')
+            preprocessor=preprocessor, pruner=pruner, log_level='INFO')
