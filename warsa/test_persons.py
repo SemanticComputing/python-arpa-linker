@@ -334,7 +334,7 @@ class TestPersonValidation(TestCase):
 
         ranks = {'promotion_date': ['"NA"', '"NA"'],
                 'latest_promotion_date': ['"NA"', '"NA"'],
-                'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
+                'hierarchy': ['"Aliupseeri"', '"Virkahenkilöstö"'],
                 'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         person = {'properties': ranks, 'matches': ['Kari Suomalainen']}
 
@@ -425,7 +425,13 @@ class TestPersonValidation(TestCase):
         person = {'properties': {'first_names': ['"Viljo Wiljo Einar"']},
                 'matches': ['W.E.Tuompo'], 'id': 'id'}
 
+        # This is not so great, maybe
         self.assertEqual(self.validator.get_name_score(person), 0)
+
+        person = {'properties': {'first_names': ['"Viljo Wiljo Einar"']},
+                'matches': ['V.W.E.Tuompo'], 'id': 'id'}
+
+        self.assertEqual(self.validator.get_name_score(person), 10)
 
     def test_get_source_score(self):
         props = {'source': ['<http://ldf.fi/warsa/sources/source5>']}
@@ -687,12 +693,35 @@ class TestPersonValidation(TestCase):
         ctx.s_date = date(1941, 8, 4)
         self.assertTrue(self.validator.get_score(person, 'Tuomas Noponen', ctx) < 0)
 
+        props = {'death_date': ['"NA"'],
+                'latest_promotion_date': ['"NA"'],
+                'promotion_date': ['"NA"'],
+                'first_names': ['"Pärttyli"'],
+                'family_name': ['"VIRKKI"'],
+                'hierarchy': ['"Virkahenkilöstö"'],
+                'source': ['<http://ldf.fi/warsa/sources/source1>'],
+                'rank': ['"Sotilasvirkamies"']}
+        person = {'properties': props, 'matches': ['Sotilasvirkamies P.Virkki', 'P.Virkki'], 'id': 'id'}
+        results = [person]
+
+        ctx = ValidationContext(self.validator.graph, results, s)
+        self.assertTrue(self.validator.get_score(person, 'Sotilasvirkamies P.Virkki', ctx) > 0)
+
+        person['matches'] = ['Sotilasvirkamies Virkki']
+        self.assertTrue(self.validator.get_score(person, 'Sotilasvirkamies Virkki', ctx) > 0)
+
+        person['matches'] = ['P.Virkki']
+        self.assertTrue(self.validator.get_score(person, 'P.Virkki', ctx) <= 0)
+
+        person['matches'] = ['Pärttyli Virkki']
+        self.assertTrue(self.validator.get_score(person, 'Pärttyli Virkki', ctx) > 0)
+
         props = {'death_date': ['"1999-08-10"^^xsd:date', '"1999-08-10"^^xsd:date'],
                 'latest_promotion_date': ['"NA"', '"NA"'],
                 'promotion_date': ['"NA"', '"NA"'],
                 'first_names': ['"Kari"', '"Kari"'],
                 'family_name': ['"SUOMALAINEN"', '"SUOMALAINEN"'],
-                'hierarchy': ['"Aliupseeri"', '"virkahenkilostö"'],
+                'hierarchy': ['"Aliupseeri"', '"Virkahenkilöstö"'],
                 'source': ['<http://ldf.fi/warsa/sources/source1>'],
                 'rank': ['"Alikersantti"', '"Sotilasvirkamies"']}
         person = {'properties': props, 'matches': ['Kari Suomalainen'], 'id': 'id'}
@@ -804,6 +833,8 @@ class TestPersonValidation(TestCase):
         self.assertTrue(self.validator.get_score(pauli, '"kersantti Leskinen"', ctx) <= 0)
 
     def test_preprocessor(self):
+        self.assertEqual(preprocessor("Luutnantti Tuominen ja TK-P.Virkki Hurricanen vieressä."),
+            "luutnantti Tuominen ja sotilasvirkamies P.Virkki Hurricanen vieressä.")
         self.assertEqual(preprocessor("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, "
             "ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, "
             "everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, "

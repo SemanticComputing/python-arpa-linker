@@ -36,16 +36,16 @@ RANK_CLASS_SCORES = {
     'kirkollinen henkilöstö': 1,
     'Aliupseeri': -7,
     'Miehistö': -7,
-    'lottahenkilöstö': 0,
-    'virkahenkilöstö': 0,
+    'Lottahenkilöstö': 0,
+    'Virkahenkilöstö': 0,
     'Jääkäriarvo': 0,
     'Muu arvo': 0,
     'Päällystö': 0,
     'Saksalaisarvo': 0,
-    'eläinlääkintähenkilöstö': 0,
-    'lääkintähenkilöstö': 0,
-    'musiikkihenkilöstö': 0,
-    'tekninen henkilöstö': 0,
+    'Eläinlääkintähenkilöstö': 0,
+    'Lääkintähenkilöstö': 0,
+    'Musiikkihenkilöstö': 0,
+    'Tekninen henkilöstö': 0,
     'NA': 0
 }
 
@@ -767,9 +767,9 @@ class Validator:
         return self.choose_best(res)
 
 
-_name_part = r'[A-ZÄÖÅ]' + r'(?:(?:\.\s*|\w+\s+)?[A-ZÄÖÅ])?' * 2
-list_regex = r'\b(?::)?\s*' + (r'(?:(' + _name_part + r'\w+,)(?:\s*))?') * 10 + \
-    r'(?:(' + _name_part + r'\w+)?(?:\s+ja\s+)?([A-ZÄÖÅ](?:(?:\w|\.\s*|\w+\s+)?[A-ZÄÖÅ])?\w+)?)?'
+_name_part = r'\b[A-ZÄÖÅ]' + r'(?:(?:\.\s*|[a-zäöåü]+\s+)?\b[A-ZÄÖÅ](?![A-ZÄÅÖÜ]))?' * 2
+list_regex = r'\b(?::)?\s*' + (r'(?:(' + _name_part + r'[a-zäåöü]+,)(?:\s*))?') * 10 + \
+    r'(?:(' + _name_part + r'[a-zäöåü]+)?(?:(?:\s+ja\s+)(\b[A-ZÄÖÅ])(?![A-ZÄÅÖÜ]))?)?'
 
 _g_re = r'\b[Kk]enraali(?:t)?' + list_regex
 g_regex = re.compile(_g_re)
@@ -840,7 +840,10 @@ def add_titles(regex, title, text):
                 text = regex.sub(repl(groups), text)
             except Exception:
                 logger.exception('Regex error while adding titles')
-    return text.replace('§', title)
+            else:
+                text = text.replace('§', title)
+                logger.info('Text with titles: "{}"'.format(text))
+    return text
 
 
 def replace_general_list(text):
@@ -861,8 +864,14 @@ def replace_gl_list(text):
 
 def replace_major_general_list(text):
     """
-    >>> replace_major_general_list("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
-    'Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.'
+    >>> replace_major_general_list("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, "
+    ...     "ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, "
+    ...     "everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, "
+    ...     "majurit: Müller, Pennanen, Kalpamaa, Varko.")
+    'Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, \
+ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, \
+everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, \
+majurit: Müller, Pennanen, Kalpamaa, Varko.'
     """
     return add_titles(mg_regex, 'kenraalimajuri', text)
 
@@ -884,7 +893,9 @@ def replace_major_list(text):
     >>> replace_major_list("Vas: insinööri L.Jyväskorpi, Tampella, insinööri E.Ilmonen, Tampella, eversti A.Salovirta, Tväl.os/PM, insinööri Donner, Tampella, majuri A.Vara, Tväl.os/PM.")
     'Vas: insinööri L.Jyväskorpi, Tampella, insinööri E.Ilmonen, Tampella, eversti A.Salovirta, Tväl.os/PM, insinööri Donner, Tampella, majuri A.Vara, Tväl.os/PM.'
     >>> replace_major_list("Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström, majurit: Müller, Pennanen, Kalpamaa, Varko.")
-    'Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström,  \
+    'Kuva ruokailusta. Ruokailussa läsnä: Kenraalimajuri Martola, \
+ministerit: Koivisto, Salovaara, Horelli, Arola, hal.neuv. Honka, \
+everstiluutnantit: Varis, Ehnrooth, Juva, Heimolainen, Björnström,  \
 majuri Müller, majuri Pennanen, majuri Kalpamaa, majuri Varko.'
     >>> replace_major_list("Rautaristin saajat: eversti A. Puroma, majurit A.G. Airimo ja V. Lehvä")
     'Rautaristin saajat: eversti A. Puroma,  majuri A.G. Airimo majuri V. Lehvä'
@@ -908,6 +919,10 @@ def replace_lieutenant_list(text):
     'Aamutee teltassa.  luutnantti Kauppinen, luutnantti Wind,kapteeni Karhunen.'
     >>> replace_lieutenant_list("luutnantti Pulliainen, Voutilainen, kapteeni Ruoho,")
     ' luutnantti Pulliainen, luutnantti Voutilainen,kapteeni Ruoho,'
+    >>> replace_lieutenant_list("luutnantti Tuominen ja TK-P.Virkki Hurricanen vieressä.")
+    ' luutnantti Tuominen ja TK-P.Virkki Hurricanen vieressä.'
+    >>> replace_lieutenant_list("luutnantti Tuominen ja  sotilasvirkamies P.Virkki Hurricanen vieressä.")
+    ' luutnantti Tuominen ja  sotilasvirkamies P.Virkki Hurricanen vieressä.'
     """
     return add_titles(l_regex, 'luutnantti', text)
 
@@ -1096,7 +1111,7 @@ def preprocessor(text, *args):
     text = re.sub(r'[Ll]ääkintäkenraali\b', 'kenraalikunta', text)
 
     # Add a space after commas where it's missing
-    text = re.sub(r'(?<=\S),(?=\S)', ', ', text)
+    text = re.sub(r',(?=\S)', ', ', text)
 
     # Events only
     if ValidationContext.dataset == 'event':
