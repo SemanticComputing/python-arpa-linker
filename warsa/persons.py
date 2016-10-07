@@ -1000,7 +1000,7 @@ def handle_specific_people(text):
 
     text = re.sub(r'[Ee]versti Somersalo', 'everstiluutnantti Somersalo', text)
 
-    text = text.replace('(!<!Adolf )Hitler', 'Adolf Hitler')
+    text = re.sub('(?<!Adolf )Hitler', 'Adolf Hitler', text)
 
     text = re.sub(r'(Saharan|Marokon) kauhu', '# kapteeni Juutilainen #', text)
     text = re.sub(r'luutnantti\s+Juutilainen', '# kapteeni Juutilainen #', text)
