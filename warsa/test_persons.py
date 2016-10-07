@@ -833,6 +833,8 @@ class TestPersonValidation(TestCase):
         self.assertTrue(self.validator.get_score(pauli, '"kersantti Leskinen"', ctx) <= 0)
 
     def test_preprocessor(self):
+        self.assertEqual(preprocessor("Kuva tykkimies Rätöstä ja hänen haastattelustaan"),
+            "Kuva ritari Vilho Rättö ja hänen haastattelustaan")
         self.assertEqual(preprocessor("Hitlerin vierailu Suomessa."),
             "Adolf Hitlerin vierailu Suomessa.")
         self.assertEqual(preprocessor("Luutnantti Tuominen ja TK-P.Virkki Hurricanen vieressä."),

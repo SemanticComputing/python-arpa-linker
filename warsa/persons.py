@@ -1029,7 +1029,7 @@ def handle_specific_people(text):
     text = text.replace('Laiva Josif Stalin', '#')
     text = re.sub(r'(Aleksandra\W)?Kollontai(\b|lle|n|hin)', 'Alexandra Kollontay', text)
 
-    text = re.sub('[Tt]ykkimies Rät(tö|töstä)', 'ritari Vilho Rättö', text)
+    text = re.sub('[Tt]ykkimies Rät(tö|östä)', 'ritari Vilho Rättö', text)
 
     # Pretty sure this is the guy
     text = text.replace('Tuomas Noponen', 'korpraali Tuomas Noponen')

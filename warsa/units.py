@@ -10,13 +10,13 @@ def preprocessor(text, *args):
     >>> preprocessor("7 div.komendörs")
     '7. D komendörs'
     >>> preprocessor("Tyk.K/JR22:n hyökkäyskaistaa.")
-    'TykK/JR 22:n hyökkäyskaistaa. # JR 22'
+    'TykK/JR 22 hyökkäyskaistaa. # JR 22'
     >>> preprocessor("1/JR 10:ssä.")
-    '1/JR 10:ssä. # JR 10'
+    '1/JR 10. # JR 10'
     >>> preprocessor("1/JR10:ssä.")
-    '1/JR 10:ssä. # JR 10'
+    '1/JR 10. # JR 10'
     >>> preprocessor("JP1:n radioasema")
-    'JP 1:n radioasema'
+    'JP 1 radioasema'
     >>> preprocessor("2./I/15.Pr.")
     '2./I/15. Pr. # 15. Pr'
     >>> preprocessor("IV.AKE.")
@@ -36,7 +36,10 @@ def preprocessor(text, *args):
     >>> preprocessor("Harlu JP.I.")
     'Harlu JP 1.'
     """
-    text = text.strip()
+
+    # E.g. URR:n -> URR
+    text = re.sub(r'(?<=\w):\w+', '', text)
+
     # KLo = Kotkan Lohko, 'Klo' will match
     text = re.sub(r'\bKlo\b', 'klo', text)
 
