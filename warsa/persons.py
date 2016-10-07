@@ -245,7 +245,7 @@ ALL_RANKS = {
 all_rank_classes_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(RANK_CLASS_SCORES.keys())), re.I)
 all_ranks_regex = re.compile(r'\b{}\b'.format(r'\b|\b'.join(ALL_RANKS.keys())), re.I)
 
-knight_re = re.compile(r'([Rr]itar[ie]|Mannerheim-risti)')
+knight_re = re.compile(r'([Rr]itar[ie]|Mannerheim-?risti)')
 
 
 def parse_date(d):
@@ -1029,7 +1029,7 @@ def handle_specific_people(text):
     text = text.replace('Laiva Josif Stalin', '#')
     text = re.sub(r'(Aleksandra\W)?Kollontai(\b|lle|n|hin)', 'Alexandra Kollontay', text)
 
-    text = re.sub('[Tt]ykkimies Rättö', 'sotamies Vilho Rättö', text)
+    text = re.sub('[Tt]ykkimies Rät(tö|töstä)', 'ritari Vilho Rättö', text)
 
     # Pretty sure this is the guy
     text = text.replace('Tuomas Noponen', 'korpraali Tuomas Noponen')
