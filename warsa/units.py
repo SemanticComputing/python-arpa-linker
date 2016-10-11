@@ -1,6 +1,41 @@
 import re
 import sys
+from collections import OrderedDict
 from arpa_linker.link_helper import process_stage
+
+# Roman numeral handling from http://stackoverflow.com/a/28777781/4321262
+
+roman = OrderedDict()
+roman[1000] = "M"
+roman[900] = "CM"
+roman[500] = "D"
+roman[400] = "CD"
+roman[100] = "C"
+roman[90] = "XC"
+roman[50] = "L"
+roman[40] = "XL"
+roman[10] = "X"
+roman[9] = "IX"
+roman[5] = "V"
+roman[4] = "IV"
+roman[1] = "I"
+
+
+def to_roman_numeral(num):
+    def roman_num(num):
+        for r in roman.keys():
+            x, y = divmod(num, r)
+            yield roman[r] * x
+            num -= (r * x)
+            if num > 0:
+                roman_num(num)
+            else:
+                break
+    return "".join([a for a in roman_num(num)])
+
+
+def roman_repl(m):
+    return to_roman_numeral(int(m.group(1)))
 
 
 def preprocessor(text, *args):
@@ -12,9 +47,9 @@ def preprocessor(text, *args):
     >>> preprocessor("Tyk.K/JR22:n hyökkäyskaistaa.")
     'TykK/JR 22 hyökkäyskaistaa. # JR 22'
     >>> preprocessor("1/JR 10:ssä.")
-    '1/JR 10. # JR 10'
+    'I/JR 10. # JR 10'
     >>> preprocessor("1/JR10:ssä.")
-    '1/JR 10. # JR 10'
+    'I/JR 10. # JR 10'
     >>> preprocessor("JP1:n radioasema")
     'JP 1 radioasema'
     >>> preprocessor("2./I/15.Pr.")
@@ -35,6 +70,12 @@ def preprocessor(text, *args):
     'JR 8. komentaja, ev. Antti'
     >>> preprocessor("Harlu JP.I.")
     'Harlu JP 1.'
+    >>> preprocessor("2/JR 9.")
+    'II/JR 9. # JR 9'
+    >>> preprocessor("2./JR 9.")
+    'II/JR 9. # JR 9'
+    >>> preprocessor("11/JR 9.")
+    'XI/JR 9. # JR 9'
     """
 
     # E.g. URR:n -> URR
@@ -62,6 +103,11 @@ def preprocessor(text, *args):
     text = re.sub(r'\b(?<=J[RrPp] )I', '1', text)
     text = re.sub(r'\b(?<=J[RrPp] )II', '2', text)
 
+    text = re.sub(r'\b(?<=J[RrPp] )I', '1', text)
+    text = re.sub(r'\b(?<=J[RrPp] )II', '2', text)
+
+    text = re.sub(r'\b(\d+)\.?\s*(?=/J[Rr])', roman_repl, text)
+
     # AK, AKE
     text = re.sub(r'([IV])\.\s*(?=AKE?)', r'\1 ', text)
 
@@ -77,10 +123,21 @@ def preprocessor(text, *args):
 
     return text
 
+
+ignore = (
+    'Puolukka',
+    'Otava',
+    'Vaaka',
+    'Varsa',
+    'Neito',
+    'Voima',
+)
+
+
 if __name__ == '__main__':
     if sys.argv[1] == 'test':
         import doctest
         doctest.testmod()
         exit()
 
-    process_stage(sys.argv, preprocessor=preprocessor)
+    process_stage(sys.argv, preprocessor=preprocessor, ignore=ignore)
