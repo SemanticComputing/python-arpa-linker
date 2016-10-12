@@ -261,7 +261,10 @@ class ValidationContext:
         self.graph = graph
         self.original_text = graph.value(s, URIRef('http://www.w3.org/2004/02/skos/core#prefLabel'))
         self.s_date = self.get_s_start_date(s)
-        self.units = {'<{}>'.format(u) for u in graph.objects(s, URIRef('http://ldf.fi/warsa/photographs/unit')) if u}
+
+        unit_uri = 'http://ldf.fi/warsa/photographs/unit' if self.dataset == 'photo' else 'http://www.cidoc-crm.org/cidoc-crm/P11_had_participant'
+        self.units = {'<{}>'.format(u) for u in graph.objects(s, URIRef(unit_uri)) if u}
+
         self.results = results
         self.ranked_matches = self.get_ranked_matches(results)
         self.match_scores = self.get_match_scores(results)
