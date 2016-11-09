@@ -1147,17 +1147,13 @@ ALLOWED_NAME_CHARS = 'a-zA-ZäÄöÖåÅÜüáàéèíìóòúùýỳ-'
 name_re = (r'^((?:[a-zA-ZäÄåÅöÖ]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
     r']{3,}[ ]+))((?:-?[a-zA-ZäÄåÅöÖ]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
     r']{3,}[ ]+))?((?:[a-zA-ZäÄåÅöÖ]\.[ ]*)|(?:[' + ALLOWED_NAME_CHARS +
-    r']{3,}[ ]+))*([A-ZÄÖÅÜ][_' + ALLOWED_NAME_CHARS + r']{2,})$')
+    r']{3,}[ ]+))*((?:[a-z]*_|[A-ZÄÖÅÜ])[' + ALLOWED_NAME_CHARS + r']{2,})$')
 name_re_compiled = re.compile(name_re)
-
-name_re_exclude = r"((\b[a-zäåö]+|\W+)$)|#"
-name_re_exclude_compiled = re.compile(name_re_exclude)
 
 
 def pruner(candidate):
     if name_re_compiled.fullmatch(candidate):
-        if not name_re_exclude_compiled.search(candidate):
-            return candidate
+        return candidate
     return None
 
 
