@@ -3,6 +3,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX actors: <http://ldf.fi/warsa/actors/>
 PREFIX atypes: <http://ldf.fi/warsa/actors/actor_types/>
+PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
 SELECT ?id ?label ?ngram
 WHERE
 {
@@ -11,8 +12,16 @@ WHERE
   }
   FILTER(STRLEN(?ngram)>2 && UCASE(SUBSTR(?ngram,1,1))=SUBSTR(?ngram,1,1))
   BIND(CONCAT('"',REPLACE(?ngram,"([\\+\\-\\&\\|\\!\\(\\)\\{\\}\\[\\]\\^\\\"\\~\\*\\?\\:\\/\\\\])","\\\\$1"),'"') AS ?qstring) 
-  GRAPH <http://ldf.fi/warsa/actors> { ?id text:query ?qstring . }
-  ?id a/rdfs:subClassOf* atypes:MilitaryUnit .
-  ?id rdfs:label|skos:prefLabel|skos:altLabel ?label .
+  GRAPH <http://ldf.fi/warsa/actors> { ?rid text:query ?qstring . }
+  {
+    ?rid a/rdfs:subClassOf* atypes:MilitaryUnit .
+    BIND(?rid AS ?id)
+  }
+  UNION
+  {
+    ?rid crm:P95_has_formed ?id .
+  }
+  ?rid rdfs:label|skos:prefLabel|skos:altLabel ?label .
+
   FILTER(LCASE(STR(?label))=LCASE(STR(?ngram)))
 }

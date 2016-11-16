@@ -131,6 +131,7 @@ ignore = (
     'Varsa',
     'Neito',
     'Voima',
+    'RPr',  # Ratsuväkiprikaati talvisodassa, rannikkoprikaati jatkosodassa
 )
 
 
