@@ -71,8 +71,7 @@ The arguments can also be read from a file using "@" (example arg file [arpa.arg
 
 ## Examples<a name="examples"></a>
 
-See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) and
-[places.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py) for code examples
+See [this repo](https://github.com/SemanticComputing/warsa-linkers) for code examples,
 and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args) for an example arg file.
 """
 

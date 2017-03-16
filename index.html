@@ -1072,6 +1072,7 @@ table {
     <li class="mono"><a href="#arpa.Arpa.__init__">__init__</a></li>
     <li class="mono"><a href="#arpa.Arpa.extract_uris">extract_uris</a></li>
     <li class="mono"><a href="#arpa.Arpa.get_candidates">get_candidates</a></li>
+    <li class="mono"><a href="#arpa.Arpa.get_distinct_mentions">get_distinct_mentions</a></li>
     <li class="mono"><a href="#arpa.Arpa.get_uri_matches">get_uri_matches</a></li>
     <li class="mono"><a href="#arpa.Arpa.query">query</a></li>
   </ul>
@@ -1085,6 +1086,7 @@ table {
     <li class="mono"><a href="#arpa.ArpaMimic.__init__">__init__</a></li>
     <li class="mono"><a href="#arpa.ArpaMimic.extract_uris">extract_uris</a></li>
     <li class="mono"><a href="#arpa.ArpaMimic.get_candidates">get_candidates</a></li>
+    <li class="mono"><a href="#arpa.ArpaMimic.get_distinct_mentions">get_distinct_mentions</a></li>
     <li class="mono"><a href="#arpa.ArpaMimic.get_uri_matches">get_uri_matches</a></li>
     <li class="mono"><a href="#arpa.ArpaMimic.query">query</a></li>
   </ul>
@@ -1169,8 +1171,7 @@ optional arguments:
 <p>The arguments can also be read from a file using "@" (example arg file <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a>):</p>
 <p><code>$ python3 arpa.py @arpa.args</code></p>
 <h2>Examples<a name="examples"></a></h2>
-<p>See <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py">menehtyneet.py</a> and
-<a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py">places.py</a> for code examples
+<p>See <a href="https://github.com/SemanticComputing/warsa-linkers">this repo</a> for code examples,
 and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args">arpa.args</a> for an example arg file.</p>
   
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa', this);">Show source &equiv;</a></p>
@@ -1248,8 +1249,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
 <span class="sd">## Examples&lt;a name=&quot;examples&quot;&gt;&lt;/a&gt;</span>
 
-<span class="sd">See [menehtyneet.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/menehtyneet.py) and</span>
-<span class="sd">[places.py](https://github.com/SemanticComputing/python-arpa-linker/blob/master/places.py) for code examples</span>
+<span class="sd">See [this repo](https://github.com/SemanticComputing/warsa-linkers) for code examples,</span>
 <span class="sd">and [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args) for an example arg file.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -1584,9 +1584,21 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">URIRef</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
 
+    <span class="k">def</span> <span class="nf">get_distinct_mentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get distinct mentions (i.e. matches) that yielded results.</span>
+
+<span class="sd">        `results` is the results as returned by `arpa.query`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">m</span> <span class="k">for</span> <span class="n">ml</span> <span class="ow">in</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">ml</span><span class="p">}</span>
+
     <span class="k">def</span> <span class="nf">get_uri_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Query ARPA and return a list of uris of resources that match the text.</span>
+<span class="sd">        Query ARPA and return a dict with a list of uris of resources that match the text.</span>
+
+<span class="sd">        Return a dict where &#39;results&#39; has the list of uris, &#39;mentions&#39; has the mentions</span>
+<span class="sd">        that yielded results, and &#39;pre_validation_mentions&#39; has mentions that yielded</span>
+<span class="sd">        results before running the `validator`.</span>
 
 <span class="sd">        `text` is the text to use in the query.</span>
 
@@ -1599,24 +1611,37 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 
+        <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">validator</span> <span class="ow">and</span> <span class="n">results</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Validating results: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+            <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions before validation: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pre_validation_mentions</span><span class="p">),</span> <span class="n">pre_validation_mentions</span><span class="p">))</span>
             <span class="n">results</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found matches {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+            <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">post_validation_mentions</span><span class="p">),</span> <span class="n">post_validation_mentions</span><span class="p">))</span>
             <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_uris</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No matches found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="n">results</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+            <span class="s1">&#39;mentions&#39;</span><span class="p">:</span> <span class="n">post_validation_mentions</span><span class="p">,</span>
+            <span class="s1">&#39;pre_validation_mentions&#39;</span><span class="p">:</span> <span class="n">pre_validation_mentions</span>
+        <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">get_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the candidates from `text` that would be used by the ARPA service</span>
 <span class="sd">        to query for matches.</span>
 
-<span class="sd">        Return the candidates as a list of rdflib Literals.</span>
+<span class="sd">        A dict is returned for compatibility with `arpa.get_uri_matches`.</span>
+
+<span class="sd">        Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -1627,7 +1652,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
 
-        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]}</span>
 
         <span class="k">return</span> <span class="n">result</span>
 
@@ -1774,6 +1799,8 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
     <span class="n">triple_match_count</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">subject_match_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">pre_validation_mention_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">post_validation_mention_count</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">bar</span> <span class="o">=</span> <span class="n">get_bar</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="p">),</span> <span class="n">progress</span><span class="p">)</span>
@@ -1781,14 +1808,17 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">subject_objects</span><span class="p">():</span>
         <span class="n">o</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span> <span class="k">if</span> <span class="n">preprocessor</span> <span class="k">else</span> <span class="n">o</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">get_results</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="n">validator</span><span class="p">)</span>
+            <span class="n">result_dict</span> <span class="o">=</span> <span class="n">get_results</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="n">validator</span><span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Error getting matches from ARPA&#39;</span><span class="p">)</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">result_dict</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]</span>
             <span class="n">triple_match_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">pre_validation_mention_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pre_validation_mentions&#39;</span><span class="p">,</span> <span class="p">[]))</span>
             <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
                 <span class="n">subject_match_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">post_validation_mention_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mentions&#39;</span><span class="p">,</span> <span class="p">[]))</span>
                 <span class="c1"># Add each result as a value of the target property</span>
                 <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
                     <span class="n">output_graph</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
@@ -1799,11 +1829,15 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
         <span class="s1">&#39;processed&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="p">),</span>
         <span class="s1">&#39;matches&#39;</span><span class="p">:</span> <span class="n">triple_match_count</span><span class="p">,</span>
         <span class="s1">&#39;subjects_matched&#39;</span><span class="p">:</span> <span class="n">subject_match_count</span><span class="p">,</span>
+        <span class="s1">&#39;pre_validation_mention_count&#39;</span><span class="p">:</span> <span class="n">pre_validation_mention_count</span><span class="p">,</span>
+        <span class="s1">&#39;post_validation_mention_count&#39;</span><span class="p">:</span> <span class="n">post_validation_mention_count</span><span class="p">,</span>
         <span class="s1">&#39;errors&#39;</span><span class="p">:</span> <span class="n">errors</span>
     <span class="p">}</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed {} triples, found {} matches ({} errors)&#39;</span>
-                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;processed&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed {} triples, found {} matches from {} mentions&#39;</span>
+                <span class="s1">&#39; with {} total mentions ({} errors)&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;processed&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;post_validation_mention_count&#39;</span><span class="p">],</span>
+                    <span class="n">res</span><span class="p">[</span><span class="s1">&#39;pre_validation_mention_count&#39;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])))</span>
 
     <span class="k">return</span> <span class="n">res</span>
 
@@ -2225,6 +2259,8 @@ graph and results). Optional.</p>
 
     <span class="n">triple_match_count</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">subject_match_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">pre_validation_mention_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">post_validation_mention_count</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="n">bar</span> <span class="o">=</span> <span class="n">get_bar</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="p">),</span> <span class="n">progress</span><span class="p">)</span>
@@ -2232,14 +2268,17 @@ graph and results). Optional.</p>
     <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">subject_objects</span><span class="p">():</span>
         <span class="n">o</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">graph</span><span class="p">)</span> <span class="k">if</span> <span class="n">preprocessor</span> <span class="k">else</span> <span class="n">o</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">get_results</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="n">validator</span><span class="p">)</span>
+            <span class="n">result_dict</span> <span class="o">=</span> <span class="n">get_results</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="n">validator</span><span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span><span class="n">HTTPError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Error getting matches from ARPA&#39;</span><span class="p">)</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">result_dict</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]</span>
             <span class="n">triple_match_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">pre_validation_mention_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pre_validation_mentions&#39;</span><span class="p">,</span> <span class="p">[]))</span>
             <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
                 <span class="n">subject_match_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">post_validation_mention_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mentions&#39;</span><span class="p">,</span> <span class="p">[]))</span>
                 <span class="c1"># Add each result as a value of the target property</span>
                 <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
                     <span class="n">output_graph</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
@@ -2250,11 +2289,15 @@ graph and results). Optional.</p>
         <span class="s1">&#39;processed&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">subgraph</span><span class="p">),</span>
         <span class="s1">&#39;matches&#39;</span><span class="p">:</span> <span class="n">triple_match_count</span><span class="p">,</span>
         <span class="s1">&#39;subjects_matched&#39;</span><span class="p">:</span> <span class="n">subject_match_count</span><span class="p">,</span>
+        <span class="s1">&#39;pre_validation_mention_count&#39;</span><span class="p">:</span> <span class="n">pre_validation_mention_count</span><span class="p">,</span>
+        <span class="s1">&#39;post_validation_mention_count&#39;</span><span class="p">:</span> <span class="n">post_validation_mention_count</span><span class="p">,</span>
         <span class="s1">&#39;errors&#39;</span><span class="p">:</span> <span class="n">errors</span>
     <span class="p">}</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed {} triples, found {} matches ({} errors)&#39;</span>
-                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;processed&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Processed {} triples, found {} matches from {} mentions&#39;</span>
+                <span class="s1">&#39; with {} total mentions ({} errors)&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;processed&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;post_validation_mention_count&#39;</span><span class="p">],</span>
+                    <span class="n">res</span><span class="p">[</span><span class="s1">&#39;pre_validation_mention_count&#39;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])))</span>
 
     <span class="k">return</span> <span class="n">res</span>
 </pre></div>
@@ -3088,9 +3131,21 @@ and the old candidates removed.</p></div>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">URIRef</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
 
+    <span class="k">def</span> <span class="nf">get_distinct_mentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get distinct mentions (i.e. matches) that yielded results.</span>
+
+<span class="sd">        `results` is the results as returned by `arpa.query`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">m</span> <span class="k">for</span> <span class="n">ml</span> <span class="ow">in</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">ml</span><span class="p">}</span>
+
     <span class="k">def</span> <span class="nf">get_uri_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Query ARPA and return a list of uris of resources that match the text.</span>
+<span class="sd">        Query ARPA and return a dict with a list of uris of resources that match the text.</span>
+
+<span class="sd">        Return a dict where &#39;results&#39; has the list of uris, &#39;mentions&#39; has the mentions</span>
+<span class="sd">        that yielded results, and &#39;pre_validation_mentions&#39; has mentions that yielded</span>
+<span class="sd">        results before running the `validator`.</span>
 
 <span class="sd">        `text` is the text to use in the query.</span>
 
@@ -3103,24 +3158,37 @@ and the old candidates removed.</p></div>
 
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 
+        <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">validator</span> <span class="ow">and</span> <span class="n">results</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Validating results: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+            <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions before validation: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pre_validation_mentions</span><span class="p">),</span> <span class="n">pre_validation_mentions</span><span class="p">))</span>
             <span class="n">results</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found matches {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+            <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">post_validation_mentions</span><span class="p">),</span> <span class="n">post_validation_mentions</span><span class="p">))</span>
             <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_uris</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No matches found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="n">results</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+            <span class="s1">&#39;mentions&#39;</span><span class="p">:</span> <span class="n">post_validation_mentions</span><span class="p">,</span>
+            <span class="s1">&#39;pre_validation_mentions&#39;</span><span class="p">:</span> <span class="n">pre_validation_mentions</span>
+        <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">get_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the candidates from `text` that would be used by the ARPA service</span>
 <span class="sd">        to query for matches.</span>
 
-<span class="sd">        Return the candidates as a list of rdflib Literals.</span>
+<span class="sd">        A dict is returned for compatibility with `arpa.get_uri_matches`.</span>
+
+<span class="sd">        Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -3131,7 +3199,7 @@ and the old candidates removed.</p></div>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
 
-        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]}</span>
 
         <span class="k">return</span> <span class="n">result</span>
 </pre></div>
@@ -3259,7 +3327,8 @@ Optional, default is 1 second. Has no effect if <code>retries</code> is not set.
   
     <div class="desc"><p>Get the candidates from <code>text</code> that would be used by the ARPA service
 to query for matches.</p>
-<p>Return the candidates as a list of rdflib Literals.</p></div>
+<p>A dict is returned for compatibility with <code>arpa.get_uri_matches</code>.</p>
+<p>Return a dict where 'results' has the candidates as a list of rdflib Literals.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.Arpa.get_candidates', this);">Show source &equiv;</a></p>
   <div id="source-arpa.Arpa.get_candidates" class="source">
@@ -3267,15 +3336,43 @@ to query for matches.</p>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the candidates from `text` that would be used by the ARPA service</span>
 <span class="sd">    to query for matches.</span>
-<span class="sd">    Return the candidates as a list of rdflib Literals.</span>
+<span class="sd">    A dict is returned for compatibility with `arpa.get_uri_matches`.</span>
+<span class="sd">    Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]}</span>
     <span class="k">return</span> <span class="n">result</span>
+</pre></div>
+
+  </div>
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="arpa.Arpa.get_distinct_mentions">
+    <p>def <span class="ident">get_distinct_mentions</span>(</p><p>self, results)</p>
+    </div>
+    
+
+    
+  
+    <div class="desc"><p>Get distinct mentions (i.e. matches) that yielded results.</p>
+<p><code>results</code> is the results as returned by <code>arpa.query</code>.</p></div>
+  <div class="source_cont">
+  <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.Arpa.get_distinct_mentions', this);">Show source &equiv;</a></p>
+  <div id="source-arpa.Arpa.get_distinct_mentions" class="source">
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">get_distinct_mentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get distinct mentions (i.e. matches) that yielded results.</span>
+<span class="sd">    `results` is the results as returned by `arpa.query`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">m</span> <span class="k">for</span> <span class="n">ml</span> <span class="ow">in</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">ml</span><span class="p">}</span>
 </pre></div>
 
   </div>
@@ -3292,7 +3389,10 @@ to query for matches.</p>
 
     
   
-    <div class="desc"><p>Query ARPA and return a list of uris of resources that match the text.</p>
+    <div class="desc"><p>Query ARPA and return a dict with a list of uris of resources that match the text.</p>
+<p>Return a dict where 'results' has the list of uris, 'mentions' has the mentions
+that yielded results, and 'pre_validation_mentions' has mentions that yielded
+results before running the <code>validator</code>.</p>
 <p><code>text</code> is the text to use in the query.</p>
 <p><code>validator</code> is an object that implements a <code>validate</code> method that takes
 the results and <code>text</code> (and any other parameters passed to this method)
@@ -3302,7 +3402,10 @@ as parameters, and returns a subset of the results.</p></div>
   <div id="source-arpa.Arpa.get_uri_matches" class="source">
     <div class="codehilite"><pre><span class="k">def</span> <span class="nf">get_uri_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Query ARPA and return a list of uris of resources that match the text.</span>
+<span class="sd">    Query ARPA and return a dict with a list of uris of resources that match the text.</span>
+<span class="sd">    Return a dict where &#39;results&#39; has the list of uris, &#39;mentions&#39; has the mentions</span>
+<span class="sd">    that yielded results, and &#39;pre_validation_mentions&#39; has mentions that yielded</span>
+<span class="sd">    results before running the `validator`.</span>
 <span class="sd">    `text` is the text to use in the query.</span>
 <span class="sd">    `validator` is an object that implements a `validate` method that takes</span>
 <span class="sd">    the results and `text` (and any other parameters passed to this method)</span>
@@ -3310,15 +3413,25 @@ as parameters, and returns a subset of the results.</p></div>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Getting URI matches: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
     <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">validator</span> <span class="ow">and</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Validating results: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+        <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions before validation: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pre_validation_mentions</span><span class="p">),</span> <span class="n">pre_validation_mentions</span><span class="p">))</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found matches {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+        <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">post_validation_mentions</span><span class="p">),</span> <span class="n">post_validation_mentions</span><span class="p">))</span>
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_uris</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No matches found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">results</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+        <span class="s1">&#39;mentions&#39;</span><span class="p">:</span> <span class="n">post_validation_mentions</span><span class="p">,</span>
+        <span class="s1">&#39;pre_validation_mentions&#39;</span><span class="p">:</span> <span class="n">pre_validation_mentions</span>
+    <span class="p">}</span>
 </pre></div>
 
   </div>
@@ -3501,7 +3614,8 @@ instead of an ARPA service.</p></div>
   
     <div class="desc"><p>Get the candidates from <code>text</code> that would be used by the ARPA service
 to query for matches.</p>
-<p>Return the candidates as a list of rdflib Literals.</p></div>
+<p>A dict is returned for compatibility with <code>arpa.get_uri_matches</code>.</p>
+<p>Return a dict where 'results' has the candidates as a list of rdflib Literals.</p></div>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.ArpaMimic.get_candidates', this);">Show source &equiv;</a></p>
   <div id="source-arpa.ArpaMimic.get_candidates" class="source">
@@ -3509,15 +3623,43 @@ to query for matches.</p>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the candidates from `text` that would be used by the ARPA service</span>
 <span class="sd">    to query for matches.</span>
-<span class="sd">    Return the candidates as a list of rdflib Literals.</span>
+<span class="sd">    A dict is returned for compatibility with `arpa.get_uri_matches`.</span>
+<span class="sd">    Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Received candidates: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">Literal</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]}</span>
     <span class="k">return</span> <span class="n">result</span>
+</pre></div>
+
+  </div>
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="arpa.ArpaMimic.get_distinct_mentions">
+    <p>def <span class="ident">get_distinct_mentions</span>(</p><p>self, results)</p>
+    </div>
+    
+
+    
+  
+    <div class="desc"><p>Get distinct mentions (i.e. matches) that yielded results.</p>
+<p><code>results</code> is the results as returned by <code>arpa.query</code>.</p></div>
+  <div class="source_cont">
+  <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.ArpaMimic.get_distinct_mentions', this);">Show source &equiv;</a></p>
+  <div id="source-arpa.ArpaMimic.get_distinct_mentions" class="source">
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">get_distinct_mentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get distinct mentions (i.e. matches) that yielded results.</span>
+<span class="sd">    `results` is the results as returned by `arpa.query`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">m</span> <span class="k">for</span> <span class="n">ml</span> <span class="ow">in</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;matches&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">ml</span><span class="p">}</span>
 </pre></div>
 
   </div>
@@ -3534,7 +3676,10 @@ to query for matches.</p>
 
     
   
-    <div class="desc"><p>Query ARPA and return a list of uris of resources that match the text.</p>
+    <div class="desc"><p>Query ARPA and return a dict with a list of uris of resources that match the text.</p>
+<p>Return a dict where 'results' has the list of uris, 'mentions' has the mentions
+that yielded results, and 'pre_validation_mentions' has mentions that yielded
+results before running the <code>validator</code>.</p>
 <p><code>text</code> is the text to use in the query.</p>
 <p><code>validator</code> is an object that implements a <code>validate</code> method that takes
 the results and <code>text</code> (and any other parameters passed to this method)
@@ -3544,7 +3689,10 @@ as parameters, and returns a subset of the results.</p></div>
   <div id="source-arpa.ArpaMimic.get_uri_matches" class="source">
     <div class="codehilite"><pre><span class="k">def</span> <span class="nf">get_uri_matches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Query ARPA and return a list of uris of resources that match the text.</span>
+<span class="sd">    Query ARPA and return a dict with a list of uris of resources that match the text.</span>
+<span class="sd">    Return a dict where &#39;results&#39; has the list of uris, &#39;mentions&#39; has the mentions</span>
+<span class="sd">    that yielded results, and &#39;pre_validation_mentions&#39; has mentions that yielded</span>
+<span class="sd">    results before running the `validator`.</span>
 <span class="sd">    `text` is the text to use in the query.</span>
 <span class="sd">    `validator` is an object that implements a `validate` method that takes</span>
 <span class="sd">    the results and `text` (and any other parameters passed to this method)</span>
@@ -3552,15 +3700,25 @@ as parameters, and returns a subset of the results.</p></div>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Getting URI matches: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
     <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">validator</span> <span class="ow">and</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Validating results: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+        <span class="n">pre_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions before validation: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pre_validation_mentions</span><span class="p">),</span> <span class="n">pre_validation_mentions</span><span class="p">))</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found matches {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+        <span class="n">post_validation_mentions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_distinct_mentions</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Distinct mentions: {} ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">post_validation_mentions</span><span class="p">),</span> <span class="n">post_validation_mentions</span><span class="p">))</span>
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_uris</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No matches found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">results</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+        <span class="s1">&#39;mentions&#39;</span><span class="p">:</span> <span class="n">post_validation_mentions</span><span class="p">,</span>
+        <span class="s1">&#39;pre_validation_mentions&#39;</span><span class="p">:</span> <span class="n">pre_validation_mentions</span>
+    <span class="p">}</span>
 </pre></div>
 
   </div>
