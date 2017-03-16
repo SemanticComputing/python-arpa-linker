@@ -1,6 +1,0 @@
-input.ttl
-output.ttl
-http://www.cidoc-crm.org/cidoc-crm/P11_had_participant
-http://demo.seco.tkk.fi/arpa/warsa_actor_persons
---prop
-http://ldf.fi/warsa/events/hadCommander
