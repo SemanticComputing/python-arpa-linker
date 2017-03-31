@@ -1544,12 +1544,6 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">get_len</span><span class="p">,</span> <span class="n">get_label</span><span class="p">,</span> <span class="n">skip_remove_duplicates</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_sanitize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-        <span class="c1"># Remove quotation marks and brackets - ARPA can return an error if they&#39;re present</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">text</span>
-        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-
     <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Query the ARPA service and return the response results as JSON</span>
@@ -1563,7 +1557,6 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Query ARPA at {} with text {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
 
-        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
 
@@ -1644,7 +1637,6 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 <span class="sd">        Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
 
@@ -3091,12 +3083,6 @@ and the old candidates removed.</p></div>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">get_len</span><span class="p">,</span> <span class="n">get_label</span><span class="p">,</span> <span class="n">skip_remove_duplicates</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_sanitize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-        <span class="c1"># Remove quotation marks and brackets - ARPA can return an error if they&#39;re present</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">text</span>
-        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-
     <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Query the ARPA service and return the response results as JSON</span>
@@ -3110,7 +3096,6 @@ and the old candidates removed.</p></div>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Query ARPA at {} with text {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
 
-        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
 
@@ -3191,7 +3176,6 @@ and the old candidates removed.</p></div>
 <span class="sd">        Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
 
@@ -3339,7 +3323,6 @@ to query for matches.</p>
 <span class="sd">    A dict is returned for compatibility with `arpa.get_uri_matches`.</span>
 <span class="sd">    Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
@@ -3463,7 +3446,6 @@ as parameters, and returns a subset of the results.</p></div>
 <span class="sd">    If `candidates` is set, query for candidates only.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Query ARPA at {} with text {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
-    <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
     <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;?cgen&#39;</span> <span class="k">if</span> <span class="n">candidates</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
@@ -3626,7 +3608,6 @@ to query for matches.</p>
 <span class="sd">    A dict is returned for compatibility with `arpa.get_uri_matches`.</span>
 <span class="sd">    Return a dict where &#39;results&#39; has the candidates as a list of rdflib Literals.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Empty ARPA query text&#39;</span><span class="p">)</span>
     <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">candidates</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
