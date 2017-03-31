@@ -366,12 +366,6 @@ class Arpa:
 
         return self._filter_results(results, get_len, get_label, skip_remove_duplicates)
 
-    def _sanitize(self, text):
-        # Remove quotation marks and brackets - ARPA can return an error if they're present
-        if not text:
-            return text
-        return text.replace('"', '').replace('(', '').replace(')', '')
-
     def query(self, text, candidates=False):
         """
         Query the ARPA service and return the response results as JSON
@@ -385,7 +379,6 @@ class Arpa:
 
         logger.debug('Query ARPA at {} with text {}'.format(self._url, text))
 
-        text = self._sanitize(text)
         if not text:
             raise ValueError('Empty ARPA query text')
 
@@ -466,7 +459,6 @@ class Arpa:
         Return a dict where 'results' has the candidates as a list of rdflib Literals.
         """
 
-        text = self._sanitize(text)
         if not text:
             raise ValueError('Empty ARPA query text')
 
