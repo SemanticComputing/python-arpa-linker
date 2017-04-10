@@ -7,7 +7,7 @@ from unittest.mock import patch, Mock
 from requests.exceptions import HTTPError
 from rdflib import Graph, Literal, URIRef
 from arpa import Arpa, ArpaMimic, arpafy, process, parse_args, post, prune_candidates, \
-    map_results, combine_candidates
+    map_results, combine_candidates, combine_values
 
 candidate_response = {
     "locale": "fi",
@@ -1248,7 +1248,7 @@ class TestCombineCandidates(TestCase):
         self.graph.add(self.triple)
         self.graph.add(self.triple2)
 
-    def test_combine(self):
+    def test_combine_candidates(self):
         g = combine_candidates(self.graph, self.prop)
 
         self.assertEqual(self.graph, g)
@@ -1258,6 +1258,16 @@ class TestCombineCandidates(TestCase):
         self.assertTrue('Hanko' in val)
         self.assertTrue('Toinen' in val)
         self.assertTrue(re.match('"\w+" "\w+"', val))
+
+    def test_combine_values(self):
+        values = [Literal('Hanko'), Literal('Helsinki')]
+        self.assertEqual('"Hanko" "Helsinki"', combine_values(values))
+
+        values = [Literal('"Hanko"'), Literal('Helsinki')]
+        self.assertEqual(r'"\"Hanko\"" "Helsinki"', combine_values(values))
+
+        values = [Literal('"Hanko'), Literal('Helsinki')]
+        self.assertEqual(r'"\"Hanko" "Helsinki"', combine_values(values))
 
 if __name__ == '__main__':
     unittest.main()

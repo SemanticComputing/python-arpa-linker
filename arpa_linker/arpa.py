@@ -794,6 +794,13 @@ def parse_args(args):
     return args
 
 
+def combine_values(values):
+    """Combine values into a single string"""
+
+    values = [str(o).replace('"', '\\"') for o in values]
+    return '"' + '" "'.join(values) + '"'
+
+
 def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=None):
     """
     Combine each subject's candidates into a single string.
@@ -824,8 +831,7 @@ def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=
     bar = get_bar(len(subgraph), progress)
 
     for s in subjects:
-        objs = [str(o) for o in subgraph.objects(s)]
-        combined = '\"' + '\" \"'.join(objs) + '\"'
+        combined = combine_values(subgraph.objects(s))
         # Remove the original candidate
         output_graph.remove((s, None, None))
         output_graph.add((s, prop, Literal(combined)))
