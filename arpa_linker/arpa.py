@@ -842,12 +842,18 @@ def combine_candidates(graph, prop, output_graph=None, rdf_class=None, progress=
     return output_graph
 
 
-def process_graph(graph, *args, new_graph=False, prune=False, join_candidates=False,
+def process_graph(graph, target_prop=None, arpa=None, new_graph=False, prune=False, join_candidates=False,
         run_arpafy=True, source_prop=None, rdf_class=None, pruner=None, progress=None, **kwargs):
     """
     Convenience function for running different tasks related to linking.
 
     `graph` is the graph to be processed.
+
+    `target_prop` is the property name that is used for saving the link.
+    Used only if `run_arpafy` is True.
+
+    `arpa` is the `arpa.Arpa` class instance.
+    Used only if `run_arpafy` is True.
 
     If `new_graph` is set, use a new empty graph for adding the results.
 
@@ -897,7 +903,7 @@ def process_graph(graph, *args, new_graph=False, prune=False, join_candidates=Fa
 
     if run_arpafy:
         logger.info('Start arpafy')
-        res = arpafy(graph, *args, source_prop=source_prop, rdf_class=rdf_class,
+        res = arpafy(graph, target_prop=target_prop, arpa=arpa, source_prop=source_prop, rdf_class=rdf_class,
                 output_graph=output_graph, progress=progress, **kwargs)
 
     end_time = time.monotonic()
@@ -963,9 +969,9 @@ def main(args):
     arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore, args.retries)
 
     # Query the ARPA service, add the matches and serialize graph to disk
-    process(args.input, args.fi, args.output, args.fo, args.tprop, arpa,
-            args.prop, args.rdf_class, new_graph=args.new_graph, progress=True,
-            candidates_only=args.candidates_only)
+    process(args.input, args.fi, args.output, args.fo, target_prop=args.tprop,
+            arpa=arpa, source_prop=args.prop, rdf_class=args.rdf_class,
+            new_graph=args.new_graph, progress=True, candidates_only=args.candidates_only)
 
     logging.shutdown()
 

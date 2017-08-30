@@ -2020,12 +2020,18 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="k">return</span> <span class="n">output_graph</span>
 
 
-<span class="k">def</span> <span class="nf">process_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prune</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">join_candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">process_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">target_prop</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">arpa</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prune</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">join_candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
         <span class="n">run_arpafy</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">pruner</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convenience function for running different tasks related to linking.</span>
 
 <span class="sd">    `graph` is the graph to be processed.</span>
+
+<span class="sd">    `target_prop` is the property name that is used for saving the link.</span>
+<span class="sd">    Used only if `run_arpafy` is True.</span>
+
+<span class="sd">    `arpa` is the `arpa.Arpa` class instance.</span>
+<span class="sd">    Used only if `run_arpafy` is True.</span>
 
 <span class="sd">    If `new_graph` is set, use a new empty graph for adding the results.</span>
 
@@ -2075,7 +2081,7 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
 
     <span class="k">if</span> <span class="n">run_arpafy</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Start arpafy&#39;</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">arpafy</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="n">source_prop</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="n">rdf_class</span><span class="p">,</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">arpafy</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">target_prop</span><span class="o">=</span><span class="n">target_prop</span><span class="p">,</span> <span class="n">arpa</span><span class="o">=</span><span class="n">arpa</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="n">source_prop</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="n">rdf_class</span><span class="p">,</span>
                 <span class="n">output_graph</span><span class="o">=</span><span class="n">output_graph</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="n">progress</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
@@ -2141,9 +2147,9 @@ and <a href="https://github.com/SemanticComputing/python-arpa-linker/blob/master
     <span class="n">arpa</span> <span class="o">=</span> <span class="n">Arpa</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">arpa</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">no_duplicates</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">min_ngram</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">ignore</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">retries</span><span class="p">)</span>
 
     <span class="c1"># Query the ARPA service, add the matches and serialize graph to disk</span>
-    <span class="n">process</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fo</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">tprop</span><span class="p">,</span> <span class="n">arpa</span><span class="p">,</span>
-            <span class="n">args</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">rdf_class</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">new_graph</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">candidates_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">candidates_only</span><span class="p">)</span>
+    <span class="n">process</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fo</span><span class="p">,</span> <span class="n">target_prop</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">tprop</span><span class="p">,</span>
+            <span class="n">arpa</span><span class="o">=</span><span class="n">arpa</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rdf_class</span><span class="p">,</span>
+            <span class="n">new_graph</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">new_graph</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">candidates_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">candidates_only</span><span class="p">)</span>
 
     <span class="n">logging</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 
@@ -2435,9 +2441,9 @@ If not given, <code>graph</code> will be modified.</p>
     <span class="n">arpa</span> <span class="o">=</span> <span class="n">Arpa</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">arpa</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">no_duplicates</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">min_ngram</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">ignore</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">retries</span><span class="p">)</span>
 
     <span class="c1"># Query the ARPA service, add the matches and serialize graph to disk</span>
-    <span class="n">process</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fo</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">tprop</span><span class="p">,</span> <span class="n">arpa</span><span class="p">,</span>
-            <span class="n">args</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">rdf_class</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">new_graph</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">candidates_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">candidates_only</span><span class="p">)</span>
+    <span class="n">process</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fi</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">fo</span><span class="p">,</span> <span class="n">target_prop</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">tprop</span><span class="p">,</span>
+            <span class="n">arpa</span><span class="o">=</span><span class="n">arpa</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rdf_class</span><span class="p">,</span>
+            <span class="n">new_graph</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">new_graph</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">candidates_only</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">candidates_only</span><span class="p">)</span>
 
     <span class="n">logging</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 </pre></div>
@@ -2741,7 +2747,7 @@ This overrides any validator object given as the <a href="#arpa.arpafy"><code>ar
       
   <div class="item">
     <div class="name def" id="arpa.process_graph">
-    <p>def <span class="ident">process_graph</span>(</p><p>graph, *args, **kwargs)</p>
+    <p>def <span class="ident">process_graph</span>(</p><p>graph, target_prop=None, arpa=None, new_graph=False, prune=False, join_candidates=False, run_arpafy=True, source_prop=None, rdf_class=None, pruner=None, progress=None, **kwargs)</p>
     </div>
     
 
@@ -2749,6 +2755,10 @@ This overrides any validator object given as the <a href="#arpa.arpafy"><code>ar
   
     <div class="desc"><p>Convenience function for running different tasks related to linking.</p>
 <p><code>graph</code> is the graph to be processed.</p>
+<p><code>target_prop</code> is the property name that is used for saving the link.
+Used only if <code>run_arpafy</code> is True.</p>
+<p><code>arpa</code> is the <a href="#arpa.Arpa"><code>Arpa</code></a> class instance.
+Used only if <code>run_arpafy</code> is True.</p>
 <p>If <code>new_graph</code> is set, use a new empty graph for adding the results.</p>
 <p>If <code>prune</code> is set, prune candidates using <a href="#arpa.prune_candidates"><code>prune_candidates</code></a>.</p>
 <p>If <code>join_candidates</code> is set, combine candidates into a single value using
@@ -2763,12 +2773,18 @@ Useful with <code>join_candidates</code>.</p>
   <div class="source_cont">
   <p class="source_link"><a href="javascript:void(0);" onclick="toggle('source-arpa.process_graph', this);">Show source &equiv;</a></p>
   <div id="source-arpa.process_graph" class="source">
-    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">process_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prune</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">join_candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+    <div class="codehilite"><pre><span class="k">def</span> <span class="nf">process_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">target_prop</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">arpa</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">prune</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">join_candidates</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
         <span class="n">run_arpafy</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">pruner</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convenience function for running different tasks related to linking.</span>
 
 <span class="sd">    `graph` is the graph to be processed.</span>
+
+<span class="sd">    `target_prop` is the property name that is used for saving the link.</span>
+<span class="sd">    Used only if `run_arpafy` is True.</span>
+
+<span class="sd">    `arpa` is the `arpa.Arpa` class instance.</span>
+<span class="sd">    Used only if `run_arpafy` is True.</span>
 
 <span class="sd">    If `new_graph` is set, use a new empty graph for adding the results.</span>
 
@@ -2818,7 +2834,7 @@ Useful with <code>join_candidates</code>.</p>
 
     <span class="k">if</span> <span class="n">run_arpafy</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Start arpafy&#39;</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">arpafy</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="n">source_prop</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="n">rdf_class</span><span class="p">,</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">arpafy</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">target_prop</span><span class="o">=</span><span class="n">target_prop</span><span class="p">,</span> <span class="n">arpa</span><span class="o">=</span><span class="n">arpa</span><span class="p">,</span> <span class="n">source_prop</span><span class="o">=</span><span class="n">source_prop</span><span class="p">,</span> <span class="n">rdf_class</span><span class="o">=</span><span class="n">rdf_class</span><span class="p">,</span>
                 <span class="n">output_graph</span><span class="o">=</span><span class="n">output_graph</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="n">progress</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
