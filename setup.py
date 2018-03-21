@@ -5,9 +5,10 @@ from setuptools import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+
 setup(
     name="arpa_linker",
-    version="0.5.4",
+    version="0.6.0",
     author="Erkki Heino",
     description="Tool for linking rdf datasets to other datasets using ARPA",
     license="MIT",
