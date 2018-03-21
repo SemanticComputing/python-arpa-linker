@@ -61,8 +61,8 @@ optional arguments:
                         has an effect if number of retries is set. Default is
                         1 second.
   --log_level {NOTSET,DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                        Logging level, default is INFO. The log file is
-                        arpa_linker.log.
+                        Logging level, default is INFO.
+  --log_file LOG_FILE   The log file. Default is arpa_linker.log.
 </pre>
 
 The arguments can also be read from a file using "@" (example arg file [arpa.args](https://github.com/SemanticComputing/python-arpa-linker/blob/master/arpa.args)):
@@ -773,7 +773,9 @@ def parse_args(args):
         of retries is set. Default is 1 second.""")
     argparser.add_argument("--log_level", default="INFO",
         choices=["NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Logging level, default is INFO. The log file is arpa_linker.log.")
+        help="Logging level, default is INFO.")
+    argparser.add_argument("--log_file", default="arpa_linker.log",
+        help="The log file. Default is arpa_linker.log.")
 
     args = argparser.parse_args(args)
 
@@ -964,7 +966,7 @@ def main(args):
 
     args = parse_args(args)
 
-    log_to_file('arpa_linker.log', args.log_level)
+    log_to_file(args.log_file, args.log_level)
 
     arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, args.ignore, args.retries)
 

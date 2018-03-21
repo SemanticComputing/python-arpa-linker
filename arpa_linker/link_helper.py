@@ -5,8 +5,8 @@ import logging
 logger = logging.getLogger('arpa_linker.arpa')
 
 
-def init_log(name, level):
-    log_to_file('{}_{}.log'.format(name, time.strftime('%Y%m%d_%H%M%S')), level)
+def init_log(name, level, file_prefix=''):
+    log_to_file('{}{}_{}.log'.format(file_prefix, name, time.strftime('%Y%m%d_%H%M%S')), level)
 
 
 def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pruner=None,
@@ -14,8 +14,8 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
 
     if argv[1] == 'prune':
         # Remove ngrams that will not match anything for sure
-        init_log('prune', log_level)
         args = parse_args(argv[2:])
+        init_log('_prune', log_level, args.log_file)
         process(args.input, args.fi, args.output, args.fo, args.tprop, prune=True,
                 pruner=pruner, source_prop=args.prop, rdf_class=args.rdf_class,
                 new_graph=args.new_graph, run_arpafy=False, progress=True)
@@ -36,11 +36,11 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
         f.close()
 
         if argv[1] == 'disambiguate_validate':
-            init_log('validate', log_level)
+            init_log('_validate', log_level, args.log_file)
             val = validator_class
             dupl = remove_duplicates
         else:
-            init_log('disambiguate', log_level)
+            init_log('_disambiguate', log_level, args.log_file)
             val = None
             dupl = False
 
@@ -54,8 +54,8 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
     elif 'raw' in argv[1]:
         # No preprocessing or validation
 
-        init_log('raw', log_level)
         args = parse_args(argv[2:])
+        init_log('_raw', log_level, args.log_file)
         arpa = Arpa(args.arpa, retries=args.retries, wait_between_tries=args.wait)
 
         # Query the ARPA service, add the matches and serialize the graph to disk.
@@ -64,8 +64,8 @@ def process_stage(argv, ignore=None, validator_class=None, preprocessor=None, pr
                 progress=True, candidates_only=args.candidates_only)
 
     else:
-        init_log('arpa', log_level)
         args = parse_args(argv[1:])
+        init_log('_arpa', log_level, args.log_file)
         arpa = Arpa(args.arpa, args.no_duplicates, args.min_ngram, ignore,
                 retries=args.retries, wait_between_tries=args.wait)
 
